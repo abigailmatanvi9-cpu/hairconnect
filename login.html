@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Connexion — HairConnect</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body class="login-page hc-theme-pro login-page--beauty">
+
+<div class="login-hero">
+    <button type="button" class="login-hero__back" id="loginBackBtn" aria-label="Retour">
+        <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M15.75 19.5 8.25 12l7.5-7.5"/></svg>
+    </button>
+    <img
+        class="login-hero__img"
+        src="images/login-hero.png"
+        alt="Intérieur de salon de coiffure"
+        width="1200"
+        height="640"
+        loading="eager"
+        decoding="async"
+    >
+</div>
+
+<div class="login-container login-container--beauty">
+    <div class="login-beauty-blobs" aria-hidden="true">
+        <span class="login-beauty-blobs__circle login-beauty-blobs__circle--1"></span>
+        <span class="login-beauty-blobs__circle login-beauty-blobs__circle--2"></span>
+        <span class="login-beauty-blobs__circle login-beauty-blobs__circle--3"></span>
+    </div>
+
+    <p class="login-greeting">BONJOUR !</p>
+    <p class="login-tagline">Trouvez les meilleures prestations beauté près de chez vous.</p>
+
+    <form id="loginForm" class="register-form login-form--beauty">
+        <p id="formError" class="form-error" role="alert" hidden></p>
+
+        <div class="field-group field-group--beauty">
+            <label class="sr-only" for="email">E-mail</label>
+            <div class="field-input-wrap field-input-wrap--beauty">
+                <input type="email" id="email" name="email" placeholder="E-mail" autocomplete="email" required>
+            </div>
+        </div>
+
+        <div class="field-group field-group--beauty">
+            <label class="sr-only" for="password">Mot de passe</label>
+            <div class="field-input-wrap field-input-wrap--beauty">
+                <input type="password" id="password" name="password" placeholder="Mot de passe" autocomplete="current-password" required>
+            </div>
+        </div>
+
+        <p class="login-forgot-wrap login-forgot-wrap--beauty">
+            <a href="#" class="login-forgot">Mot de passe oublié ?</a>
+        </p>
+
+        <button type="submit" class="register-submit login-submit--beauty" id="loginSubmit">CONNEXION</button>
+    </form>
+
+    <p class="register-footer register-footer--beauty">
+        <a href="register.html">Créer un compte</a>
+    </p>
+</div>
+
+<script type="module">
+import { loginUser, getFirebaseErrorMessage } from "./firebase.js";
+
+const form = document.getElementById("loginForm");
+const formError = document.getElementById("formError");
+const submitBtn = document.getElementById("loginSubmit");
+
+/** Évite le cycle tableau de bord → connexion si l’utilisateur n’est pas connecté. */
+function navigateLoginBack() {
+    const ref = document.referrer || "";
+    let refFile = "";
+    try {
+        if (ref) refFile = new URL(ref).pathname.split("/").pop().toLowerCase() || "";
+    } catch {
+        refFile = "";
+    }
+
+    if (/dashboard\.html/i.test(ref)) {
+        window.location.replace("index.html");
+        return;
+    }
+
+    const sameSite = ref.startsWith(`${location.origin}`);
+    if (sameSite && refFile && refFile !== "login.html" && window.history.length > 1) {
+        window.history.back();
+        return;
+    }
+
+    window.location.replace("index.html");
+}
+
+document.getElementById("loginBackBtn")?.addEventListener("click", () => navigateLoginBack());
+
+form.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    formError.hidden = true;
+    formError.textContent = "";
+
+    const email = document.getElementById("email").value.trim();
+    const password = document.getElementById("password").value;
+
+    if (!email || !password) {
+        formError.textContent = "Veuillez saisir l'e-mail et le mot de passe.";
+        formError.hidden = false;
+        return;
+    }
+
+    submitBtn.disabled = true;
+    try {
+        await loginUser(email, password);
+        window.location.href = "dashboard.html";
+    } catch (err) {
+        console.error(err);
+        formError.textContent = getFirebaseErrorMessage(err);
+        formError.hidden = false;
+    } finally {
+        submitBtn.disabled = false;
+    }
+});
+</script>
+
+</body>
+</html>

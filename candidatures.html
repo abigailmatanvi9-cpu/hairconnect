@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Candidatures — HairConnect</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body class="login-page hc-theme-pro">
+
+<div class="login-container subpage-container subpage-wide">
+    <header class="login-header">
+        <a href="dashboard.html" class="login-back" aria-label="Retour">
+            <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M15.75 19.5 8.25 12l7.5-7.5"/></svg>
+        </a>
+        <h1 class="login-title">Candidatures</h1>
+    </header>
+
+    <p id="err" class="form-error" role="alert" hidden></p>
+    <ul id="list" class="pro-list"></ul>
+</div>
+
+<script type="module">
+import {
+    auth,
+    fetchUserProfile,
+    listCandidaturesForCoiffeur,
+    listCandidaturesForSalon,
+    getFirebaseErrorMessage
+} from "./firebase.js";
+import { onAuthStateChanged } from "./firebase.js";
+
+const listEl = document.getElementById("list");
+const errEl = document.getElementById("err");
+
+function escapeHtml(s) {
+    return String(s)
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;");
+}
+
+function normalizeRole(raw) {
+    const role = String(raw || "").trim().toLowerCase();
+    if (role === "coiffeur" || role === "coiffeuse" || role === "coiffeur indépendant" || role === "coiffeuse indépendante") return "coiffeur";
+    if (role === "salon") return "salon";
+    return "unknown";
+}
+
+onAuthStateChanged(auth, async (user) => {
+    if (!user) {
+        window.location.href = "login.html";
+        return;
+    }
+    const prof = await fetchUserProfile(user.uid);
+    const role = normalizeRole(prof?.role);
+    listEl.innerHTML = "";
+    try {
+        let rows = [];
+        if (role === "coiffeur") {
+            rows = await listCandidaturesForCoiffeur(user.uid);
+        } else if (role === "salon") {
+            rows = await listCandidaturesForSalon(user.uid);
+        } else {
+            errEl.textContent = "Réservé aux coiffeurs et aux salons.";
+            errEl.hidden = false;
+            return;
+        }
+        if (!rows.length) {
+            const li = document.createElement("li");
+            li.className = "pro-card pro-card--empty";
+            li.textContent = "Aucune candidature.";
+            listEl.appendChild(li);
+            return;
+        }
+        for (const c of rows) {
+            const li = document.createElement("li");
+            li.className = "pro-card";
+            const extra =
+                role === "salon"
+                    ? "<p class=\"pro-card-snippet\">Coiffeur : <code>" +
+                      escapeHtml(c.coiffeurUid || "") +
+                      "</code></p>"
+                    : "<p class=\"pro-card-snippet\">Offre : <code>" +
+                      escapeHtml(c.offerId || "") +
+                      "</code></p>";
+            li.innerHTML =
+                "<strong>Candidature</strong>" +
+                extra +
+                "<p class=\"pro-card-snippet\">" +
+                escapeHtml(c.message || "(pas de message)") +
+                "</p>" +
+                "<p class=\"pro-card-links\"><a href=\"messagerie.html?to=" +
+                encodeURIComponent(role === "salon" ? c.coiffeurUid : c.salonUid) +
+                "\">Écrire</a></p>";
+            listEl.appendChild(li);
+        }
+    } catch (e) {
+        errEl.textContent = getFirebaseErrorMessage(e);
+        errEl.hidden = false;
+    }
+});
+</script>
+
+</body>
+</html>

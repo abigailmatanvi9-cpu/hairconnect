@@ -1,0 +1,624 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Marketplace — HairConnect</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body class="login-page hc-theme-pro">
+<div class="login-container subpage-container subpage-wide market-page">
+    <header class="login-header jobs-page__header">
+        <a href="dashboard.html" class="login-back" aria-label="Retour">
+            <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M15.75 19.5 8.25 12l7.5-7.5"/></svg>
+        </a>
+        <h1 class="login-title">Marketplace Coiffure</h1>
+    </header>
+
+    <p class="subpage-lead">Articles de la communauté HairConnect. Commission plateforme sur chaque vente : <strong>10&nbsp;%</strong>. Utilisez les onglets pour séparer achat et vente.</p>
+    <p id="marketErr" class="form-error" role="alert" hidden></p>
+    <p id="marketOk" class="form-success" role="status" hidden></p>
+
+    <div class="jobs-tabs market-mode-tabs" role="tablist" aria-label="Mode marketplace">
+        <button type="button" class="jobs-tab is-active" id="marketTabBuy" role="tab" aria-selected="true" aria-controls="marketPanelBuy" data-market-tab="buy">Acheter</button>
+        <button type="button" class="jobs-tab" id="marketTabSell" role="tab" aria-selected="false" aria-controls="marketPanelSell" data-market-tab="sell">Vendre</button>
+    </div>
+
+    <div id="marketPanelBuy" class="market-panel" role="tabpanel" aria-labelledby="marketTabBuy">
+        <p class="market-panel__lead">Catalogue, panier et suivi de vos commandes en tant qu’acheteur.</p>
+
+        <section class="market-cart" id="marketCartSection" aria-label="Panier" hidden>
+            <div class="market-cart__head">
+                <h2 class="market-cart__title">Panier</h2>
+                <button type="button" class="jobs-card__delete" id="marketCartClear" hidden>Vider</button>
+            </div>
+            <ul id="marketCartLines" class="market-cart__lines"></ul>
+            <div class="market-cart__foot" id="marketCartFoot" hidden>
+                <span class="market-cart__total" id="marketCartTotal"></span>
+                <button type="button" class="register-submit" id="marketCheckoutBtn">Valider le panier</button>
+            </div>
+        </section>
+
+        <div class="jobs-search">
+            <span class="jobs-search__icon" aria-hidden="true">🔎</span>
+            <input id="marketSearchInput" class="jobs-search__input" type="search" placeholder="Rechercher un article, une catégorie, un vendeur...">
+        </div>
+
+        <section class="jobs-summary-card" aria-live="polite">
+            <div class="jobs-summary-card__text">
+                <p id="marketCountText" class="jobs-summary-card__title">0 article</p>
+                <p class="jobs-summary-card__subtitle">Commande sur la plateforme</p>
+            </div>
+        </section>
+
+        <ul id="marketProductsList" class="jobs-list"></ul>
+
+        <section class="jobs-create market-orders">
+            <h2 class="subpage-h2">Mes commandes</h2>
+            <ul id="marketBuyerOrdersList" class="jobs-list"></ul>
+        </section>
+    </div>
+
+    <div id="marketPanelSell" class="market-panel" role="tabpanel" aria-labelledby="marketTabSell" hidden>
+        <p class="market-panel__lead">Publiez vos articles et gérez vos ventes jusqu’à la livraison.</p>
+
+        <section class="jobs-create market-publish">
+            <h2 class="subpage-h2">Publier un article</h2>
+            <form id="marketProductForm" class="register-form">
+                <div class="field-group">
+                    <label class="field-label" for="marketTitle">Titre</label>
+                    <div class="field-input-wrap"><input id="marketTitle" type="text" required></div>
+                </div>
+                <div class="field-group">
+                    <label class="field-label" for="marketCategory">Catégorie</label>
+                    <div class="field-input-wrap"><input id="marketCategory" type="text" placeholder="Ex. Ciseaux, soin, tondeuse"></div>
+                </div>
+                <div class="field-group">
+                    <label class="field-label" for="marketPrice">Prix (FCFA)</label>
+                    <div class="field-input-wrap"><input id="marketPrice" type="number" min="100" step="100" required></div>
+                </div>
+                <div class="field-group">
+                    <label class="field-label" for="marketStock">Stock</label>
+                    <div class="field-input-wrap"><input id="marketStock" type="number" min="1" step="1" value="1" required></div>
+                </div>
+                <div class="field-group">
+                    <label class="field-label" for="marketPhoto">Photo URL (optionnel)</label>
+                    <div class="field-input-wrap"><input id="marketPhoto" type="url" placeholder="https://..."></div>
+                </div>
+                <div class="field-group">
+                    <label class="field-label" for="marketDescription">Description</label>
+                    <textarea id="marketDescription" class="field-textarea" rows="4" required></textarea>
+                </div>
+                <button type="submit" class="register-submit" id="marketPublishBtn">Publier l'article</button>
+            </form>
+        </section>
+
+        <section class="jobs-create market-orders">
+            <h2 class="subpage-h2">Mes ventes</h2>
+            <ul id="marketSellerOrdersList" class="jobs-list"></ul>
+        </section>
+    </div>
+</div>
+
+<script type="module">
+import {
+    auth,
+    onAuthStateChanged,
+    fetchUserProfile,
+    listMarketplaceProducts,
+    createMarketplaceProduct,
+    deleteMarketplaceProduct,
+    createMarketplaceOrder,
+    cancelMarketplaceOrder,
+    listMarketplaceOrders,
+    updateMarketplaceOrderStatus,
+    getFirebaseErrorMessage
+} from "./firebase.js";
+
+const listEl = document.getElementById("marketProductsList");
+const searchEl = document.getElementById("marketSearchInput");
+const countEl = document.getElementById("marketCountText");
+const errEl = document.getElementById("marketErr");
+const okEl = document.getElementById("marketOk");
+const buyerOrdersEl = document.getElementById("marketBuyerOrdersList");
+const sellerOrdersEl = document.getElementById("marketSellerOrdersList");
+const cartSection = document.getElementById("marketCartSection");
+const cartLinesEl = document.getElementById("marketCartLines");
+const cartFoot = document.getElementById("marketCartFoot");
+const cartTotalEl = document.getElementById("marketCartTotal");
+const cartClearBtn = document.getElementById("marketCartClear");
+const checkoutBtn = document.getElementById("marketCheckoutBtn");
+const marketTabBuy = document.getElementById("marketTabBuy");
+const marketTabSell = document.getElementById("marketTabSell");
+const marketPanelBuy = document.getElementById("marketPanelBuy");
+const marketPanelSell = document.getElementById("marketPanelSell");
+const MARKET_TAB_KEY = "hc_market_tab";
+
+function marketTabFromHash() {
+    const h = (location.hash || "").replace(/^#/, "").toLowerCase();
+    if (h === "vendre" || h === "sell") return "sell";
+    if (h === "acheter" || h === "buy") return "buy";
+    return null;
+}
+
+function normalizeMarketTab(t) {
+    return t === "sell" ? "sell" : "buy";
+}
+
+function getInitialMarketTab() {
+    const fromHash = marketTabFromHash();
+    if (fromHash) return fromHash;
+    try {
+        const s = localStorage.getItem(MARKET_TAB_KEY);
+        if (s === "sell" || s === "buy") return s;
+    } catch {
+        /* ignore */
+    }
+    return "buy";
+}
+
+function syncMarketTabHash(tab) {
+    const want = tab === "sell" ? "vendre" : "acheter";
+    const cur = (location.hash || "").replace(/^#/, "").toLowerCase();
+    if (cur !== want) {
+        history.replaceState(null, "", `#${want}`);
+    }
+}
+
+function applyMarketTab(tab) {
+    if (!marketTabBuy || !marketTabSell || !marketPanelBuy || !marketPanelSell) return;
+    tab = normalizeMarketTab(tab);
+    const isSell = tab === "sell";
+    marketTabBuy.classList.toggle("is-active", !isSell);
+    marketTabSell.classList.toggle("is-active", isSell);
+    marketTabBuy.setAttribute("aria-selected", String(!isSell));
+    marketTabSell.setAttribute("aria-selected", String(isSell));
+    marketPanelBuy.hidden = isSell;
+    marketPanelSell.hidden = !isSell;
+    try {
+        localStorage.setItem(MARKET_TAB_KEY, tab);
+    } catch {
+        /* ignore */
+    }
+    syncMarketTabHash(tab);
+}
+
+function initMarketTabs() {
+    if (!marketTabBuy || !marketTabSell || !marketPanelBuy || !marketPanelSell) return;
+    applyMarketTab(getInitialMarketTab());
+    marketTabBuy.parentElement?.addEventListener("click", (e) => {
+        const btn = e.target.closest("[data-market-tab]");
+        if (!btn) return;
+        applyMarketTab(btn.getAttribute("data-market-tab"));
+    });
+    window.addEventListener("hashchange", () => {
+        const t = marketTabFromHash();
+        if (t) applyMarketTab(t);
+    });
+}
+
+initMarketTabs();
+
+let me = null;
+let profile = null;
+let products = [];
+let searchTerm = "";
+let cartItems = [];
+
+function escapeHtml(s) {
+    return String(s || "")
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;");
+}
+
+function money(v) {
+    const n = Number(v || 0);
+    return `${n.toLocaleString("fr-FR")} FCFA`;
+}
+
+function displayNameFromProfile(p, user) {
+    if (!p) return user?.email || "Vendeur";
+    return p.salonName || p.name || user?.email || "Vendeur";
+}
+
+function cartStorageKey() {
+    return me ? `hc_market_cart_${me.uid}` : "";
+}
+
+function readCartFromStorage() {
+    const key = cartStorageKey();
+    if (!key) return [];
+    try {
+        const raw = localStorage.getItem(key);
+        const parsed = raw ? JSON.parse(raw) : [];
+        return Array.isArray(parsed) ? parsed : [];
+    } catch {
+        return [];
+    }
+}
+
+function saveCartToStorage() {
+    const key = cartStorageKey();
+    if (!key) return;
+    localStorage.setItem(key, JSON.stringify(cartItems));
+}
+
+function productById(id) {
+    return products.find((p) => String(p.id) === String(id)) || null;
+}
+
+function cartQtyForProduct(productId) {
+    const row = cartItems.find((c) => String(c.productId) === String(productId));
+    return row ? Number(row.quantity || 0) : 0;
+}
+
+function setCartQty(productId, qty) {
+    const q = Math.max(0, Math.floor(Number(qty) || 0));
+    cartItems = cartItems.filter((c) => String(c.productId) !== String(productId));
+    if (q > 0) cartItems.push({ productId, quantity: q });
+    saveCartToStorage();
+    renderCart();
+}
+
+function addToCart(productId, delta) {
+    const p = productById(productId);
+    if (!p || !me) return;
+    if (String(p.sellerUid || "") === String(me.uid || "")) {
+        showError("Vous ne pouvez pas ajouter vos propres articles au panier.");
+        return;
+    }
+    const stock = Number(p.stock || 0);
+    const cur = cartQtyForProduct(productId);
+    const next = cur + delta;
+    if (next > stock) {
+        showError("Quantité supérieure au stock disponible.");
+        return;
+    }
+    if (next < 1) {
+        setCartQty(productId, 0);
+        return;
+    }
+    setCartQty(productId, next);
+    errEl.hidden = true;
+    showOk("Panier mis à jour.");
+}
+
+function clearCart() {
+    cartItems = [];
+    saveCartToStorage();
+    renderCart();
+}
+
+function renderCart() {
+    if (!me || !cartSection) return;
+    cartSection.hidden = false;
+    cartItems = readCartFromStorage();
+    const valid = [];
+    let subtotal = 0;
+    cartLinesEl.innerHTML = "";
+    cartItems.forEach((row) => {
+        const p = productById(row.productId);
+        const qty = Math.max(1, Number(row.quantity || 1));
+        if (!p) return;
+        if (String(p.sellerUid || "") === String(me.uid || "")) return;
+        valid.push({ productId: p.id, quantity: qty });
+        subtotal += Number(p.priceFcfa) * qty;
+        const li = document.createElement("li");
+        li.className = "market-cart__line";
+        li.innerHTML =
+            `<span><strong>${escapeHtml(p.title)}</strong> × ${qty} · ${money(p.priceFcfa)}</span>` +
+            `<span class="market-cart__qty">` +
+            `<button type="button" data-cart-dec="${escapeHtml(p.id)}" aria-label="Diminuer">−</button>` +
+            `<span>${qty}</span>` +
+            `<button type="button" data-cart-inc="${escapeHtml(p.id)}" aria-label="Augmenter">+</button>` +
+            `<button type="button" class="market-cart__remove" data-cart-remove="${escapeHtml(p.id)}">Retirer</button>` +
+            `</span>`;
+        cartLinesEl.appendChild(li);
+    });
+    if (JSON.stringify(valid) !== JSON.stringify(cartItems)) {
+        cartItems = valid;
+        saveCartToStorage();
+    }
+    const has = valid.length > 0;
+    cartFoot.hidden = !has;
+    cartClearBtn.hidden = !has;
+    if (has) {
+        cartTotalEl.textContent = `Sous-total : ${money(subtotal)} (commission 10 % déduite côté vendeur)`;
+    }
+}
+
+function filteredProducts() {
+    const q = searchTerm.trim().toLowerCase();
+    if (!q) return products;
+    return products.filter((p) =>
+        `${p.title || ""} ${p.description || ""} ${p.category || ""} ${p.sellerName || ""}`.toLowerCase().includes(q)
+    );
+}
+
+function renderProducts() {
+    const rows = filteredProducts();
+    countEl.textContent = `${rows.length} article${rows.length > 1 ? "s" : ""}`;
+    listEl.innerHTML = "";
+    if (!rows.length) {
+        const li = document.createElement("li");
+        li.className = "jobs-empty";
+        li.textContent = "Aucun article trouvé.";
+        listEl.appendChild(li);
+        return;
+    }
+    rows.forEach((p) => {
+        const mine = me && String(p.sellerUid || "") === String(me.uid || "");
+        const stock = Number(p.stock || 0);
+        const unavailable = String(p.status || "") !== "active" || stock <= 0;
+        const inCart = cartQtyForProduct(p.id);
+        const li = document.createElement("li");
+        li.className = "jobs-item";
+        li.innerHTML =
+            `<article class="jobs-card market-card">` +
+            `<div class="jobs-card__top">` +
+            `<div class="jobs-card__thumb" aria-hidden="true">${p.photoUrl ? `<img src="${escapeHtml(p.photoUrl)}" alt="" class="market-card__img">` : ""}</div>` +
+            `<div class="jobs-card__head">` +
+            `<h3 class="jobs-card__title">${escapeHtml(p.title || "Article")}</h3>` +
+            `<p class="jobs-card__salon">Vendeur : ${escapeHtml(p.sellerName || "—")}</p>` +
+            `<p class="jobs-card__meta">${escapeHtml(p.category || "Catégorie libre")} · Stock: ${stock}${inCart ? ` · Dans le panier : ${inCart}` : ""}</p>` +
+            `</div>` +
+            `<span class="jobs-badge">${money(p.priceFcfa)}</span>` +
+            `</div>` +
+            `<p class="jobs-card__desc">${escapeHtml(p.description || "")}</p>` +
+            `<div class="jobs-card__foot">` +
+            `<span class="jobs-card__date">Commission plateforme : 10 %</span>` +
+            `<div class="jobs-card__foot-actions">` +
+            (mine
+                ? `<button type="button" class="jobs-card__delete" data-market-delete="${escapeHtml(p.id)}">Supprimer</button>`
+                : `<button type="button" class="jobs-card__apply ${unavailable ? "jobs-card__apply--disabled" : ""}" data-market-add="${escapeHtml(p.id)}" ${unavailable ? "disabled" : ""}>${unavailable ? "Indisponible" : "Ajouter au panier"}</button>`) +
+            `</div></div></article>`;
+        listEl.appendChild(li);
+    });
+}
+
+function orderLinesHtml(o) {
+    const items = Array.isArray(o.items) ? o.items : [];
+    if (!items.length) return "";
+    const lis = items
+        .map(
+            (it) =>
+                `<li>${escapeHtml(it.productTitle || "")} × ${Number(it.quantity || 0)} — ${money(it.lineTotalFcfa)}</li>`
+        )
+        .join("");
+    return `<ul class="market-order-lines">${lis}</ul>`;
+}
+
+function renderOrders(target, rows, type) {
+    target.innerHTML = "";
+    if (!rows.length) {
+        const li = document.createElement("li");
+        li.className = "jobs-empty";
+        li.textContent = type === "seller" ? "Aucune vente." : "Aucune commande.";
+        target.appendChild(li);
+        return;
+    }
+    rows.forEach((o) => {
+        const st = String(o.status || "");
+        const canProgress = type === "seller" && ["pending", "confirmed", "shipped"].includes(st);
+        const next =
+            st === "pending" ? "confirmed" : st === "confirmed" ? "shipped" : st === "shipped" ? "delivered" : "";
+        const canCancel = ["pending", "confirmed"].includes(st);
+        const cancelAttr =
+            type === "buyer"
+                ? `data-order-cancel-buyer="${escapeHtml(o.id)}"`
+                : `data-order-cancel-seller="${escapeHtml(o.id)}"`;
+        const li = document.createElement("li");
+        li.className = "jobs-item";
+        li.innerHTML =
+            `<article class="jobs-card">` +
+            `<h3 class="jobs-card__title">Commande #${escapeHtml(o.id.slice(0, 8))}</h3>` +
+            `<p class="jobs-card__meta">Statut: <strong>${escapeHtml(st)}</strong></p>` +
+            orderLinesHtml(o) +
+            `<p class="jobs-card__desc">Total: ${money(o.subtotalFcfa)} · Commission: ${money(o.platformFeeFcfa)} · Net vendeur: ${money(o.sellerNetFcfa)}</p>` +
+            `<div class="jobs-card__foot"><span class="jobs-card__date">${new Date(o.createdAt).toLocaleString("fr-FR")}</span>` +
+            `<div class="jobs-card__foot-actions">` +
+            (canCancel ? `<button type="button" class="jobs-card__delete" ${cancelAttr}>Annuler</button>` : "") +
+            (canProgress ? `<button type="button" class="jobs-card__apply" data-order-next="${escapeHtml(o.id)}" data-next-status="${next}">Passer à ${next}</button>` : "") +
+            `</div></div>` +
+            `</article>`;
+        target.appendChild(li);
+    });
+}
+
+async function loadProducts() {
+    const res = await listMarketplaceProducts();
+    products = res.products || [];
+    renderProducts();
+    renderCart();
+}
+
+async function loadOrders() {
+    if (!me) return;
+    const [buyer, seller] = await Promise.all([
+        listMarketplaceOrders({ buyerUid: me.uid }),
+        listMarketplaceOrders({ sellerUid: me.uid })
+    ]);
+    renderOrders(buyerOrdersEl, buyer.orders || [], "buyer");
+    renderOrders(sellerOrdersEl, seller.orders || [], "seller");
+}
+
+function showError(msg) {
+    errEl.textContent = msg;
+    errEl.hidden = false;
+}
+
+function showOk(msg) {
+    okEl.textContent = msg;
+    okEl.hidden = false;
+}
+
+onAuthStateChanged(auth, async (user) => {
+    if (!user) {
+        window.location.href = "login.html";
+        return;
+    }
+    me = user;
+    cartItems = readCartFromStorage();
+    try {
+        profile = await fetchUserProfile(me.uid);
+        await Promise.all([loadProducts(), loadOrders()]);
+        renderCart();
+    } catch (e) {
+        showError(getFirebaseErrorMessage(e));
+    }
+});
+
+searchEl.addEventListener("input", () => {
+    searchTerm = searchEl.value || "";
+    renderProducts();
+});
+
+listEl.addEventListener("click", async (e) => {
+    const addBtn = e.target.closest("[data-market-add]");
+    const delBtn = e.target.closest("[data-market-delete]");
+    errEl.hidden = true;
+    okEl.hidden = true;
+    try {
+        if (addBtn) {
+            const id = addBtn.getAttribute("data-market-add");
+            if (!id || !me) return;
+            addToCart(id, 1);
+            renderProducts();
+            return;
+        }
+        if (delBtn) {
+            const id = delBtn.getAttribute("data-market-delete");
+            if (!id || !me) return;
+            if (!window.confirm("Supprimer cet article de la marketplace ?")) return;
+            delBtn.disabled = true;
+            await deleteMarketplaceProduct(id, me.uid);
+            showOk("Article supprimé.");
+            cartItems = readCartFromStorage().filter((c) => String(c.productId) !== String(id));
+            saveCartToStorage();
+            await loadProducts();
+        }
+    } catch (e1) {
+        showError(getFirebaseErrorMessage(e1));
+    }
+});
+
+cartLinesEl.addEventListener("click", (e) => {
+    const inc = e.target.closest("[data-cart-inc]");
+    const dec = e.target.closest("[data-cart-dec]");
+    const rem = e.target.closest("[data-cart-remove]");
+    errEl.hidden = true;
+    okEl.hidden = true;
+    if (inc) {
+        addToCart(inc.getAttribute("data-cart-inc"), 1);
+        renderProducts();
+    } else if (dec) {
+        addToCart(dec.getAttribute("data-cart-dec"), -1);
+        renderProducts();
+    } else if (rem) {
+        setCartQty(rem.getAttribute("data-cart-remove"), 0);
+        renderProducts();
+    }
+});
+
+cartClearBtn.addEventListener("click", () => {
+    if (!window.confirm("Vider tout le panier ?")) return;
+    clearCart();
+    renderProducts();
+});
+
+checkoutBtn.addEventListener("click", async () => {
+    if (!me) return;
+    const lines = readCartFromStorage().filter((c) => Number(c.quantity || 0) > 0);
+    if (!lines.length) {
+        showError("Votre panier est vide.");
+        return;
+    }
+    errEl.hidden = true;
+    okEl.hidden = true;
+    checkoutBtn.disabled = true;
+    try {
+        const res = await createMarketplaceOrder(me.uid, lines);
+        const n = (res.orders || []).length;
+        showOk(n > 1 ? `${n} commandes créées (une par vendeur).` : "Commande créée.");
+        clearCart();
+        await Promise.all([loadProducts(), loadOrders()]);
+    } catch (e2) {
+        showError(getFirebaseErrorMessage(e2));
+    } finally {
+        checkoutBtn.disabled = false;
+    }
+});
+
+async function handleOrderCancel(id, asBuyer) {
+    if (!id || !me) return;
+    if (!window.confirm("Annuler cette commande ? Les stocks seront rétablis.")) return;
+    errEl.hidden = true;
+    okEl.hidden = true;
+    try {
+        if (asBuyer) await cancelMarketplaceOrder(id, { buyerUid: me.uid });
+        else await cancelMarketplaceOrder(id, { sellerUid: me.uid });
+        showOk("Commande annulée, stocks rétablis.");
+        await Promise.all([loadProducts(), loadOrders()]);
+    } catch (e3) {
+        showError(getFirebaseErrorMessage(e3));
+    }
+}
+
+buyerOrdersEl.addEventListener("click", (e) => {
+    const btn = e.target.closest("[data-order-cancel-buyer]");
+    if (btn) handleOrderCancel(btn.getAttribute("data-order-cancel-buyer"), true);
+});
+
+sellerOrdersEl.addEventListener("click", async (e) => {
+    const cancelBtn = e.target.closest("[data-order-cancel-seller]");
+    if (cancelBtn) {
+        await handleOrderCancel(cancelBtn.getAttribute("data-order-cancel-seller"), false);
+        return;
+    }
+    const btn = e.target.closest("[data-order-next]");
+    if (!btn || !me) return;
+    const id = btn.getAttribute("data-order-next");
+    const status = btn.getAttribute("data-next-status");
+    if (!id || !status) return;
+    errEl.hidden = true;
+    okEl.hidden = true;
+    btn.disabled = true;
+    try {
+        await updateMarketplaceOrderStatus(id, me.uid, status);
+        showOk(`Commande mise à jour: ${status}.`);
+        await loadOrders();
+    } catch (e4) {
+        showError(getFirebaseErrorMessage(e4));
+    }
+});
+
+document.getElementById("marketProductForm").addEventListener("submit", async (e) => {
+    e.preventDefault();
+    if (!me) return;
+    errEl.hidden = true;
+    okEl.hidden = true;
+    const btn = document.getElementById("marketPublishBtn");
+    btn.disabled = true;
+    try {
+        await createMarketplaceProduct(me.uid, displayNameFromProfile(profile, me), {
+            title: document.getElementById("marketTitle").value,
+            category: document.getElementById("marketCategory").value,
+            priceFcfa: document.getElementById("marketPrice").value,
+            stock: document.getElementById("marketStock").value,
+            photoUrl: document.getElementById("marketPhoto").value,
+            description: document.getElementById("marketDescription").value
+        });
+        showOk("Article publié.");
+        e.target.reset();
+        await loadProducts();
+    } catch (e5) {
+        showError(getFirebaseErrorMessage(e5));
+    } finally {
+        btn.disabled = false;
+    }
+});
+</script>
+</body>
+</html>

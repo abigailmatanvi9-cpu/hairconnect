@@ -1,0 +1,25 @@
+# Dépendances
+node_modules/
+
+# Secrets — ne jamais pousser (copier .env.example vers .env en local)
+.env
+.env.local
+.env.*.local
+
+# Données locales / cache
+.data/
+
+# OS & éditeurs
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+.idea/
+.vscode/
+
+# Logs
+*.log
+npm-debug.log*
+
+# Prisma (garder prisma/schema.prisma et migrations ; ignorer si généré localement)
+# node_modules/.prisma est déjà sous node_modules/

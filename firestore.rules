@@ -1,0 +1,62 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Profils : lecture pour tout utilisateur connecté (recherche / annuaire)
+    match /users/{userId} {
+      allow read: if request.auth != null;
+      allow create: if request.auth != null && request.auth.uid == userId;
+      allow update, delete: if request.auth != null && request.auth.uid == userId;
+    }
+
+    match /messages/{msgId} {
+      allow read: if request.auth != null && (
+        resource.data.fromUid == request.auth.uid ||
+        resource.data.toUid == request.auth.uid
+      );
+      allow create: if request.auth != null
+        && request.resource.data.fromUid == request.auth.uid
+        && request.resource.data.toUid is string
+        && request.resource.data.text is string
+        && request.resource.data.text.size() > 0;
+    }
+
+    match /avis/{id} {
+      allow read: if request.auth != null;
+      allow create: if request.auth != null
+        && request.resource.data.fromClientUid == request.auth.uid
+        && request.resource.data.toProUid is string
+        && request.resource.data.rating is int
+        && request.resource.data.comment is string;
+    }
+
+    match /demandesDomicile/{id} {
+      allow read: if request.auth != null && (
+        resource.data.clientUid == request.auth.uid ||
+        resource.data.proUid == request.auth.uid
+      );
+      allow create: if request.auth != null
+        && request.resource.data.clientUid == request.auth.uid
+        && request.resource.data.message is string;
+    }
+
+    match /offres/{id} {
+      allow read: if request.auth != null;
+      allow create: if request.auth != null
+        && request.resource.data.salonUid == request.auth.uid;
+      allow update, delete: if request.auth != null
+        && resource.data.salonUid == request.auth.uid;
+    }
+
+    match /candidatures/{id} {
+      allow read: if request.auth != null && (
+        resource.data.coiffeurUid == request.auth.uid ||
+        resource.data.salonUid == request.auth.uid
+      );
+      allow create: if request.auth != null
+        && request.resource.data.coiffeurUid == request.auth.uid
+        && request.resource.data.salonUid is string
+        && request.resource.data.offerId is string;
+    }
+  }
+}

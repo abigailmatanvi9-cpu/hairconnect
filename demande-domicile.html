@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Prestation à domicile — HairConnect</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body class="login-page hc-theme-pro">
+
+<div class="login-container subpage-container">
+    <header class="login-header">
+        <a href="dashboard.html" class="login-back" aria-label="Retour">
+            <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M15.75 19.5 8.25 12l7.5-7.5"/></svg>
+        </a>
+        <h1 class="login-title">Demande à domicile</h1>
+    </header>
+
+    <p class="subpage-lead">Décrivez votre besoin. Si vous ciblez un professionnel précis, sélectionnez-le dans la liste.</p>
+
+    <form id="f" class="register-form">
+        <p id="formError" class="form-error" role="alert" hidden></p>
+        <p id="formOk" class="form-success" role="status" hidden></p>
+        <div class="field-group">
+            <label class="field-label" for="proUid">Professionnel (optionnel)</label>
+            <div class="field-input-wrap">
+                <select id="proUid" class="field-select">
+                    <option value="">Demande générale (sans professionnel)</option>
+                </select>
+            </div>
+        </div>
+        <div class="field-group">
+            <label class="field-label" for="msg">Votre demande</label>
+            <textarea id="msg" class="field-textarea" rows="5" required placeholder="Type de prestation, quartier, dates…"></textarea>
+        </div>
+        <button type="submit" class="register-submit" id="btn">Envoyer la demande</button>
+    </form>
+</div>
+
+<script type="module">
+import {
+    auth,
+    createDomicileRequest,
+    listProfessionals,
+    fetchUserProfile,
+    getFirebaseErrorMessage
+} from "./firebase.js";
+import { onAuthStateChanged } from "./firebase.js";
+
+const params = new URLSearchParams(location.search);
+const pre = params.get("pro");
+
+let uid = null;
+let recipientsLoaded = false;
+
+function labelForUser(u) {
+    const role = (u?.role || "").trim();
+    const city = (u?.city || "").trim();
+    const name = u?.salonName || u?.name || u?.email || "Utilisateur";
+    const extras = [role, city].filter(Boolean).join(" · ");
+    return extras ? `${name} — ${extras}` : name;
+}
+
+async function loadRecipients() {
+    const select = document.getElementById("proUid");
+    const selected = pre || "";
+    const list = await listProfessionals();
+    const seen = new Set();
+
+    for (const u of list) {
+        if (!u?.id || seen.has(u.id)) continue;
+        seen.add(u.id);
+        const opt = document.createElement("option");
+        opt.value = u.id;
+        opt.textContent = labelForUser(u);
+        select.appendChild(opt);
+    }
+
+    if (selected && !seen.has(selected)) {
+        const u = await fetchUserProfile(selected).catch(() => null);
+        const opt = document.createElement("option");
+        opt.value = selected;
+        opt.textContent = u ? labelForUser(u) : `Professionnel (${selected.slice(0, 8)}...)`;
+        select.appendChild(opt);
+    }
+
+    if (selected) select.value = selected;
+    recipientsLoaded = true;
+}
+
+onAuthStateChanged(auth, async (user) => {
+    if (!user) {
+        window.location.href = "login.html";
+        return;
+    }
+    uid = user.uid;
+    if (!recipientsLoaded) {
+        await loadRecipients();
+    }
+});
+
+document.getElementById("f").addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const err = document.getElementById("formError");
+    const ok = document.getElementById("formOk");
+    err.hidden = true;
+    ok.hidden = true;
+    const btn = document.getElementById("btn");
+    const pro = document.getElementById("proUid").value.trim();
+    const message = document.getElementById("msg").value;
+    if (!uid) return;
+    btn.disabled = true;
+    try {
+        await createDomicileRequest(uid, pro || null, message);
+        ok.textContent = "Demande enregistrée.";
+        ok.hidden = false;
+        document.getElementById("msg").value = "";
+    } catch (x) {
+        err.textContent = getFirebaseErrorMessage(x);
+        err.hidden = false;
+    } finally {
+        btn.disabled = false;
+    }
+});
+</script>
+
+</body>
+</html>

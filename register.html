@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Créer un compte — HairConnect</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body class="register-page hc-theme-pro">
+
+<div class="register-container">
+    <h1 class="register-title">Créer un Compte</h1>
+
+    <form id="registerForm" class="register-form">
+        <p class="register-role-heading">Je suis...</p>
+        <div class="role-cards" role="radiogroup" aria-label="Type de compte">
+            <label class="role-card">
+                <input type="radio" name="role" value="Client" checked>
+                <span class="role-card__inner">
+                    <span class="role-card__icon" aria-hidden="true">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z"/></svg>
+                    </span>
+                    <span class="role-card__label">Client</span>
+                </span>
+            </label>
+            <label class="role-card">
+                <input type="radio" name="role" value="Coiffeur">
+                <span class="role-card__inner">
+                    <span class="role-card__icon" aria-hidden="true">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9.813 15.904 9 18.75l-.813-2.846a4.5 4.5 0 0 0-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 0 0 3.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 0 0 3.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 0 0-3.09 3.09ZM18.259 8.715 18 9.75l-.259-1.035a3.375 3.375 0 0 0-2.455-2.456L14.25 6l1.036-.259a3.375 3.375 0 0 0 2.455-2.456L18 2.25l.259 1.035a3.375 3.375 0 0 0 2.455 2.456L21.75 6l-1.035.259a3.375 3.375 0 0 0-2.455 2.456L18 9.75l-.259-1.035a3.375 3.375 0 0 0-2.455-2.456L14.25 6l1.036-.259a3.375 3.375 0 0 0 2.455-2.456L18 2.25Z"/></svg>
+                    </span>
+                    <span class="role-card__label">Coiffeur</span>
+                </span>
+            </label>
+            <label class="role-card">
+                <input type="radio" name="role" value="Salon">
+                <span class="role-card__inner">
+                    <span class="role-card__icon" aria-hidden="true">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M2.25 21h19.5m-18-18v18m10.5-18v18m6-13.5V21M6.75 6.75h.75m-.75 3h.75m-.75 3h.75m3-6h.75m-.75 3h.75m-.75 3h.75M6.75 21v-3.375c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125V21M3 3h12m-.75 4.5H21m-9.75 4.5h9.75"/></svg>
+                    </span>
+                    <span class="role-card__label">Salon</span>
+                </span>
+            </label>
+        </div>
+
+        <fieldset class="field-group register-metiers-fieldset" id="registerWrapProMetiers" hidden>
+            <legend class="field-label">Mon activité</legend>
+            <p class="field-hint">Tout ce que vous proposez : les clients qui cherchent ces types vous verront.</p>
+            <div id="registerProMetiersList" class="register-metiers-list"></div>
+        </fieldset>
+
+        <p id="formError" class="form-error" role="alert" hidden></p>
+        <div class="field-group">
+            <label class="field-label" for="name">Nom complet</label>
+            <div class="field-input-wrap">
+                <span class="field-input-icon" aria-hidden="true">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z"/></svg>
+                </span>
+                <input type="text" id="name" name="name" placeholder="Marie Dupont" autocomplete="name">
+            </div>
+        </div>
+
+        <div class="field-group">
+            <label class="field-label" for="email">Email</label>
+            <div class="field-input-wrap">
+                <span class="field-input-icon" aria-hidden="true">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M21.75 6.75v10.5a2.25 2.25 0 01-2.25 2.25h-15a2.25 2.25 0 01-2.25-2.25V6.75m19.5 0A2.25 2.25 0 0019.5 4.5h-15a2.25 2.25 0 00-2.25 2.25m19.5 0v.243a2.25 2.25 0 01-1.07 1.916l-7.5 4.615a2.25 2.25 0 01-2.36 0L3.32 8.91a2.25 2.25 0 01-1.07-1.916V6.75"/></svg>
+                </span>
+                <input type="email" id="email" name="email" placeholder="votre.email@exemple.com" autocomplete="email">
+            </div>
+        </div>
+
+        <div class="field-group">
+            <label class="field-label" for="password">Mot de passe</label>
+            <div class="field-input-wrap">
+                <span class="field-input-icon" aria-hidden="true">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M16.5 10.5V6.75a4.5 4.5 0 10-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 002.25-2.25v-6.75a2.25 2.25 0 00-2.25-2.25H6.75a2.25 2.25 0 00-2.25 2.25v6.75a2.25 2.25 0 002.25 2.25z"/></svg>
+                </span>
+                <input type="password" id="password" name="password" placeholder="••••••••" autocomplete="new-password">
+            </div>
+        </div>
+
+        <button type="submit" class="register-submit" id="registerSubmit">Créer un Compte</button>
+    </form>
+
+    <p class="register-footer">
+        Vous avez déjà un compte ? <a href="login.html">Se Connecter</a>
+    </p>
+</div>
+
+<script type="module">
+import { registerUser, saveUserData, getFirebaseErrorMessage, HAIRCONNECT_METIERS } from "./firebase.js";
+
+const form = document.getElementById("registerForm");
+const formError = document.getElementById("formError");
+const submitBtn = document.getElementById("registerSubmit");
+const registerWrapProMetiers = document.getElementById("registerWrapProMetiers");
+const registerProMetiersList = document.getElementById("registerProMetiersList");
+
+function buildMetierBoxes(container, inputName, idPrefix) {
+    if (!container) return;
+    container.innerHTML = "";
+    for (const m of HAIRCONNECT_METIERS) {
+        const id = `${idPrefix}-${m.slug}`;
+        const label = document.createElement("label");
+        label.className = "field-label-checkbox register-metier-option";
+        const cb = document.createElement("input");
+        cb.type = "checkbox";
+        cb.name = inputName;
+        cb.value = m.slug;
+        cb.id = id;
+        label.appendChild(cb);
+        label.appendChild(document.createTextNode(` ${m.label}`));
+        container.appendChild(label);
+    }
+}
+
+buildMetierBoxes(registerProMetiersList, "proMetier", "pm");
+
+function checkedSlugs(name) {
+    return [...form.querySelectorAll(`input[name="${name}"]:checked`)].map((c) => c.value);
+}
+
+function syncRegisterFieldsVisibility() {
+    const role = form.querySelector('input[name="role"]:checked')?.value ?? "Client";
+    const isPro = role === "Coiffeur" || role === "Salon";
+    if (registerWrapProMetiers) registerWrapProMetiers.hidden = !isPro;
+}
+
+form.querySelectorAll('input[name="role"]').forEach((r) => r.addEventListener("change", syncRegisterFieldsVisibility));
+syncRegisterFieldsVisibility();
+
+form.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    formError.hidden = true;
+    formError.textContent = "";
+
+    const name = document.getElementById("name").value.trim();
+    const email = document.getElementById("email").value.trim();
+    const password = document.getElementById("password").value;
+    const role = form.querySelector('input[name="role"]:checked')?.value ?? "Client";
+
+    if (!name || !email || !password) {
+        formError.textContent = "Veuillez remplir tous les champs.";
+        formError.hidden = false;
+        return;
+    }
+
+    const extra = {};
+    if (role === "Coiffeur" || role === "Salon") {
+        const pm = checkedSlugs("proMetier");
+        if (pm.length === 0) {
+            formError.textContent = "Cochez au moins une activité (barbier, coiffeuse…).";
+            formError.hidden = false;
+            return;
+        }
+        extra.proMetiers = pm;
+    }
+
+    submitBtn.disabled = true;
+    try {
+        const cred = await registerUser(email, password);
+        await saveUserData(cred.user.uid, name, email, role, extra);
+        window.location.href = "dashboard.html";
+    } catch (err) {
+        console.error(err);
+        formError.textContent = getFirebaseErrorMessage(err);
+        formError.hidden = false;
+    } finally {
+        submitBtn.disabled = false;
+    }
+});
+</script>
+
+</body>
+</html>

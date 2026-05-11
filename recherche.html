@@ -1,0 +1,436 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Recherche — HairConnect</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body class="login-page hc-theme-pro">
+
+<div class="login-container subpage-container subpage-wide">
+    <header class="login-header">
+        <a href="dashboard.html" class="login-back" id="rechercheBack" aria-label="Retour">
+            <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M15.75 19.5 8.25 12l7.5-7.5"/></svg>
+        </a>
+        <h1 class="login-title">Annuaire</h1>
+    </header>
+
+    <p id="guestBanner" class="guest-discovery-banner" hidden>
+        <strong>Mode découverte.</strong> Consultez les fiches librement.
+        <a href="login.html">Connectez-vous</a> pour écrire, noter ou enregistrer des favoris.
+    </p>
+
+    <p class="subpage-lead">
+        Coiffeurs indépendants et salons. Filtrez par ville ou par rôle, par type de professionnel (ci-dessous), ou utilisez votre position (GPS).
+    </p>
+
+    <fieldset class="field-group register-metiers-fieldset recherche-metiers-fs" id="annuaireMetiersWrap">
+        <legend class="field-label">Types de professionnels</legend>
+        <p class="field-hint">Cochez les activités que vous voulez voir (barbier, tresseuse…). Laissez tout décoché pour afficher tout le monde. Vos cases sont mémorisées sur cet appareil.</p>
+        <div id="annuaireMetiersList" class="register-metiers-list"></div>
+    </fieldset>
+
+    <div class="field-group">
+        <label class="field-label" for="filterCity">Ville</label>
+        <div class="field-input-wrap">
+            <input type="text" id="filterCity" placeholder="Tapez un nom de ville…">
+        </div>
+    </div>
+    <div class="field-group">
+        <label class="field-label" for="filterRole">Rôle</label>
+        <div class="field-input-wrap">
+            <select id="filterRole" class="field-select">
+                <option value="">Tous</option>
+                <option value="Coiffeur">Coiffeur indépendant</option>
+                <option value="Salon">Salon</option>
+            </select>
+        </div>
+    </div>
+
+    <section class="recherche-near" aria-labelledby="rechercheNearTitle">
+        <h2 id="rechercheNearTitle" class="subpage-h2 recherche-near__title">À proximité (GPS)</h2>
+        <p class="subpage-lead recherche-near__lead">
+            Affiche les professionnels qui ont enregistré une position dans leur profil. Connexion HTTPS recommandée pour la géolocalisation.
+        </p>
+        <div class="field-group">
+            <label class="field-label" for="nearRadius">Rayon</label>
+            <div class="field-input-wrap">
+                <select id="nearRadius" class="field-select">
+                    <option value="10">10 km</option>
+                    <option value="25" selected>25 km</option>
+                    <option value="50">50 km</option>
+                </select>
+            </div>
+        </div>
+        <div class="recherche-near__actions">
+            <button type="button" class="register-submit" id="nearMeBtn">Autour de moi</button>
+            <button type="button" class="recherche-near__reset" id="nearMeReset" hidden>Quitter le mode proximité</button>
+        </div>
+    </section>
+
+    <p id="err" class="form-error" role="alert" hidden></p>
+    <ul id="list" class="pro-list"></ul>
+</div>
+
+<script type="module">
+import {
+    auth,
+    listProfessionals,
+    getFirebaseErrorMessage,
+    listFavorites,
+    addFavorite,
+    removeFavorite,
+    isGuestDiscovery,
+    clearGuestDiscovery,
+    HAIRCONNECT_METIERS
+} from "./firebase.js";
+import { onAuthStateChanged } from "./firebase.js";
+
+const ANNUAIRE_METIERS_STORAGE = "hairconnect_annuaire_metiers";
+
+const listEl = document.getElementById("list");
+const errEl = document.getElementById("err");
+const filterCity = document.getElementById("filterCity");
+const filterRole = document.getElementById("filterRole");
+const nearRadiusEl = document.getElementById("nearRadius");
+const nearMeBtn = document.getElementById("nearMeBtn");
+const nearMeReset = document.getElementById("nearMeReset");
+
+let all = [];
+let favorites = [];
+let currentUser = null;
+let nearMode = false;
+let refLat = null;
+let refLng = null;
+
+function buildAnnuaireMetierBoxes() {
+    const container = document.getElementById("annuaireMetiersList");
+    if (!container) return;
+    container.innerHTML = "";
+    for (const m of HAIRCONNECT_METIERS) {
+        const id = `ann-met-${m.slug}`;
+        const label = document.createElement("label");
+        label.className = "field-label-checkbox register-metier-option";
+        const cb = document.createElement("input");
+        cb.type = "checkbox";
+        cb.name = "annuaireMetier";
+        cb.value = m.slug;
+        cb.id = id;
+        cb.className = "annuaire-metier-cb";
+        label.appendChild(cb);
+        label.appendChild(document.createTextNode(` ${m.label}`));
+        container.appendChild(label);
+    }
+}
+
+function loadAnnuaireMetiersFromStorage() {
+    try {
+        const raw = localStorage.getItem(ANNUAIRE_METIERS_STORAGE);
+        if (!raw) return [];
+        const j = JSON.parse(raw);
+        return Array.isArray(j) ? j.map((s) => String(s).trim().toLowerCase()).filter(Boolean) : [];
+    } catch {
+        return [];
+    }
+}
+
+function saveAnnuaireMetiersToStorage(slugs) {
+    try {
+        localStorage.setItem(ANNUAIRE_METIERS_STORAGE, JSON.stringify(slugs));
+    } catch (_) {
+        /* ignore */
+    }
+}
+
+function getCheckedAnnuaireMetierSlugs() {
+    return [...document.querySelectorAll('input[name="annuaireMetier"]:checked')].map((c) => c.value);
+}
+
+function applyAnnuaireMetiersFromStorageToUi() {
+    const saved = new Set(loadAnnuaireMetiersFromStorage());
+    document.querySelectorAll('input[name="annuaireMetier"]').forEach((cb) => {
+        cb.checked = saved.has(cb.value);
+    });
+}
+
+buildAnnuaireMetierBoxes();
+
+async function fetchProfessionalsForAnnuaire() {
+    const slugs = getCheckedAnnuaireMetierSlugs();
+    saveAnnuaireMetiersToStorage(slugs);
+    const param = slugs.length ? slugs.join(",") : null;
+    return listProfessionals({ forClientMetiers: param });
+}
+
+function normalizeRole(raw) {
+    const v = String(raw || "").trim().toLowerCase();
+    if (v === "coiffeur" || v === "coiffeuse" || v === "coiffeur indépendant" || v === "coiffeuse indépendante") {
+        return "Coiffeur";
+    }
+    if (v === "salon") return "Salon";
+    return String(raw || "").trim();
+}
+
+function proCoords(p) {
+    const la = p.latitude != null ? Number(p.latitude) : NaN;
+    const lo = p.longitude != null ? Number(p.longitude) : NaN;
+    if (!Number.isFinite(la) || !Number.isFinite(lo)) return null;
+    if (la < -90 || la > 90 || lo < -180 || lo > 180) return null;
+    return { lat: la, lng: lo };
+}
+
+function haversineKm(lat1, lon1, lat2, lon2) {
+    const R = 6371;
+    const toRad = (d) => (d * Math.PI) / 180;
+    const dLat = toRad(lat2 - lat1);
+    const dLon = toRad(lon2 - lon1);
+    const a =
+        Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+        Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLon / 2) * Math.sin(dLon / 2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+    return R * c;
+}
+
+function formatKm(km) {
+    if (km == null || !Number.isFinite(km)) return "";
+    return km < 10 ? km.toFixed(1) + " km" : Math.round(km) + " km";
+}
+
+function buildDisplayedRows() {
+    const city = filterCity.value.trim().toLowerCase();
+    const role = filterRole.value.trim();
+    const base = all.filter((p) => {
+        if (currentUser && String(p.id) === String(currentUser.uid)) return false;
+        if (role && normalizeRole(p.role) !== role) return false;
+        if (city && !(p.city || "").toLowerCase().includes(city)) return false;
+        return true;
+    });
+    if (!nearMode || refLat == null || refLng == null) {
+        return base.map((p) => ({ p, km: null }));
+    }
+    const radius = parseInt(String(nearRadiusEl && nearRadiusEl.value), 10);
+    const rKm = Number.isFinite(radius) && radius > 0 ? radius : 25;
+    const out = [];
+    for (const p of base) {
+        const c = proCoords(p);
+        if (!c) continue;
+        const km = haversineKm(refLat, refLng, c.lat, c.lng);
+        if (km <= rKm) out.push({ p, km });
+    }
+    out.sort((a, b) => a.km - b.km);
+    return out;
+}
+
+function render() {
+    listEl.innerHTML = "";
+    if (nearMeReset) nearMeReset.hidden = !nearMode;
+    const entries = buildDisplayedRows();
+    if (!entries.length) {
+        const li = document.createElement("li");
+        li.className = "pro-card pro-card--empty";
+        li.textContent = nearMode
+            ? "Aucun professionnel avec position GPS dans ce rayon (vérifiez le filtre ville ou élargissez le rayon). Les coiffeurs et salons peuvent enregistrer leur position dans Mon profil."
+            : "Aucun résultat.";
+        listEl.appendChild(li);
+        return;
+    }
+    for (const { p, km } of entries) {
+        const li = document.createElement("li");
+        li.className = "pro-card";
+        const title = p.salonName || p.name || "Sans nom";
+        const isFavorite = favorites.some(f => f.proId === p.id);
+        const favText = isFavorite ? "Retirer des favoris" : "Ajouter aux favoris";
+        const msgHref = currentUser
+            ? "messagerie.html?to=" + encodeURIComponent(p.id)
+            : "login.html";
+        const avisHref = currentUser
+            ? "avis.html?pro=" + encodeURIComponent(p.id)
+            : "login.html";
+        const favHtml = currentUser
+            ? " · <button type=\"button\" class=\"fav-btn\" data-uid=\"" +
+              escapeHtml(p.id) +
+              "\">" +
+              escapeHtml(favText) +
+              "</button>"
+            : "";
+        const distHtml =
+            km != null
+                ? "<p class=\"pro-card-distance\">≈ " + escapeHtml(formatKm(km)) + "</p>"
+                : "";
+        li.innerHTML =
+            "<strong>" +
+            escapeHtml(title) +
+            "</strong> <span class=\"pro-card-role\">" +
+            escapeHtml(p.role || "") +
+            "</span>" +
+            distHtml +
+            "<p class=\"pro-card-city\">" +
+            escapeHtml(p.city || "Ville non renseignée") +
+            "</p>" +
+            "<p class=\"pro-card-snippet\">" +
+            escapeHtml((p.bio || "").slice(0, 120)) +
+            ((p.bio || "").length > 120 ? "…" : "") +
+            "</p>" +
+            "<div class=\"pro-card-links\">" +
+            "<a href=\"profil-public.html?uid=" +
+            encodeURIComponent(p.id) +
+            "\">Voir la fiche</a> · " +
+            "<a href=\"" +
+            msgHref +
+            "\">Message</a> · " +
+            "<a href=\"" +
+            avisHref +
+            "\">Laisser un avis</a>" +
+            favHtml +
+            "</div>";
+        listEl.appendChild(li);
+    }
+
+    // Add event listeners for favorite buttons
+    document.querySelectorAll('.fav-btn').forEach(btn => {
+        btn.addEventListener('click', async (e) => {
+            e.preventDefault();
+            const uid = btn.getAttribute('data-uid');
+            const isFav = favorites.some(f => f.proId === uid);
+            try {
+                if (isFav) {
+                    await removeFavorite(currentUser.uid, uid);
+                    favorites = favorites.filter(f => f.proId !== uid);
+                    btn.textContent = "Ajouter aux favoris";
+                } else {
+                    await addFavorite(currentUser.uid, uid);
+                    const newFav = { proId: uid, pro: all.find(p => p.id === uid) };
+                    favorites.push(newFav);
+                    btn.textContent = "Retirer des favoris";
+                }
+            } catch (error) {
+                alert("Erreur: " + error.message);
+            }
+        });
+    });
+}
+
+function escapeHtml(s) {
+    return String(s)
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;");
+}
+
+filterCity.addEventListener("input", render);
+filterRole.addEventListener("change", render);
+
+document.addEventListener("change", (e) => {
+    if (e.target && e.target.matches && e.target.matches("input.annuaire-metier-cb")) {
+        (async () => {
+            errEl.hidden = true;
+            try {
+                all = await fetchProfessionalsForAnnuaire();
+                render();
+            } catch (err) {
+                errEl.textContent = getFirebaseErrorMessage(err);
+                errEl.hidden = false;
+            }
+        })();
+    }
+});
+if (nearRadiusEl) {
+    nearRadiusEl.addEventListener("change", () => {
+        if (nearMode) render();
+    });
+}
+
+const geoOpts = { enableHighAccuracy: true, timeout: 22000, maximumAge: 120000 };
+
+nearMeBtn.addEventListener("click", () => {
+    errEl.hidden = true;
+    errEl.textContent = "";
+    if (!navigator.geolocation) {
+        errEl.textContent = "La géolocalisation n’est pas disponible sur ce navigateur.";
+        errEl.hidden = false;
+        return;
+    }
+    nearMeBtn.disabled = true;
+    navigator.geolocation.getCurrentPosition(
+        (pos) => {
+            nearMode = true;
+            refLat = pos.coords.latitude;
+            refLng = pos.coords.longitude;
+            nearMeBtn.disabled = false;
+            render();
+        },
+        (geoErr) => {
+            nearMeBtn.disabled = false;
+            const msg =
+                geoErr && geoErr.code === 1
+                    ? "Accès à la position refusé. Autorisez la localisation pour ce site dans les paramètres du navigateur."
+                    : geoErr && geoErr.code === 2
+                      ? "Position indisponible."
+                      : geoErr && geoErr.code === 3
+                        ? "Délai dépassé. Réessayez."
+                        : "Impossible d’obtenir votre position.";
+            errEl.textContent = msg;
+            errEl.hidden = false;
+        },
+        geoOpts
+    );
+});
+
+nearMeReset.addEventListener("click", () => {
+    nearMode = false;
+    refLat = null;
+    refLng = null;
+    render();
+});
+
+onAuthStateChanged(auth, async (user) => {
+    currentUser = user;
+    const back = document.getElementById("rechercheBack");
+    if (user) {
+        clearGuestDiscovery();
+    }
+    if (!user && !isGuestDiscovery()) {
+        window.location.href = "login.html";
+        return;
+    }
+    if (back) {
+        if (user) back.href = "dashboard.html";
+        else if (isGuestDiscovery()) back.href = "index.html";
+        else back.href = "dashboard.html";
+    }
+    const guestBanner = document.getElementById("guestBanner");
+    if (guestBanner) {
+        guestBanner.hidden = Boolean(user) || !isGuestDiscovery();
+    }
+    try {
+        applyAnnuaireMetiersFromStorageToUi();
+        if (user) {
+            [all, favorites] = await Promise.all([
+                fetchProfessionalsForAnnuaire(),
+                listFavorites(user.uid)
+            ]);
+        } else {
+            all = await fetchProfessionalsForAnnuaire();
+            favorites = [];
+        }
+        const params = new URLSearchParams(location.search);
+        const rp = params.get("role");
+        if (rp === "Coiffeur" || rp === "Salon") {
+            filterRole.value = rp;
+        }
+        const cityQ = params.get("city");
+        if (cityQ) {
+            filterCity.value = cityQ.trim();
+        }
+        render();
+    } catch (e) {
+        errEl.textContent = getFirebaseErrorMessage(e);
+        errEl.hidden = false;
+    }
+});
+</script>
+
+</body>
+</html>

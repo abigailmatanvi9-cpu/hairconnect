@@ -1,0 +1,261 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mes rendez-vous &amp; paiement — HairConnect</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body class="login-page hc-theme-pro">
+
+<div class="login-container subpage-container subpage-wide">
+    <header class="login-header">
+        <a href="dashboard.html" class="login-back" aria-label="Retour au tableau de bord">
+            <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M15.75 19.5 8.25 12l7.5-7.5"/></svg>
+        </a>
+        <h1 class="login-title">Mes rendez-vous &amp; paiement</h1>
+    </header>
+
+    <p id="gateErr" class="form-error agenda-pro__gate" role="status" hidden></p>
+
+    <section id="mainSection" class="mes-rdv-client" hidden>
+        <p class="mes-rdv-client__lead">
+            Payez une prestation avec les soldes <strong>Flooz</strong> ou <strong>Mix by Yas</strong> simulés sur votre compte.
+            En production, il faudra brancher les API officielles des opérateurs (Moov / Yas).
+        </p>
+
+        <div class="mes-rdv-client__wallets" id="walletBox" aria-live="polite">
+            <div class="mes-rdv-client__wallet mes-rdv-client__wallet--flooz">
+                <span class="mes-rdv-client__wallet-label">Solde Flooz (démo)</span>
+                <span class="mes-rdv-client__wallet-amt" id="balFlooz">—</span>
+            </div>
+            <div class="mes-rdv-client__wallet mes-rdv-client__wallet--mix">
+                <span class="mes-rdv-client__wallet-label">Solde Mix by Yas (démo)</span>
+                <span class="mes-rdv-client__wallet-amt" id="balMix">—</span>
+            </div>
+        </div>
+
+        <p id="listErr" class="form-error" role="alert" hidden></p>
+        <p id="listLoad" class="agenda-pro__loading">Chargement…</p>
+        <ul id="rdvList" class="mes-rdv-client__list"></ul>
+    </section>
+</div>
+
+<script type="module">
+import {
+    auth,
+    onAuthStateChanged,
+    fetchUserProfile,
+    listRendezVousForClient,
+    payRendezVousOnline,
+    getFirebaseErrorMessage
+} from "./firebase.js";
+
+const fmt = new Intl.NumberFormat("fr-FR", { maximumFractionDigits: 0 });
+
+function proLabel(p) {
+    if (!p) return "Professionnel";
+    const s = String(p.salonName || "").trim();
+    if (s) return s;
+    const n = String(p.name || "").trim();
+    if (n) return n;
+    return String(p.email || "Professionnel");
+}
+
+function escapeHtml(s) {
+    return String(s)
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;");
+}
+
+function formatWhen(iso) {
+    const d = new Date(iso);
+    if (Number.isNaN(d.getTime())) return "—";
+    return d.toLocaleString("fr-FR", {
+        weekday: "short",
+        day: "2-digit",
+        month: "short",
+        year: "numeric",
+        hour: "2-digit",
+        minute: "2-digit"
+    });
+}
+
+let myUid = null;
+let balances = { balanceFloozFcfa: 0, balanceMixFcfa: 0 };
+
+function setBalancesFromUser(u) {
+    balances = {
+        balanceFloozFcfa: Number(u?.balanceFloozFcfa) || 0,
+        balanceMixFcfa: Number(u?.balanceMixFcfa) || 0
+    };
+    const bf = document.getElementById("balFlooz");
+    const bm = document.getElementById("balMix");
+    if (bf) bf.textContent = fmt.format(balances.balanceFloozFcfa) + " FCFA";
+    if (bm) bm.textContent = fmt.format(balances.balanceMixFcfa) + " FCFA";
+}
+
+function applyPayResponse(payload) {
+    if (payload?.balances) {
+        balances = {
+            balanceFloozFcfa: Number(payload.balances.balanceFloozFcfa) || 0,
+            balanceMixFcfa: Number(payload.balances.balanceMixFcfa) || 0
+        };
+        setBalancesFromUser({
+            balanceFloozFcfa: balances.balanceFloozFcfa,
+            balanceMixFcfa: balances.balanceMixFcfa
+        });
+    }
+}
+
+function renderCard(r) {
+    const li = document.createElement("li");
+    li.className = "mes-rdv-client__card";
+    const pro = r.pro || {};
+    const price = r.priceFcfa != null ? Number(r.priceFcfa) : null;
+    const paymentStatus = String(r.paymentStatus || "unpaid").toLowerCase();
+    const paid = paymentStatus === "paid";
+    const pending = paymentStatus === "pending";
+    const failed = paymentStatus === "failed";
+    const prov = String(r.paymentProvider || "");
+
+    const head = document.createElement("div");
+    head.className = "mes-rdv-client__card-head";
+    head.innerHTML =
+        "<h2 class=\"mes-rdv-client__pro\">" +
+        escapeHtml(proLabel(pro)) +
+        "</h2>" +
+        "<p class=\"mes-rdv-client__when\">" +
+        escapeHtml(formatWhen(r.scheduledAt)) +
+        "</p>";
+
+    const prest = document.createElement("p");
+    prest.className = "mes-rdv-client__prest";
+    prest.innerHTML =
+        "<span class=\"agenda-pro__k\">Prestation</span><br>" + escapeHtml(r.prestation || "—");
+
+    const payRow = document.createElement("div");
+    payRow.className = "mes-rdv-client__pay";
+
+    if (paid) {
+        payRow.innerHTML =
+            "<p class=\"mes-rdv-client__paid\">Payé via " +
+            (prov === "mix_by_yas" ? "Mix by Yas" : prov === "flooz" ? "Flooz" : escapeHtml(prov || "—")) +
+            (r.paidAt
+                ? " · " + escapeHtml(formatWhen(r.paidAt))
+                : "") +
+            "</p>";
+    } else if (pending) {
+        payRow.innerHTML =
+            "<p class=\"mes-rdv-client__pending\">Paiement en cours via " +
+            (prov === "mix_by_yas" ? "Mix by Yas" : prov === "flooz" ? "Flooz" : escapeHtml(prov || "—")) +
+            ". En attente de confirmation operateur.</p>";
+    } else if (failed) {
+        const reason = String(r.paymentFailureReason || "").trim();
+        payRow.innerHTML =
+            "<p class=\"mes-rdv-client__failed\">Paiement echoue" +
+            (reason ? " : " + escapeHtml(reason) : ".") +
+            "</p>";
+    } else if (price != null && price > 0) {
+        payRow.innerHTML =
+            "<p class=\"mes-rdv-client__price\">Montant : <strong>" +
+            fmt.format(price) +
+            " FCFA</strong></p>" +
+            "<div class=\"mes-rdv-client__pay-btns\">" +
+            "<button type=\"button\" class=\"mes-rdv-client__payflooz\" data-pay=\"" +
+            escapeHtml(r.id) +
+            "\" data-provider=\"flooz\">Payer avec Flooz</button>" +
+            "<button type=\"button\" class=\"mes-rdv-client__paymix\" data-pay=\"" +
+            escapeHtml(r.id) +
+            "\" data-provider=\"mix_by_yas\">Payer avec Mix by Yas</button>" +
+            "</div>";
+        payRow.querySelectorAll("[data-pay]").forEach((btn) => {
+            btn.addEventListener("click", async () => {
+                const id = btn.getAttribute("data-pay");
+                const provider = btn.getAttribute("data-provider");
+                btn.disabled = true;
+                try {
+                    const res = await payRendezVousOnline(id, myUid, provider);
+                    applyPayResponse(res);
+                    await loadList();
+                    alert(res?.message || "Paiement initialise.");
+                } catch (e) {
+                    alert(getFirebaseErrorMessage(e));
+                } finally {
+                    btn.disabled = false;
+                }
+            });
+        });
+    } else {
+        payRow.innerHTML =
+            "<p class=\"mes-rdv-client__noprice\">Le professionnel n’a pas encore indiqué de prix pour ce rendez-vous.</p>";
+    }
+
+    li.appendChild(head);
+    li.appendChild(prest);
+    li.appendChild(payRow);
+    return li;
+}
+
+async function loadList() {
+    const listEl = document.getElementById("rdvList");
+    const loadEl = document.getElementById("listLoad");
+    const errEl = document.getElementById("listErr");
+    if (!listEl || !myUid) return;
+    if (errEl) {
+        errEl.hidden = true;
+        errEl.textContent = "";
+    }
+    if (loadEl) loadEl.hidden = false;
+    listEl.innerHTML = "";
+    try {
+        const rows = await listRendezVousForClient(myUid);
+        if (loadEl) loadEl.hidden = true;
+        if (!rows.length) {
+            const li = document.createElement("li");
+            li.className = "mes-rdv-client__empty";
+            li.textContent = "Aucun rendez-vous pour le moment.";
+            listEl.appendChild(li);
+            return;
+        }
+        for (const r of rows) {
+            listEl.appendChild(renderCard(r));
+        }
+    } catch (e) {
+        if (loadEl) loadEl.hidden = true;
+        if (errEl) {
+            errEl.textContent = getFirebaseErrorMessage(e);
+            errEl.hidden = false;
+        }
+    }
+}
+
+onAuthStateChanged(auth, async (user) => {
+    const gate = document.getElementById("gateErr");
+    const section = document.getElementById("mainSection");
+    if (!user) {
+        window.location.href = "login.html";
+        return;
+    }
+    myUid = user.uid;
+    const profile = await fetchUserProfile(user.uid);
+    const role = String(profile?.role || "").trim().toLowerCase();
+    if (!profile || role !== "client") {
+        if (gate) {
+            gate.textContent =
+                "Cette page est réservée aux clients. Les professionnels gèrent les rendez-vous depuis « Agenda & RDV ».";
+            gate.hidden = false;
+        }
+        if (section) section.hidden = true;
+        return;
+    }
+    if (gate) gate.hidden = true;
+    if (section) section.hidden = false;
+    setBalancesFromUser(profile);
+    await loadList();
+});
+</script>
+</body>
+</html>

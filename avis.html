@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Laisser un avis — HairConnect</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body class="login-page hc-theme-pro">
+
+<div class="login-container subpage-container">
+    <header class="login-header">
+        <a href="recherche.html" class="login-back" aria-label="Retour">
+            <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M15.75 19.5 8.25 12l7.5-7.5"/></svg>
+        </a>
+        <h1 class="login-title">Avis</h1>
+    </header>
+
+    <p class="subpage-lead">Notez une prestation (après rendez-vous). Sélectionnez directement le professionnel dans la liste.</p>
+
+    <form id="avisForm" class="register-form">
+        <p id="formError" class="form-error" role="alert" hidden></p>
+        <p id="formOk" class="form-success" role="status" hidden></p>
+        <div class="field-group">
+            <label class="field-label" for="toProUid">Professionnel</label>
+            <div class="field-input-wrap">
+                <select id="toProUid" required>
+                    <option value="">Choisir un professionnel...</option>
+                </select>
+            </div>
+            <p id="prosHint" class="field-hint">Chargement des professionnels...</p>
+        </div>
+        <div class="field-group">
+            <label class="field-label" for="rating">Note / 5</label>
+            <div class="field-input-wrap">
+                <input type="number" id="rating" min="1" max="5" value="5" required>
+            </div>
+        </div>
+        <div class="field-group">
+            <label class="field-label" for="comment">Commentaire</label>
+            <textarea id="comment" class="field-textarea" rows="4" required></textarea>
+        </div>
+        <div class="field-group">
+            <label class="field-label" for="photoFile">Photo (optionnel)</label>
+            <div class="field-input-wrap" id="photoPickerWrap" role="button" tabindex="0" aria-label="Choisir une photo">
+                <input type="file" id="photoFile" accept="image/*">
+            </div>
+            <p class="field-hint" id="photoHint">Cliquez pour choisir une photo depuis votre galerie (mobile) ou l’explorateur (PC).</p>
+        </div>
+        <button type="submit" class="register-submit" id="btn">Publier l’avis</button>
+    </form>
+</div>
+
+<script type="module">
+import { auth, createReview, getFirebaseErrorMessage, listProfessionals } from "./firebase.js";
+import { onAuthStateChanged } from "./firebase.js";
+
+const params = new URLSearchParams(location.search);
+const pre = params.get("pro");
+
+const form = document.getElementById("avisForm");
+const formError = document.getElementById("formError");
+const formOk = document.getElementById("formOk");
+const btn = document.getElementById("btn");
+const toProSelect = document.getElementById("toProUid");
+const prosHint = document.getElementById("prosHint");
+const photoFileInput = document.getElementById("photoFile");
+const photoPickerWrap = document.getElementById("photoPickerWrap");
+const photoHint = document.getElementById("photoHint");
+
+let clientUid = null;
+
+async function loadProfessionals() {
+    try {
+        const professionals = await listProfessionals();
+        for (const pro of professionals) {
+            const option = document.createElement("option");
+            option.value = pro.id;
+            const displayName = String(pro.salonName || pro.name || pro.email || pro.id);
+            option.textContent = `${displayName} (${pro.id})`;
+            toProSelect.appendChild(option);
+        }
+        if (pre) {
+            const exists = professionals.some((pro) => pro.id === pre);
+            if (!exists) {
+                const fallbackOption = document.createElement("option");
+                fallbackOption.value = pre;
+                fallbackOption.textContent = `Professionnel pré-rempli (${pre})`;
+                toProSelect.appendChild(fallbackOption);
+            }
+            toProSelect.value = pre;
+        }
+        prosHint.textContent = professionals.length
+            ? "Cliquez dans la liste pour choisir un professionnel."
+            : "Aucun professionnel disponible pour le moment.";
+    } catch (_error) {
+        prosHint.textContent = "Impossible de charger la liste des professionnels pour le moment.";
+    }
+}
+
+function fileToDataUrl(file) {
+    return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(String(reader.result || ""));
+        reader.onerror = () => reject(new Error("Impossible de lire le fichier sélectionné."));
+        reader.readAsDataURL(file);
+    });
+}
+
+onAuthStateChanged(auth, (user) => {
+    if (!user) {
+        window.location.href = "login.html";
+        return;
+    }
+    clientUid = user.uid;
+});
+
+loadProfessionals();
+
+function openPhotoPicker() {
+    photoFileInput.click();
+}
+
+photoPickerWrap.addEventListener("click", (event) => {
+    if (event.target !== photoFileInput) openPhotoPicker();
+});
+
+photoPickerWrap.addEventListener("keydown", (event) => {
+    if (event.key === "Enter" || event.key === " ") {
+        event.preventDefault();
+        openPhotoPicker();
+    }
+});
+
+photoFileInput.addEventListener("change", () => {
+    const fileName = photoFileInput.files?.[0]?.name;
+    photoHint.textContent = fileName
+        ? `Photo sélectionnée: ${fileName}`
+        : "Cliquez pour choisir une photo depuis votre galerie (mobile) ou l’explorateur (PC).";
+});
+
+form.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    formError.hidden = true;
+    formOk.hidden = true;
+    if (!clientUid) return;
+    const toPro = toProSelect.value.trim();
+    const rating = document.getElementById("rating").value;
+    const comment = document.getElementById("comment").value;
+    const photoFile = photoFileInput.files?.[0] || null;
+    btn.disabled = true;
+    try {
+        let photoUrl = "";
+        if (photoFile) {
+            const maxSize = 2 * 1024 * 1024;
+            if (photoFile.size > maxSize) {
+                throw new Error("La photo est trop volumineuse (max 2 Mo).");
+            }
+            photoUrl = await fileToDataUrl(photoFile);
+        }
+        await createReview(clientUid, toPro, rating, comment, photoUrl);
+        formOk.textContent = "Merci, votre avis a été enregistré.";
+        formOk.hidden = false;
+        form.reset();
+        if (pre) toProSelect.value = pre;
+    } catch (err) {
+        formError.textContent = getFirebaseErrorMessage(err);
+        formError.hidden = false;
+    } finally {
+        btn.disabled = false;
+    }
+});
+</script>
+
+</body>
+</html>

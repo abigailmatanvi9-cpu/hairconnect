@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Postuler — HairConnect</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body class="login-page hc-theme-pro">
+
+<div class="login-container subpage-container">
+    <header class="login-header">
+        <a href="offres.html" class="login-back" aria-label="Retour">
+            <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M15.75 19.5 8.25 12l7.5-7.5"/></svg>
+        </a>
+        <h1 class="login-title">Candidature</h1>
+    </header>
+
+    <div id="offerBox" class="offer-summary" hidden>
+        <h2 id="otitle" class="offer-summary__title"></h2>
+        <p id="odesc" class="offer-summary__desc"></p>
+    </div>
+
+    <form id="f" class="register-form">
+        <p id="formError" class="form-error" role="alert" hidden></p>
+        <p id="formOk" class="form-success" role="status" hidden></p>
+        <div class="field-group">
+            <label class="field-label" for="msg">Message au salon</label>
+            <textarea id="msg" class="field-textarea" rows="5" placeholder="Présentez-vous, votre expérience, disponibilités…"></textarea>
+        </div>
+        <button type="submit" class="register-submit" id="btn">Envoyer la candidature</button>
+    </form>
+</div>
+
+<script type="module">
+import { auth, fetchOffreById, fetchUserProfile, createCandidature, getFirebaseErrorMessage } from "./firebase.js";
+import { onAuthStateChanged } from "./firebase.js";
+
+const params = new URLSearchParams(location.search);
+const offerId = params.get("offre");
+
+let myUid = null;
+let salonUid = null;
+
+if (!offerId) {
+    document.getElementById("formError").textContent = "Lien invalide (offre manquante).";
+    document.getElementById("formError").hidden = false;
+    document.getElementById("f").hidden = true;
+} else {
+    onAuthStateChanged(auth, async (user) => {
+        if (!user) {
+            window.location.href = "login.html";
+            return;
+        }
+        myUid = user.uid;
+        const off = await fetchOffreById(offerId);
+        if (!off) {
+            document.getElementById("formError").textContent = "Cette offre n’existe plus.";
+            document.getElementById("formError").hidden = false;
+            document.getElementById("f").hidden = true;
+            return;
+        }
+        salonUid = off.salonUid;
+        document.getElementById("otitle").textContent = off.title || "Offre";
+        document.getElementById("odesc").textContent = off.description || "";
+        document.getElementById("offerBox").hidden = false;
+
+        const prof = await fetchUserProfile(user.uid);
+        const role = String(prof?.role || "").trim().toLowerCase();
+        if (role === "client") {
+            window.location.replace("dashboard.html");
+            return;
+        }
+        if (role === "salon") {
+            document.getElementById("formError").textContent =
+                "En tant que salon, vous pouvez consulter les offres mais pas y postuler. Seuls les coiffeurs peuvent envoyer une candidature.";
+            document.getElementById("formError").hidden = false;
+            document.getElementById("f").hidden = true;
+        }
+    });
+
+    document.getElementById("f").addEventListener("submit", async (e) => {
+        e.preventDefault();
+        const err = document.getElementById("formError");
+        const ok = document.getElementById("formOk");
+        err.hidden = true;
+        ok.hidden = true;
+        if (!myUid || !salonUid || !offerId) return;
+        const profSubmit = await fetchUserProfile(myUid);
+        const rk = String(profSubmit?.role || "").trim().toLowerCase();
+        if (rk === "client") {
+            err.textContent = "Les offres d’emploi et candidatures sont réservées aux coiffeurs.";
+            err.hidden = false;
+            return;
+        }
+        if (rk === "salon") {
+            err.textContent = "Les salons ne peuvent pas postuler aux offres d’emploi.";
+            err.hidden = false;
+            return;
+        }
+        const btn = document.getElementById("btn");
+        btn.disabled = true;
+        try {
+            await createCandidature(offerId, myUid, salonUid, document.getElementById("msg").value);
+            ok.textContent = "Candidature envoyée.";
+            ok.hidden = false;
+        } catch (x) {
+            err.textContent = getFirebaseErrorMessage(x);
+            err.hidden = false;
+        } finally {
+            btn.disabled = false;
+        }
+    });
+}
+</script>
+
+</body>
+</html>

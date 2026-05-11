@@ -1,0 +1,183 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id            String       @id @default(uuid())
+  email         String       @unique
+  passwordHash  String
+  name          String
+  role          String
+  city          String?
+  /// WGS84 — pour recherche « à proximité » dans l’annuaire (optionnel).
+  latitude      Float?
+  longitude     Float?
+  phone         String?
+  photoUrl      String?
+  bio           String?
+  servicesTarifs String?
+  salonName     String?
+  /// homme | femme — identité du client ou du coiffeur (optionnel côté salon).
+  gender        String?
+  /// hommes | femmes | tous — clientèle accueillie (optionnel, ancien champ).
+  clientele     String?
+  /// Types d’activité proposés — JSON ["barbier","coiffeuse",…] (coiffeur / salon).
+  proMetiers    Json?
+  /// Types de pros recherchés — JSON ["barbier","tresseuse",…] (client).
+  rechercheMetiers Json?
+  homeVisit     Boolean?
+  /// Solde simulé (FCFA) — branchement API Flooz / Moov à prévoir en production.
+  balanceFloozFcfa Int @default(0)
+  /// Solde simulé (FCFA) — branchement API Mix by Yas à prévoir en production.
+  balanceMixFcfa   Int @default(0)
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
+  sentMessages  Message[]    @relation("SentMessages")
+  receivedMessages Message[] @relation("ReceivedMessages")
+  favoritesAsClient Favorite[] @relation("ClientFavorites")
+  favoritesAsPro    Favorite[] @relation("ProFavorites")
+  rendezVousAsPro    RendezVous[] @relation("ProRendezVous")
+  rendezVousAsClient RendezVous[] @relation("ClientRendezVous")
+}
+
+model Message {
+  id        String   @id @default(uuid())
+  fromUid   String
+  toUid     String
+  text      String
+  createdAt DateTime @default(now())
+  fromUser  User     @relation("SentMessages", fields: [fromUid], references: [id], onDelete: Cascade)
+  toUser    User     @relation("ReceivedMessages", fields: [toUid], references: [id], onDelete: Cascade)
+}
+
+model Avis {
+  id            String   @id @default(uuid())
+  fromClientUid String
+  toProUid      String
+  rating        Int
+  comment       String
+  photoUrl      String?
+  createdAt     DateTime @default(now())
+}
+
+model DemandeDomicile {
+  id        String   @id @default(uuid())
+  clientUid String
+  proUid    String?
+  message   String
+  createdAt DateTime @default(now())
+}
+
+model Offre {
+  id          String   @id @default(uuid())
+  salonUid    String
+  salonName   String?
+  title       String
+  description String
+  city        String?
+  contractType String?
+  createdAt   DateTime @default(now())
+}
+
+model Candidature {
+  id          String   @id @default(uuid())
+  offerId     String
+  coiffeurUid String
+  salonUid    String
+  message     String?
+  createdAt   DateTime @default(now())
+}
+
+model Favorite {
+  id        String   @id @default(uuid())
+  clientId  String
+  proId     String
+  createdAt DateTime @default(now())
+  client    User     @relation("ClientFavorites", fields: [clientId], references: [id], onDelete: Cascade)
+  pro       User     @relation("ProFavorites", fields: [proId], references: [id], onDelete: Cascade)
+
+  @@unique([clientId, proId])
+}
+
+model RendezVous {
+  id                  String    @id @default(uuid())
+  proUid              String
+  clientUid           String
+  scheduledAt         DateTime
+  prestation          String
+  status              String    @default("planned")
+  proRating           Int?
+  proComment          String?
+  /// Rempli quand le rappel J-1 (message messagerie) a été envoyé au client.
+  reminder24hSentAt   DateTime?
+  /// Prix en FCFA (fixé par le pro). Null = non défini, paiement en ligne indisponible.
+  priceFcfa           Int?
+  /// unpaid | pending | paid | failed.
+  paymentStatus       String    @default("unpaid")
+  /// Identifiant de tentative de paiement côté opérateur (ou simulation).
+  paymentAttemptId    String?
+  paymentProvider     String?
+  /// Date de démarrage de la tentative (création checkout / intent).
+  paymentRequestedAt  DateTime?
+  /// Raison de l’échec (retour opérateur / webhook).
+  paymentFailureReason String?
+  /// Horodatage d’échec (utile pour relance / support).
+  paymentFailedAt     DateTime?
+  /// Identifiant de transaction opérateur confirmé par webhook.
+  paymentOperatorTxnId String?
+  paidAt              DateTime?
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+  pro          User     @relation("ProRendezVous", fields: [proUid], references: [id], onDelete: Cascade)
+  client       User     @relation("ClientRendezVous", fields: [clientUid], references: [id], onDelete: Cascade)
+}
+
+model Product {
+  id          String   @id @default(uuid())
+  sellerUid   String
+  sellerName  String
+  title       String
+  description String
+  priceFcfa   Int
+  stock       Int      @default(1)
+  category    String?
+  photoUrl    String?
+  status      String   @default("active")
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model MarketOrder {
+  id                String   @id @default(uuid())
+  buyerUid          String
+  sellerUid         String
+  sellerName        String?
+  buyerName         String?
+  status            String   @default("pending")
+  subtotalFcfa      Int
+  platformFeeFcfa   Int
+  sellerNetFcfa     Int
+  platformFeeRateBp Int      @default(1000)
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+  items             MarketOrderItem[]
+}
+
+model MarketOrderItem {
+  id           String   @id @default(uuid())
+  orderId      String
+  productId    String
+  sellerUid    String
+  buyerUid     String
+  productTitle String
+  unitPriceFcfa Int
+  quantity     Int
+  lineTotalFcfa Int
+  createdAt    DateTime @default(now())
+  order        MarketOrder @relation(fields: [orderId], references: [id], onDelete: Cascade)
+}

@@ -1,0 +1,484 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Messagerie — HairConnect</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body class="login-page hc-theme-pro">
+
+<div class="login-container subpage-container subpage-wide">
+    <header class="login-header">
+        <a href="dashboard.html" class="login-back" aria-label="Retour">
+            <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M15.75 19.5 8.25 12l7.5-7.5"/></svg>
+        </a>
+        <h1 class="login-title">Messagerie</h1>
+    </header>
+
+    <p id="formError" class="form-error" role="alert" hidden></p>
+    <p id="formOk" class="form-success" role="status" hidden></p>
+
+    <section class="msg-chat" aria-label="Chat">
+        <aside class="msg-chat__sidebar">
+            <h2 class="subpage-h2 msg-chat__title">Conversations</h2>
+            <div class="msg-chat__new">
+                <select id="toUid" class="field-select">
+                    <option value="">Choisir un destinataire…</option>
+                </select>
+                <button type="button" class="register-submit msg-chat__new-btn" id="startChatBtn">Ouvrir</button>
+            </div>
+            <ul id="conversationList" class="msg-chat__conversations"></ul>
+        </aside>
+
+        <div class="msg-chat__main">
+            <header class="msg-chat__header">
+                <p class="msg-chat__peer" id="chatPeerName">Sélectionnez une conversation</p>
+                <p class="msg-chat__meta" id="chatPeerMeta"></p>
+            </header>
+
+            <ul id="chatMessages" class="msg-chat__messages">
+                <li class="msg-chat__empty">Aucune conversation sélectionnée.</li>
+            </ul>
+
+            <form id="composeForm" class="msg-chat__composer">
+                <textarea id="msgText" class="field-textarea msg-chat__input" rows="2" placeholder="Écrire un message…"></textarea>
+                <div class="msg-chat__attach">
+                    <input type="file" id="msgPhoto" accept="image/*" hidden>
+                    <button type="button" class="msg-chat__attach-btn" id="msgPhotoBtn">Photo</button>
+                    <button type="button" class="msg-chat__attach-btn" id="msgPhotoClear" hidden>Retirer</button>
+                </div>
+                <button type="submit" class="register-submit msg-chat__send" id="sendBtn">Envoyer</button>
+            </form>
+            <div class="msg-chat__preview" id="msgPhotoPreviewWrap" hidden>
+                <img id="msgPhotoPreview" alt="Aperçu photo">
+            </div>
+        </div>
+    </section>
+</div>
+
+<script type="module">
+import {
+    auth,
+    sendMessage,
+    listMessagesForUser,
+    listProfessionals,
+    fetchUserProfile,
+    getFirebaseErrorMessage
+} from "./firebase.js";
+import { onAuthStateChanged } from "./firebase.js";
+
+const params = new URLSearchParams(location.search);
+const preTo = params.get("to");
+
+const form = document.getElementById("composeForm");
+const formError = document.getElementById("formError");
+const formOk = document.getElementById("formOk");
+const sendBtn = document.getElementById("sendBtn");
+const startChatBtn = document.getElementById("startChatBtn");
+const conversationList = document.getElementById("conversationList");
+const chatMessages = document.getElementById("chatMessages");
+const chatPeerName = document.getElementById("chatPeerName");
+const chatPeerMeta = document.getElementById("chatPeerMeta");
+const msgPhotoInput = document.getElementById("msgPhoto");
+const msgPhotoBtn = document.getElementById("msgPhotoBtn");
+const msgPhotoClear = document.getElementById("msgPhotoClear");
+const msgPhotoPreviewWrap = document.getElementById("msgPhotoPreviewWrap");
+const msgPhotoPreview = document.getElementById("msgPhotoPreview");
+
+let myUid = null;
+let recipientsLoaded = false;
+let allMessages = [];
+let activePeerUid = "";
+const profileMap = new Map();
+let refreshTimer = null;
+let pendingPhotoDataUrl = "";
+
+const CHAT_RICH_PREFIX = "HCMSG1::";
+
+function labelForUser(u) {
+    const role = (u?.role || "").trim();
+    const city = (u?.city || "").trim();
+    const name = u?.salonName || u?.name || u?.email || "Utilisateur";
+    const extras = [role, city].filter(Boolean).join(" · ");
+    return extras ? `${name} — ${extras}` : name;
+}
+
+async function loadRecipients() {
+    const select = document.getElementById("toUid");
+    const selected = preTo || "";
+    const list = await listProfessionals();
+    const seen = new Set();
+
+    for (const u of list) {
+        if (!u?.id || u.id === myUid || seen.has(u.id)) continue;
+        seen.add(u.id);
+        profileMap.set(u.id, u);
+        const opt = document.createElement("option");
+        opt.value = u.id;
+        opt.textContent = labelForUser(u);
+        select.appendChild(opt);
+    }
+
+    if (selected && !seen.has(selected)) {
+        const u = await fetchUserProfile(selected).catch(() => null);
+        if (u) profileMap.set(selected, u);
+        const opt = document.createElement("option");
+        opt.value = selected;
+        opt.textContent = u ? labelForUser(u) : `Destinataire (${selected.slice(0, 8)}...)`;
+        select.appendChild(opt);
+    }
+
+    if (selected) select.value = selected;
+    recipientsLoaded = true;
+}
+
+function toMillis(ts) {
+    if (!ts) return 0;
+    if (typeof ts?.toDate === "function") return ts.toDate().getTime();
+    const d = new Date(ts);
+    return Number.isNaN(d.getTime()) ? 0 : d.getTime();
+}
+
+function peerUidOfMessage(m) {
+    return m.fromUid === myUid ? m.toUid : m.fromUid;
+}
+
+function sortByDateAsc(a, b) {
+    return toMillis(a.createdAt) - toMillis(b.createdAt);
+}
+
+function formatDate(ts) {
+    const ms = toMillis(ts);
+    if (!ms) return "";
+    return new Date(ms).toLocaleString("fr-FR", {
+        day: "2-digit",
+        month: "2-digit",
+        hour: "2-digit",
+        minute: "2-digit"
+    });
+}
+
+async function ensureProfile(uid) {
+    if (!uid || profileMap.has(uid)) return;
+    const u = await fetchUserProfile(uid).catch(() => null);
+    if (u) profileMap.set(uid, u);
+}
+
+function displayNameForUid(uid) {
+    const p = profileMap.get(uid);
+    return p?.salonName || p?.name || p?.email || `Utilisateur (${uid.slice(0, 8)}...)`;
+}
+
+function displayMetaForUid(uid) {
+    const p = profileMap.get(uid);
+    if (!p) return "";
+    const role = String(p.role || "").trim();
+    const city = String(p.city || "").trim();
+    return [role, city].filter(Boolean).join(" · ");
+}
+
+function encodeChatPayload(text, imageUrl) {
+    const payload = {
+        t: String(text || "").trim(),
+        i: String(imageUrl || "").trim()
+    };
+    return CHAT_RICH_PREFIX + JSON.stringify(payload);
+}
+
+function decodeChatPayload(rawText) {
+    const raw = String(rawText || "");
+    if (!raw.startsWith(CHAT_RICH_PREFIX)) {
+        return { text: raw, images: [] };
+    }
+    try {
+        const parsed = JSON.parse(raw.slice(CHAT_RICH_PREFIX.length));
+        const images = Array.isArray(parsed?.i)
+            ? parsed.i.map((u) => String(u || "").trim()).filter(Boolean)
+            : String(parsed?.i || "").trim()
+                ? [String(parsed.i).trim()]
+                : [];
+        return {
+            text: String(parsed?.t || ""),
+            images
+        };
+    } catch {
+        return { text: raw, images: [] };
+    }
+}
+
+function snippetFromMessage(rawText) {
+    const content = decodeChatPayload(rawText);
+    if (content.text) return content.text;
+    if (content.images.length > 1) return `${content.images.length} photos`;
+    if (content.images.length === 1) return "Photo";
+    return "Message vide";
+}
+
+function buildConversations(items) {
+    const map = new Map();
+    for (const m of items) {
+        const peer = peerUidOfMessage(m);
+        if (!peer) continue;
+        const prev = map.get(peer);
+        if (!prev || toMillis(m.createdAt) > toMillis(prev.createdAt)) {
+            map.set(peer, m);
+        }
+    }
+    return Array.from(map.entries())
+        .map(([uid, lastMessage]) => ({ uid, lastMessage }))
+        .sort((a, b) => toMillis(b.lastMessage.createdAt) - toMillis(a.lastMessage.createdAt));
+}
+
+function renderConversationList() {
+    conversationList.innerHTML = "";
+    const conversations = buildConversations(allMessages);
+    if (!conversations.length) {
+        const li = document.createElement("li");
+        li.className = "msg-chat__conv msg-chat__conv--empty";
+        li.textContent = "Aucune conversation pour l’instant.";
+        conversationList.appendChild(li);
+        return;
+    }
+
+    for (const c of conversations) {
+        const li = document.createElement("li");
+        li.className = "msg-chat__conv";
+        if (c.uid === activePeerUid) li.classList.add("is-active");
+        const text = snippetFromMessage(c.lastMessage.text);
+        li.innerHTML =
+            "<button type=\"button\" class=\"msg-chat__conv-btn\" data-peer-uid=\"" +
+            escapeHtml(c.uid) +
+            "\">" +
+            "<span class=\"msg-chat__conv-name\">" +
+            escapeHtml(displayNameForUid(c.uid)) +
+            "</span>" +
+            "<span class=\"msg-chat__conv-snippet\">" +
+            escapeHtml(text) +
+            "</span>" +
+            "<span class=\"msg-chat__conv-date\">" +
+            escapeHtml(formatDate(c.lastMessage.createdAt)) +
+            "</span>" +
+            "</button>";
+        conversationList.appendChild(li);
+    }
+}
+
+function renderActiveMessages() {
+    chatMessages.innerHTML = "";
+    if (!activePeerUid) {
+        const li = document.createElement("li");
+        li.className = "msg-chat__empty";
+        li.textContent = "Aucune conversation sélectionnée.";
+        chatMessages.appendChild(li);
+        chatPeerName.textContent = "Sélectionnez une conversation";
+        chatPeerMeta.textContent = "";
+        return;
+    }
+
+    chatPeerName.textContent = displayNameForUid(activePeerUid);
+    chatPeerMeta.textContent = displayMetaForUid(activePeerUid);
+
+    const items = allMessages
+        .filter((m) => peerUidOfMessage(m) === activePeerUid)
+        .sort(sortByDateAsc);
+
+    if (!items.length) {
+        const li = document.createElement("li");
+        li.className = "msg-chat__empty";
+        li.textContent = "Écrivez le premier message.";
+        chatMessages.appendChild(li);
+        return;
+    }
+
+    for (const m of items) {
+        const mine = m.fromUid === myUid;
+        const content = decodeChatPayload(m.text);
+        const li = document.createElement("li");
+        li.className = "msg-chat__bubble-wrap " + (mine ? "is-mine" : "is-other");
+        const imageHtml = content.images.length
+            ? "<div class=\"msg-chat__bubble-images\">" +
+              content.images
+                  .map(
+                      (url) =>
+                          "<img class=\"msg-chat__bubble-image\" src=\"" +
+                          escapeHtml(url) +
+                          "\" alt=\"Photo envoyée\">"
+                  )
+                  .join("") +
+              "</div>"
+            : "";
+        const textHtml = content.text
+            ? "<p class=\"msg-chat__bubble-text\">" + escapeHtml(content.text) + "</p>"
+            : "";
+        li.innerHTML =
+            "<div class=\"msg-chat__bubble\">" +
+            imageHtml +
+            textHtml +
+            "<span class=\"msg-chat__bubble-date\">" +
+            escapeHtml(formatDate(m.createdAt)) +
+            "</span>" +
+            "</div>";
+        chatMessages.appendChild(li);
+    }
+    chatMessages.scrollTop = chatMessages.scrollHeight;
+}
+
+async function refreshList() {
+    if (!myUid) return;
+    const items = await listMessagesForUser(myUid);
+    allMessages = items;
+
+    const peers = new Set(items.map((m) => peerUidOfMessage(m)).filter(Boolean));
+    if (preTo) peers.add(preTo);
+    if (activePeerUid) peers.add(activePeerUid);
+    for (const uid of peers) {
+        await ensureProfile(uid);
+    }
+
+    if (!activePeerUid && preTo) activePeerUid = preTo;
+    if (!activePeerUid && peers.size) activePeerUid = Array.from(peers)[0];
+    renderConversationList();
+    renderActiveMessages();
+}
+
+function escapeHtml(s) {
+    return String(s)
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;");
+}
+
+form.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    formError.hidden = true;
+    formOk.hidden = true;
+    const toUid = (activePeerUid || document.getElementById("toUid").value).trim();
+    const text = document.getElementById("msgText").value;
+    const cleanText = text.trim();
+    if (!myUid || !toUid || (!cleanText && !pendingPhotoDataUrl)) return;
+    sendBtn.disabled = true;
+    try {
+        const payload = encodeChatPayload(cleanText, pendingPhotoDataUrl);
+        await sendMessage(myUid, toUid, payload);
+        activePeerUid = toUid;
+        document.getElementById("msgText").value = "";
+        clearPendingPhoto();
+        formOk.textContent = "Message envoyé.";
+        formOk.hidden = false;
+        await refreshList();
+    } catch (err) {
+        formError.textContent = getFirebaseErrorMessage(err);
+        formError.hidden = false;
+    } finally {
+        sendBtn.disabled = false;
+    }
+});
+
+function clearPendingPhoto() {
+    pendingPhotoDataUrl = "";
+    if (msgPhotoInput) msgPhotoInput.value = "";
+    if (msgPhotoPreviewWrap) msgPhotoPreviewWrap.hidden = true;
+    if (msgPhotoPreview) msgPhotoPreview.removeAttribute("src");
+    if (msgPhotoClear) msgPhotoClear.hidden = true;
+}
+
+async function fileToDataUrl(file) {
+    return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(String(reader.result || ""));
+        reader.onerror = () => reject(new Error("Impossible de lire l'image."));
+        reader.readAsDataURL(file);
+    });
+}
+
+function renderPendingPhotoPreview() {
+    if (!msgPhotoPreviewWrap || !msgPhotoPreview) return;
+    if (!pendingPhotoDataUrl) {
+        msgPhotoPreviewWrap.hidden = true;
+        msgPhotoPreview.removeAttribute("src");
+        if (msgPhotoClear) msgPhotoClear.hidden = true;
+        return;
+    }
+    msgPhotoPreview.src = pendingPhotoDataUrl;
+    msgPhotoPreviewWrap.hidden = false;
+    if (msgPhotoClear) msgPhotoClear.hidden = false;
+}
+
+if (msgPhotoBtn && msgPhotoInput) {
+    msgPhotoBtn.addEventListener("click", () => msgPhotoInput.click());
+}
+
+if (msgPhotoClear) {
+    msgPhotoClear.addEventListener("click", clearPendingPhoto);
+}
+
+if (msgPhotoInput) {
+    msgPhotoInput.addEventListener("change", async () => {
+        const file = msgPhotoInput.files?.[0];
+        if (!file) {
+            clearPendingPhoto();
+            return;
+        }
+        try {
+            const maxSize = 8 * 1024 * 1024;
+            if (file.size > maxSize) {
+                throw new Error("Image trop lourde (max 8 Mo).");
+            }
+            pendingPhotoDataUrl = await fileToDataUrl(file);
+            renderPendingPhotoPreview();
+            formError.hidden = true;
+        } catch (err) {
+            clearPendingPhoto();
+            formError.textContent = getFirebaseErrorMessage(err);
+            formError.hidden = false;
+        }
+    });
+}
+
+startChatBtn.addEventListener("click", async () => {
+    const uid = document.getElementById("toUid").value.trim();
+    if (!uid) return;
+    activePeerUid = uid;
+    await ensureProfile(uid);
+    renderConversationList();
+    renderActiveMessages();
+});
+
+conversationList.addEventListener("click", (e) => {
+    const btn = e.target.closest("[data-peer-uid]");
+    if (!btn) return;
+    activePeerUid = btn.getAttribute("data-peer-uid") || "";
+    renderConversationList();
+    renderActiveMessages();
+});
+
+onAuthStateChanged(auth, async (user) => {
+    if (!user) {
+        window.location.href = "login.html";
+        return;
+    }
+    myUid = user.uid;
+    try {
+        if (!recipientsLoaded) {
+            await loadRecipients();
+        }
+        await refreshList();
+        if (refreshTimer) clearInterval(refreshTimer);
+        refreshTimer = setInterval(() => {
+            refreshList().catch(() => {});
+        }, 7000);
+    } catch (err) {
+        formError.textContent = getFirebaseErrorMessage(err);
+        formError.hidden = false;
+    }
+});
+
+window.addEventListener("beforeunload", () => {
+    if (refreshTimer) clearInterval(refreshTimer);
+});
+</script>
+
+</body>
+</html>

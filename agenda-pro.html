@@ -1,0 +1,568 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Agenda — HairConnect</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body class="login-page hc-theme-pro">
+
+<div class="login-container subpage-container subpage-wide">
+    <header class="login-header">
+        <a href="dashboard.html" class="login-back" aria-label="Retour">
+            <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M15.75 19.5 8.25 12l7.5-7.5"/></svg>
+        </a>
+        <h1 class="login-title">Agenda &amp; rendez-vous</h1>
+    </header>
+
+    <p id="roleBlock" class="form-error agenda-pro__gate" role="status" hidden></p>
+
+    <section id="agendaSection" class="agenda-pro" hidden>
+        <h2 class="subpage-h2">Nouveau rendez-vous</h2>
+        <p class="agenda-pro__hint">Choisissez un client dans la liste, puis indiquez la date, l’heure et la prestation prévue. Indiquez un prix (FCFA) pour permettre le paiement en ligne côté client (Flooz / Mix by Yas, simulation). Un message de rappel est envoyé automatiquement dans la messagerie vers environ 24 h avant le RDV (tant que le serveur tourne).</p>
+        <form id="newRdVForm" class="register-form agenda-pro__form">
+            <p id="formErr" class="form-error" role="alert" hidden></p>
+            <p id="formOk" class="form-success" role="status" hidden></p>
+            <div class="field-group">
+                <label class="field-label" for="clientSelect">Client (liste)</label>
+                <div class="field-input-wrap">
+                    <select id="clientSelect" class="agenda-pro__client-select" aria-label="Choisir un client inscrit">
+                        <option value="">— Déroulez pour choisir un client —</option>
+                    </select>
+                </div>
+            </div>
+            <p id="clientPreview" class="agenda-pro__preview" hidden></p>
+            <input type="hidden" id="clientUid" value="">
+            <div class="field-group">
+                <label class="field-label" for="scheduledAt">Date &amp; heure</label>
+                <div class="field-input-wrap">
+                    <input type="datetime-local" id="scheduledAt" required>
+                </div>
+            </div>
+            <div class="field-group">
+                <label class="field-label" for="prestation">Prestation</label>
+                <textarea id="prestation" class="field-textarea" rows="3" required placeholder="Ex. Coupe + brushing — 45 min"></textarea>
+            </div>
+            <div class="field-group">
+                <label class="field-label" for="priceFcfa">Prix (FCFA)</label>
+                <div class="field-input-wrap">
+                    <input type="number" id="priceFcfa" min="0" step="1" placeholder="Ex. 15000 (optionnel)">
+                </div>
+            </div>
+            <button type="submit" class="register-submit" id="createBtn">Ajouter au planning</button>
+        </form>
+
+        <h2 class="subpage-h2">Planning</h2>
+        <p id="listErr" class="form-error" role="alert" hidden></p>
+        <p id="listLoading" class="agenda-pro__loading">Chargement…</p>
+        <ul id="rdvList" class="agenda-pro__list"></ul>
+    </section>
+</div>
+
+<script type="module">
+import {
+    auth,
+    onAuthStateChanged,
+    fetchUserProfile,
+    listUsers,
+    listRendezVousForPro,
+    createRendezVous,
+    updateRendezVous,
+    sendRendezVousReminderNow,
+    getFirebaseErrorMessage
+} from "./firebase.js";
+
+const STATUS_LABELS = {
+    planned: "À venir",
+    completed: "Terminé",
+    cancelled: "Annulé",
+    noshow: "Absent"
+};
+
+function escapeHtml(s) {
+    return String(s)
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;");
+}
+
+function isProRole(raw) {
+    const r = String(raw || "")
+        .trim()
+        .toLowerCase();
+    return (
+        r === "salon" ||
+        r === "coiffeur" ||
+        r === "coiffeuse" ||
+        r === "coiffeur indépendant" ||
+        r === "coiffeuse indépendante"
+    );
+}
+
+function isClientRole(raw) {
+    return String(raw || "")
+        .trim()
+        .toLowerCase() === "client";
+}
+
+function ensureClientOptionInSelect(user) {
+    if (!user || !user.id || !isClientRole(user.role)) return;
+    const sel = document.getElementById("clientSelect");
+    if (!sel) return;
+    for (let i = 0; i < sel.options.length; i++) {
+        if (sel.options[i].value === user.id) return;
+    }
+    const opt = document.createElement("option");
+    opt.value = user.id;
+    const label = String(user.name || "").trim() || user.email || "Client";
+    opt.textContent = label + " — " + String(user.email || "");
+    sel.appendChild(opt);
+}
+
+async function loadClientOptions() {
+    const sel = document.getElementById("clientSelect");
+    if (!sel) return;
+    sel.innerHTML = "";
+    const placeholder = document.createElement("option");
+    placeholder.value = "";
+    placeholder.textContent = "— Déroulez pour choisir un client —";
+    sel.appendChild(placeholder);
+    try {
+        const users = await listUsers();
+        const clients = users.filter(
+            (u) => isClientRole(u.role) && String(u.id) !== String(myUid || "")
+        );
+        clients.sort((a, b) =>
+            String(a.name || a.email || "").localeCompare(String(b.name || b.email || ""), "fr", {
+                sensitivity: "base"
+            })
+        );
+        for (const u of clients) {
+            const opt = document.createElement("option");
+            opt.value = u.id;
+            const label = String(u.name || "").trim() || u.email || "Client";
+            opt.textContent = label + " — " + String(u.email || "");
+            sel.appendChild(opt);
+        }
+    } catch (e) {
+        console.error(e);
+    }
+}
+
+function formatWhen(iso) {
+    const d = new Date(iso);
+    if (Number.isNaN(d.getTime())) return "—";
+    return d.toLocaleString("fr-FR", {
+        weekday: "short",
+        day: "2-digit",
+        month: "short",
+        year: "numeric",
+        hour: "2-digit",
+        minute: "2-digit"
+    });
+}
+
+function toDatetimeLocalValue(iso) {
+    const d = new Date(iso);
+    if (Number.isNaN(d.getTime())) return "";
+    const pad = (n) => String(n).padStart(2, "0");
+    return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+}
+
+let myUid = null;
+
+function setClientPreview(user) {
+    const el = document.getElementById("clientPreview");
+    const hid = document.getElementById("clientUid");
+    const sel = document.getElementById("clientSelect");
+    if (!user || !isClientRole(user.role)) {
+        if (hid) hid.value = "";
+        if (sel) sel.value = "";
+        if (el) {
+            el.hidden = true;
+            el.textContent = "";
+        }
+        return;
+    }
+    if (hid) hid.value = user.id;
+    ensureClientOptionInSelect(user);
+    if (sel) {
+        for (let i = 0; i < sel.options.length; i++) {
+            if (sel.options[i].value === user.id) {
+                sel.selectedIndex = i;
+                break;
+            }
+        }
+    }
+    if (el) {
+        el.hidden = false;
+        const name = escapeHtml(user.name || "Sans nom");
+        const mail = escapeHtml(user.email || "");
+        const phone = escapeHtml(user.phone || "—");
+        const city = escapeHtml(user.city || "—");
+        el.innerHTML =
+            "<strong>Client :</strong> " +
+            name +
+            "<br><span class=\"agenda-pro__preview-meta\">" +
+            mail +
+            " · Tél. " +
+            phone +
+            " · " +
+            city +
+            "</span>";
+    }
+}
+
+async function loadList() {
+    const listEl = document.getElementById("rdvList");
+    const loadEl = document.getElementById("listLoading");
+    const errEl = document.getElementById("listErr");
+    if (!listEl || !myUid) return;
+    if (errEl) {
+        errEl.hidden = true;
+        errEl.textContent = "";
+    }
+    if (loadEl) loadEl.hidden = false;
+    listEl.innerHTML = "";
+    try {
+        const rows = await listRendezVousForPro(myUid);
+        if (loadEl) loadEl.hidden = true;
+        if (!rows.length) {
+            const li = document.createElement("li");
+            li.className = "agenda-pro__empty";
+            li.textContent = "Aucun rendez-vous enregistré.";
+            listEl.appendChild(li);
+            return;
+        }
+        for (const r of rows) {
+            listEl.appendChild(renderCard(r));
+        }
+    } catch (e) {
+        if (loadEl) loadEl.hidden = true;
+        if (errEl) {
+            errEl.textContent = getFirebaseErrorMessage(e);
+            errEl.hidden = false;
+        }
+    }
+}
+
+function renderCard(r) {
+    const c = r.client || {};
+    const id = escapeHtml(r.id);
+    const status = String(r.status || "planned").toLowerCase();
+    const statusLabel = STATUS_LABELS[status] || status;
+    const rating = r.proRating != null ? Number(r.proRating) : null;
+
+    const li = document.createElement("li");
+    li.className = "agenda-pro__card";
+    li.dataset.rdvId = r.id;
+
+    const clientName = escapeHtml(c.name || "Client");
+    const clientMail = escapeHtml(c.email || "—");
+    const clientPhone = escapeHtml(c.phone || "—");
+    const clientCity = escapeHtml(c.city || "—");
+    const prestEsc = escapeHtml(r.prestation || "");
+
+    li.innerHTML =
+        '<div class="agenda-pro__card-head">' +
+        '<p class="agenda-pro__when">' +
+        escapeHtml(formatWhen(r.scheduledAt)) +
+        "</p>" +
+        '<span class="agenda-pro__status agenda-pro__status--' +
+        escapeHtml(status) +
+        '">' +
+        escapeHtml(statusLabel) +
+        "</span></div>" +
+        '<div class="agenda-pro__client">' +
+        "<h3 class=\"agenda-pro__client-name\">" +
+        clientName +
+        "</h3>" +
+        '<p class="agenda-pro__client-line"><span class="agenda-pro__k">E-mail</span> ' +
+        clientMail +
+        "</p>" +
+        '<p class="agenda-pro__client-line"><span class="agenda-pro__k">Téléphone</span> ' +
+        clientPhone +
+        "</p>" +
+        '<p class="agenda-pro__client-line"><span class="agenda-pro__k">Ville</span> ' +
+        clientCity +
+        "</p>" +
+        "</div>" +
+        '<div class="agenda-pro__prestation"><span class="agenda-pro__k">Prestation</span><p>' +
+        prestEsc +
+        "</p></div>" +
+        '<label class="agenda-pro__k agenda-pro__lbl" for="sched-' +
+        id +
+        '">Modifier date &amp; heure</label>' +
+        '<input type="datetime-local" class="agenda-pro__input" id="sched-' +
+        id +
+        '" value="' +
+        escapeHtml(toDatetimeLocalValue(r.scheduledAt)) +
+        '">' +
+        '<label class="agenda-pro__k agenda-pro__lbl" for="prest-' +
+        id +
+        '">Prestation</label>' +
+        '<textarea class="field-textarea agenda-pro__textarea" id="prest-' +
+        id +
+        '" rows="2"></textarea>' +
+        '<label class="agenda-pro__k agenda-pro__lbl" for="price-' +
+        id +
+        '">Prix (FCFA)</label>' +
+        '<input type="number" class="agenda-pro__input agenda-pro__input--price" id="price-' +
+        id +
+        '" min="0" step="1" placeholder="Optionnel">' +
+        '<label class="agenda-pro__k agenda-pro__lbl" for="stat-' +
+        id +
+        '">Statut</label>' +
+        '<select class="field-input-wrap agenda-pro__select" id="stat-' +
+        id +
+        '">' +
+        ["planned", "completed", "cancelled", "noshow"]
+            .map(
+                (k) =>
+                    "<option value=\"" +
+                    k +
+                    "\"" +
+                    (k === status ? " selected" : "") +
+                    ">" +
+                    escapeHtml(STATUS_LABELS[k]) +
+                    "</option>"
+            )
+            .join("") +
+        "</select>" +
+        '<p class="agenda-pro__k agenda-pro__lbl">Votre note sur ce rendez-vous (1 à 5)</p>' +
+        '<div class="agenda-pro__stars" data-rdv-stars="' +
+        id +
+        '">' +
+        [1, 2, 3, 4, 5]
+            .map((n) => {
+                const active = rating === n ? " is-active" : "";
+                return (
+                    "<button type=\"button\" class=\"agenda-pro__star" +
+                    active +
+                    "\" data-star=\"" +
+                    n +
+                    "\" aria-pressed=\"" +
+                    (rating === n ? "true" : "false") +
+                    "\">" +
+                    n +
+                    "</button>"
+                );
+            })
+            .join("") +
+        "</div>" +
+        '<input type="hidden" id="rating-' +
+        id +
+        '" value="' +
+        (rating != null ? String(rating) : "") +
+        '">' +
+        '<label class="agenda-pro__k agenda-pro__lbl" for="com-' +
+        id +
+        '">Commentaire (prestation, ponctualité…)</label>' +
+        '<textarea class="field-textarea agenda-pro__textarea" id="com-' +
+        id +
+        '" rows="2" placeholder="Note interne après le rendez-vous…"></textarea>' +
+        '<div class="agenda-pro__actions">' +
+        '<button type="button" class="register-submit agenda-pro__save" data-save-rdv="' +
+        id +
+        '">Enregistrer</button>' +
+        (status === "planned"
+            ? '<button type="button" class="agenda-pro__remind-btn" data-send-reminder="' +
+              escapeHtml(r.id) +
+              '">Envoyer le rappel (messagerie)</button>'
+            : "") +
+        "</div>" +
+        '<p class="agenda-pro__saved" id="ok-' +
+        id +
+        '" hidden>Enregistré.</p>';
+
+    const taPrest = li.querySelector("#prest-" + r.id);
+    if (taPrest) taPrest.value = r.prestation || "";
+    const inpPrice = li.querySelector("#price-" + r.id);
+    if (inpPrice) inpPrice.value = r.priceFcfa != null ? String(r.priceFcfa) : "";
+    const taCom = li.querySelector("#com-" + r.id);
+    if (taCom) taCom.value = r.proComment || "";
+
+    const starsWrap = li.querySelector("[data-rdv-stars]");
+    const ratingInput = li.querySelector("#rating-" + r.id);
+    if (starsWrap && ratingInput) {
+        starsWrap.querySelectorAll("[data-star]").forEach((btn) => {
+            btn.addEventListener("click", () => {
+                const n = Number(btn.getAttribute("data-star"));
+                ratingInput.value = String(n);
+                starsWrap.querySelectorAll("[data-star]").forEach((b) => {
+                    const v = Number(b.getAttribute("data-star"));
+                    b.classList.toggle("is-active", v === n);
+                    b.setAttribute("aria-pressed", v === n ? "true" : "false");
+                });
+            });
+        });
+    }
+
+    const saveBtn = li.querySelector("[data-save-rdv]");
+    if (saveBtn) {
+        saveBtn.addEventListener("click", async () => {
+            const okEl = li.querySelector("#ok-" + r.id);
+            if (okEl) okEl.hidden = true;
+            saveBtn.disabled = true;
+            try {
+                const schedEl = li.querySelector("#sched-" + r.id);
+                const prestEl = li.querySelector("#prest-" + r.id);
+                const statEl = li.querySelector("#stat-" + r.id);
+                const comEl = li.querySelector("#com-" + r.id);
+                const ratEl = li.querySelector("#rating-" + r.id);
+                const priceEl = li.querySelector("#price-" + r.id);
+                const partial = {
+                    scheduledAt: schedEl ? schedEl.value : undefined,
+                    prestation: prestEl ? prestEl.value.trim() : "",
+                    status: statEl ? statEl.value : undefined,
+                    proComment: comEl ? comEl.value.trim() : ""
+                };
+                if (priceEl) {
+                    const pv = String(priceEl.value || "").trim();
+                    if (pv === "") partial.priceFcfa = null;
+                    else {
+                        const n = parseInt(pv, 10);
+                        partial.priceFcfa = Number.isFinite(n) && n >= 0 ? n : null;
+                    }
+                }
+                if (ratEl && ratEl.value) partial.proRating = Number(ratEl.value);
+                else partial.proRating = null;
+                await updateRendezVous(r.id, myUid, partial);
+                if (okEl) {
+                    okEl.hidden = false;
+                }
+            } catch (e) {
+                alert(getFirebaseErrorMessage(e));
+            } finally {
+                saveBtn.disabled = false;
+            }
+        });
+    }
+
+    const remindBtn = li.querySelector("[data-send-reminder]");
+    if (remindBtn && myUid) {
+        remindBtn.addEventListener("click", async () => {
+            remindBtn.disabled = true;
+            try {
+                const res = await sendRendezVousReminderNow(r.id, myUid);
+                alert(res?.message || "Rappel envoyé au client.");
+            } catch (e) {
+                alert(getFirebaseErrorMessage(e));
+            } finally {
+                remindBtn.disabled = false;
+            }
+        });
+    }
+
+    return li;
+}
+
+document.getElementById("clientSelect").addEventListener("change", async () => {
+    const formErr = document.getElementById("formErr");
+    if (formErr) {
+        formErr.hidden = true;
+        formErr.textContent = "";
+    }
+    const sel = document.getElementById("clientSelect");
+    const v = sel ? sel.value : "";
+    if (!v) {
+        setClientPreview(null);
+        return;
+    }
+    try {
+        const prof = await fetchUserProfile(v);
+        setClientPreview(prof);
+    } catch {
+        setClientPreview(null);
+    }
+});
+
+document.getElementById("newRdVForm").addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const formErr = document.getElementById("formErr");
+    const formOk = document.getElementById("formOk");
+    if (formErr) {
+        formErr.hidden = true;
+        formErr.textContent = "";
+    }
+    if (formOk) formOk.hidden = true;
+    const clientUid = document.getElementById("clientUid").value.trim();
+    if (!clientUid) {
+        if (formErr) {
+            formErr.textContent = "Choisissez un client dans la liste.";
+            formErr.hidden = false;
+        }
+        return;
+    }
+    const scheduledAt = document.getElementById("scheduledAt").value;
+    const prestation = document.getElementById("prestation").value.trim();
+    const priceRaw = document.getElementById("priceFcfa")
+        ? String(document.getElementById("priceFcfa").value || "").trim()
+        : "";
+    let priceFcfa;
+    if (priceRaw === "") {
+        priceFcfa = undefined;
+    } else {
+        const n = parseInt(priceRaw, 10);
+        priceFcfa = Number.isFinite(n) && n >= 0 ? n : undefined;
+    }
+    const btn = document.getElementById("createBtn");
+    if (btn) btn.disabled = true;
+    try {
+        await createRendezVous({
+            proUid: myUid,
+            clientUid,
+            scheduledAt,
+            prestation,
+            priceFcfa
+        });
+        const selReset = document.getElementById("clientSelect");
+        if (selReset) selReset.value = "";
+        setClientPreview(null);
+        document.getElementById("prestation").value = "";
+        const pf = document.getElementById("priceFcfa");
+        if (pf) pf.value = "";
+        if (formOk) {
+            formOk.textContent = "Rendez-vous ajouté.";
+            formOk.hidden = false;
+        }
+        await loadList();
+    } catch (err) {
+        if (formErr) {
+            formErr.textContent = getFirebaseErrorMessage(err);
+            formErr.hidden = false;
+        }
+    } finally {
+        if (btn) btn.disabled = false;
+    }
+});
+
+onAuthStateChanged(auth, async (user) => {
+    const gate = document.getElementById("roleBlock");
+    const section = document.getElementById("agendaSection");
+    if (!user) {
+        window.location.href = "login.html";
+        return;
+    }
+    myUid = user.uid;
+    const profile = await fetchUserProfile(user.uid);
+    if (!profile || !isProRole(profile.role)) {
+        if (gate) {
+            gate.textContent =
+                "Cette page est réservée aux coiffeurs et salons. Les clients gèrent leurs demandes depuis leur tableau de bord.";
+            gate.hidden = false;
+        }
+        if (section) section.hidden = true;
+        return;
+    }
+    if (gate) gate.hidden = true;
+    if (section) section.hidden = false;
+    await loadClientOptions();
+    await loadList();
+});
+</script>
+
+</body>
+</html>

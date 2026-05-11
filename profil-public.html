@@ -1,0 +1,451 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Profil — HairConnect</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body class="login-page hc-theme-pro">
+
+<div class="login-container subpage-container">
+    <header class="login-header">
+        <button type="button" id="profileBackBtn" class="login-back" aria-label="Retour">
+            <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M15.75 19.5 8.25 12l7.5-7.5"/></svg>
+        </button>
+        <h1 class="login-title">Fiche profil</h1>
+    </header>
+
+    <p id="guestBannerProfil" class="guest-discovery-banner" hidden>
+        <strong>Mode découverte.</strong> Les actions (message, avis, favoris) nécessitent un compte.
+        <a href="login.html">Se connecter</a>
+    </p>
+
+    <p id="err" class="form-error" role="alert" hidden></p>
+    <div id="content" class="public-profile" hidden>
+        <p class="public-role" id="pubRole"></p>
+        <h2 class="public-name" id="pubName"></h2>
+        <p class="public-meta" id="pubCity"></p>
+        <p class="public-bio" id="pubBio"></p>
+        <pre class="public-services" id="pubServices"></pre>
+        <p id="pubHome" class="public-badge" hidden>Déplacements à domicile : oui</p>
+        <div class="public-actions">
+            <a class="register-submit public-btn" id="linkMsg" href="login.html">Message</a>
+            <button class="register-submit public-btn public-btn--ghost" id="favBtn" hidden>Ajouter aux favoris</button>
+        </div>
+        <section class="public-publications">
+            <h3 class="public-publications__title">Avis clients</h3>
+            <p id="pubAvisErr" class="form-error" role="alert" hidden></p>
+            <p id="pubAvisOk" class="form-success" role="status" hidden></p>
+            <form id="pubAvisForm" class="public-publications__form" hidden>
+                <p class="public-publications__hint">Partagez votre retour directement depuis cette fiche.</p>
+                <div class="field-group">
+                    <label class="field-label" for="pubAvisRating">Note / 5</label>
+                    <div class="field-input-wrap">
+                        <input type="number" id="pubAvisRating" min="1" max="5" value="5" required>
+                    </div>
+                </div>
+                <div class="field-group">
+                    <label class="field-label" for="pubAvisComment">Commentaire</label>
+                    <textarea id="pubAvisComment" class="field-textarea" rows="3" placeholder="Partagez votre experience..." required></textarea>
+                </div>
+                <button type="submit" class="register-submit" id="pubAvisBtn">Publier mon avis</button>
+            </form>
+            <ul id="pubAvisList" class="public-publications__list"></ul>
+        </section>
+        <section class="public-publications" id="pubPublicationsSection">
+            <h3 class="public-publications__title">Publications</h3>
+            <p id="pubPostErr" class="form-error" role="alert" hidden></p>
+            <p id="pubPostOk" class="form-success" role="status" hidden></p>
+            <form id="pubClientPostForm" class="public-publications__form" hidden>
+                <p class="public-publications__hint">Partagez votre photo après prestation.</p>
+                <div class="field-group">
+                    <label class="field-label" for="pubClientPhoto">Photo</label>
+                    <div class="field-input-wrap">
+                        <input type="file" id="pubClientPhoto" accept="image/*">
+                    </div>
+                </div>
+                <div class="field-group">
+                    <label class="field-label" for="pubClientCaption">Légende (optionnel)</label>
+                    <textarea id="pubClientCaption" class="field-textarea" rows="3" placeholder="Ex. Merci pour cette coupe !"></textarea>
+                </div>
+                <button type="submit" class="register-submit">Partager ma photo</button>
+            </form>
+            <ul id="pubPublicationsList" class="public-publications__list"></ul>
+        </section>
+    </div>
+</div>
+
+<script type="module">
+import {
+    auth,
+    onAuthStateChanged,
+    fetchUserProfile,
+    listFavorites,
+    addFavorite,
+    removeFavorite,
+    createReview,
+    listAvisForPro,
+    listPublications,
+    createPublication,
+    deletePublication,
+    isGuestDiscovery,
+    clearGuestDiscovery,
+    getFirebaseErrorMessage
+} from "./firebase.js";
+
+const params = new URLSearchParams(location.search);
+const uid = params.get("uid");
+const errEl = document.getElementById("err");
+const content = document.getElementById("content");
+const favBtn = document.getElementById("favBtn");
+const pubListEl = document.getElementById("pubPublicationsList");
+const profileBackBtn = document.getElementById("profileBackBtn");
+const pubClientForm = document.getElementById("pubClientPostForm");
+const pubClientPhoto = document.getElementById("pubClientPhoto");
+const pubClientCaption = document.getElementById("pubClientCaption");
+const pubPostErr = document.getElementById("pubPostErr");
+const pubPostOk = document.getElementById("pubPostOk");
+const pubAvisForm = document.getElementById("pubAvisForm");
+const pubAvisRating = document.getElementById("pubAvisRating");
+const pubAvisComment = document.getElementById("pubAvisComment");
+const pubAvisBtn = document.getElementById("pubAvisBtn");
+const pubAvisErr = document.getElementById("pubAvisErr");
+const pubAvisOk = document.getElementById("pubAvisOk");
+const pubAvisList = document.getElementById("pubAvisList");
+
+if (profileBackBtn) {
+    profileBackBtn.addEventListener("click", () => {
+        if (window.history.length > 1) {
+            window.history.back();
+            return;
+        }
+        window.location.href = "dashboard.html";
+    });
+}
+
+function escapeHtml(s) {
+    return String(s)
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;");
+}
+
+function pubDateText(createdAt) {
+    const ms = createdAt?.toMillis ? createdAt.toMillis() : new Date(createdAt || 0).getTime();
+    if (!ms) return "";
+    return new Date(ms).toLocaleString("fr-FR", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" });
+}
+
+function publicationAuthorText(p, proName) {
+    if (p.kind === "pro") return `${proName} a publié`;
+    return "Client après prestation";
+}
+
+function renderPublications(list, proName, currentViewerUid = "") {
+    if (!pubListEl) return;
+    pubListEl.innerHTML = "";
+    if (!list.length) {
+        const li = document.createElement("li");
+        li.className = "public-publications__empty";
+        li.textContent = "Aucune photo publiée pour le moment.";
+        pubListEl.appendChild(li);
+        return;
+    }
+    for (const p of list) {
+        const li = document.createElement("li");
+        li.className = "public-publications__item";
+        const canDeleteOwnClientPublication =
+            !!currentViewerUid &&
+            String(p.kind || "").toLowerCase() === "client_after_service" &&
+            String(p.authorUid || "") === String(currentViewerUid);
+        li.innerHTML =
+            "<p class=\"public-publications__meta\">" +
+            escapeHtml(publicationAuthorText(p, proName)) +
+            " · " +
+            escapeHtml(pubDateText(p.createdAt)) +
+            "</p>" +
+            "<img class=\"public-publications__img\" src=\"" +
+            escapeHtml(p.photoUrl || "") +
+            "\" alt=\"Publication\">" +
+            (p.caption
+                ? "<p class=\"public-publications__caption\">" + escapeHtml(p.caption) + "</p>"
+                : "") +
+            (canDeleteOwnClientPublication
+                ? "<button type=\"button\" class=\"public-publications__delete\" data-pub-delete=\"" +
+                  escapeHtml(p.id || "") +
+                  "\">Supprimer ma photo</button>"
+                : "");
+        pubListEl.appendChild(li);
+    }
+}
+
+function avisDateText(createdAt) {
+    const ms = createdAt?.toMillis ? createdAt.toMillis() : new Date(createdAt || 0).getTime();
+    if (!ms) return "";
+    return new Date(ms).toLocaleString("fr-FR", { day: "2-digit", month: "2-digit", year: "numeric" });
+}
+
+function renderAvisList(list) {
+    if (!pubAvisList) return;
+    pubAvisList.innerHTML = "";
+    if (!list.length) {
+        const li = document.createElement("li");
+        li.className = "public-publications__empty";
+        li.textContent = "Pas encore d'avis sur ce profil.";
+        pubAvisList.appendChild(li);
+        return;
+    }
+    const sorted = [...list].sort((a, b) => {
+        const ta = a?.createdAt?.toMillis ? a.createdAt.toMillis() : new Date(a.createdAt || 0).getTime();
+        const tb = b?.createdAt?.toMillis ? b.createdAt.toMillis() : new Date(b.createdAt || 0).getTime();
+        return tb - ta;
+    });
+    for (const avis of sorted) {
+        const li = document.createElement("li");
+        li.className = "public-publications__item";
+        const rating = Math.max(1, Math.min(5, Number(avis.rating || 0))) || 0;
+        const stars = rating ? "★".repeat(rating) + "☆".repeat(5 - rating) : "";
+        li.innerHTML =
+            "<p class=\"public-publications__meta\">" +
+            escapeHtml(stars ? `${stars} · ${rating}/5` : "Avis") +
+            (avisDateText(avis.createdAt) ? " · " + escapeHtml(avisDateText(avis.createdAt)) : "") +
+            "</p>" +
+            "<p class=\"public-publications__caption\">" +
+            escapeHtml(String(avis.comment || "Sans commentaire.")) +
+            "</p>";
+        pubAvisList.appendChild(li);
+    }
+}
+
+async function refreshAvisList() {
+    if (!uid) return;
+    const avis = await listAvisForPro(uid).catch(() => []);
+    renderAvisList(avis);
+}
+
+if (!uid) {
+    errEl.textContent = "Profil introuvable (paramètre uid manquant).";
+    errEl.hidden = false;
+} else {
+    function fillPublicProfile(d) {
+        document.getElementById("pubHome").hidden = true;
+        document.getElementById("pubRole").textContent = d.role || "—";
+        document.getElementById("pubName").textContent = d.salonName || d.name || "Sans nom";
+        document.getElementById("pubCity").textContent = d.city ? "Ville : " + d.city : "";
+        document.getElementById("pubBio").textContent = d.bio || "";
+        document.getElementById("pubServices").textContent = d.servicesTarifs || "Services / tarifs non renseignés.";
+        if (d.homeVisit) document.getElementById("pubHome").hidden = false;
+    }
+
+    onAuthStateChanged(auth, async (user) => {
+        if (user) {
+            clearGuestDiscovery();
+        }
+        if (!user && !isGuestDiscovery()) {
+            window.location.href = "login.html";
+            return;
+        }
+
+        let d;
+        try {
+            d = await fetchUserProfile(uid);
+        } catch (e) {
+            errEl.textContent = getFirebaseErrorMessage(e);
+            errEl.hidden = false;
+            return;
+        }
+        if (!d) {
+            errEl.textContent = "Ce profil n’existe pas.";
+            errEl.hidden = false;
+            return;
+        }
+
+        fillPublicProfile(d);
+        const proName = d.salonName || d.name || "Ce professionnel";
+        const guestBar = document.getElementById("guestBannerProfil");
+        await refreshAvisList();
+        const publications = await listPublications({ targetProUid: uid }).catch(() => []);
+        renderPublications(publications, proName, user?.uid || "");
+
+        if (!user && isGuestDiscovery()) {
+            document.getElementById("linkMsg").href = "login.html";
+            document.getElementById("linkMsg").textContent = "Se connecter pour écrire";
+            favBtn.hidden = true;
+            if (guestBar) guestBar.hidden = false;
+            content.hidden = false;
+            return;
+        }
+
+        let myProfile = null;
+        if (user) {
+            myProfile = await fetchUserProfile(user.uid).catch(() => null);
+        }
+
+        document.getElementById("linkMsg").href = "messagerie.html?to=" + encodeURIComponent(uid);
+        document.getElementById("linkMsg").textContent = "Message";
+        if (guestBar) guestBar.hidden = true;
+        content.hidden = false;
+
+        const targetRole = String(d.role || "").toLowerCase();
+        const isTargetPro =
+            targetRole === "coiffeur" ||
+            targetRole === "coiffeuse" ||
+            targetRole === "coiffeur indépendant" ||
+            targetRole === "coiffeuse indépendante" ||
+            targetRole === "salon";
+        const myRole = String(myProfile?.role || "").toLowerCase();
+        const amClient = myRole === "client";
+        if (pubAvisForm) {
+            pubAvisForm.hidden = !(user.uid !== uid && isTargetPro && amClient);
+        }
+        if (pubClientForm) {
+            pubClientForm.hidden = !(user.uid !== uid && isTargetPro && amClient);
+        }
+
+        if (user.uid !== uid && isTargetPro) {
+            try {
+                const favorites = await listFavorites(user.uid);
+                let isFavorite = favorites.some(f => f.proId === uid);
+                favBtn.textContent = isFavorite ? "Retirer des favoris" : "Ajouter aux favoris";
+                favBtn.hidden = false;
+                favBtn.onclick = async () => {
+                    try {
+                        if (isFavorite) {
+                            await removeFavorite(user.uid, uid);
+                            isFavorite = false;
+                            favBtn.textContent = "Ajouter aux favoris";
+                        } else {
+                            await addFavorite(user.uid, uid);
+                            isFavorite = true;
+                            favBtn.textContent = "Retirer des favoris";
+                        }
+                    } catch (error) {
+                        alert("Erreur: " + error.message);
+                    }
+                };
+            } catch (error) {
+                console.error("Erreur lors de la récupération des favoris:", error);
+            }
+        }
+    });
+}
+
+if (pubClientForm) {
+    pubClientForm.addEventListener("submit", async (e) => {
+        e.preventDefault();
+        if (pubPostErr) pubPostErr.hidden = true;
+        if (pubPostOk) pubPostOk.hidden = true;
+        const user = auth.currentUser;
+        if (!user || !uid) return;
+        const file = pubClientPhoto?.files?.[0] || null;
+        if (!file) {
+            if (pubPostErr) {
+                pubPostErr.textContent = "Choisissez une photo à partager.";
+                pubPostErr.hidden = false;
+            }
+            return;
+        }
+        try {
+            if (file.size > 2 * 1024 * 1024) {
+                throw new Error("La photo est trop volumineuse (max 2 Mo).");
+            }
+            const photoUrl = await new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = () => resolve(String(reader.result || ""));
+                reader.onerror = () => reject(new Error("Impossible de lire la photo."));
+                reader.readAsDataURL(file);
+            });
+            await createPublication({
+                authorUid: user.uid,
+                targetProUid: uid,
+                photoUrl,
+                caption: String(pubClientCaption?.value || "").trim(),
+                kind: "client_after_service"
+            });
+            if (pubClientPhoto) pubClientPhoto.value = "";
+            if (pubClientCaption) pubClientCaption.value = "";
+            if (pubPostOk) {
+                pubPostOk.textContent = "Photo partagée.";
+                pubPostOk.hidden = false;
+            }
+            const d = await fetchUserProfile(uid).catch(() => null);
+            const proName = d?.salonName || d?.name || "Ce professionnel";
+            const publications = await listPublications({ targetProUid: uid }).catch(() => []);
+            renderPublications(publications, proName, user?.uid || "");
+        } catch (err) {
+            if (pubPostErr) {
+                pubPostErr.textContent = getFirebaseErrorMessage(err);
+                pubPostErr.hidden = false;
+            }
+        }
+    });
+}
+
+if (pubListEl) {
+    pubListEl.addEventListener("click", async (e) => {
+        const btn = e.target.closest("[data-pub-delete]");
+        if (!btn) return;
+        const user = auth.currentUser;
+        const pubId = String(btn.getAttribute("data-pub-delete") || "").trim();
+        if (!user || !uid || !pubId) return;
+        if (pubPostErr) pubPostErr.hidden = true;
+        if (pubPostOk) pubPostOk.hidden = true;
+        if (!window.confirm("Supprimer cette photo publiee ?")) return;
+        btn.disabled = true;
+        try {
+            await deletePublication(pubId, user.uid);
+            if (pubPostOk) {
+                pubPostOk.textContent = "Photo supprimee.";
+                pubPostOk.hidden = false;
+            }
+            const d = await fetchUserProfile(uid).catch(() => null);
+            const proName = d?.salonName || d?.name || "Ce professionnel";
+            const publications = await listPublications({ targetProUid: uid }).catch(() => []);
+            renderPublications(publications, proName, user.uid);
+        } catch (err) {
+            if (pubPostErr) {
+                pubPostErr.textContent = getFirebaseErrorMessage(err);
+                pubPostErr.hidden = false;
+            }
+            btn.disabled = false;
+        }
+    });
+}
+
+if (pubAvisForm) {
+    pubAvisForm.addEventListener("submit", async (e) => {
+        e.preventDefault();
+        if (pubAvisErr) pubAvisErr.hidden = true;
+        if (pubAvisOk) pubAvisOk.hidden = true;
+        const user = auth.currentUser;
+        if (!user || !uid) return;
+        if (pubAvisBtn) pubAvisBtn.disabled = true;
+        try {
+            const rating = Number(pubAvisRating?.value || 0);
+            const comment = String(pubAvisComment?.value || "").trim();
+            if (rating < 1 || rating > 5) throw new Error("La note doit etre comprise entre 1 et 5.");
+            if (!comment) throw new Error("Ajoutez un commentaire avant de publier votre avis.");
+            await createReview(user.uid, uid, rating, comment, "");
+            if (pubAvisForm) pubAvisForm.reset();
+            if (pubAvisRating) pubAvisRating.value = "5";
+            if (pubAvisOk) {
+                pubAvisOk.textContent = "Merci, votre avis a ete publie.";
+                pubAvisOk.hidden = false;
+            }
+            await refreshAvisList();
+        } catch (err) {
+            if (pubAvisErr) {
+                pubAvisErr.textContent = getFirebaseErrorMessage(err);
+                pubAvisErr.hidden = false;
+            }
+        } finally {
+            if (pubAvisBtn) pubAvisBtn.disabled = false;
+        }
+    });
+}
+</script>
+
+</body>
+</html>

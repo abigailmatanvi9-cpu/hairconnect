@@ -1,0 +1,334 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Offres d’emploi — HairConnect</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body class="login-page hc-theme-pro">
+
+<div class="login-container subpage-container subpage-wide jobs-page">
+    <header class="login-header jobs-page__header">
+        <a href="dashboard.html" class="login-back" aria-label="Retour">
+            <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M15.75 19.5 8.25 12l7.5-7.5"/></svg>
+        </a>
+        <h1 class="login-title">Offres d'Emploi</h1>
+    </header>
+
+    <div class="jobs-search">
+        <span class="jobs-search__icon" aria-hidden="true">
+            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.9" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path stroke-linecap="round" d="m20 20-3.5-3.5"/></svg>
+        </span>
+        <input id="jobsSearchInput" class="jobs-search__input" type="search" placeholder="Rechercher emplois, salons..." autocomplete="off">
+    </div>
+
+    <div id="jobsTabs" class="jobs-tabs" role="tablist" aria-label="Filtrer les offres">
+        <button class="jobs-tab is-active" type="button" data-filter="all" role="tab" aria-selected="true">Tous</button>
+        <button class="jobs-tab" type="button" data-filter="full-time" role="tab" aria-selected="false">Temps Plein</button>
+        <button class="jobs-tab" type="button" data-filter="part-time" role="tab" aria-selected="false">Temps Partiel</button>
+        <button class="jobs-tab" type="button" data-filter="cdd" role="tab" aria-selected="false">CDD</button>
+    </div>
+
+    <section class="jobs-summary-card" aria-live="polite">
+        <div class="jobs-summary-card__icon" aria-hidden="true">
+            <svg xmlns="http://www.w3.org/2000/svg" width="19" height="19" fill="none" stroke="currentColor" stroke-width="1.9" viewBox="0 0 24 24"><path d="M8 7V5a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><rect width="20" height="14" x="2" y="7" rx="3"/><path d="M2 13h20"/></svg>
+        </div>
+        <div class="jobs-summary-card__text">
+            <p id="jobsCountText" class="jobs-summary-card__title">0 Postes Disponibles</p>
+            <p class="jobs-summary-card__subtitle">Trouvez votre match parfait</p>
+        </div>
+    </section>
+
+    <p id="err" class="form-error" role="alert" hidden></p>
+    <ul id="offresList" class="jobs-list"></ul>
+
+    <section id="salonFormSection" class="offre-create jobs-create" hidden>
+        <h2 class="subpage-h2">Publier une offre</h2>
+        <form id="offreForm" class="register-form">
+            <p id="fe" class="form-error" role="alert" hidden></p>
+            <p id="fo" class="form-success" role="status" hidden></p>
+            <div class="field-group">
+                <label class="field-label" for="title">Titre du poste</label>
+                <div class="field-input-wrap">
+                    <input type="text" id="title" required placeholder="Ex. Coiffeur(se) mi-temps">
+                </div>
+            </div>
+            <div class="field-group">
+                <label class="field-label" for="city">Ville</label>
+                <div class="field-input-wrap">
+                    <input type="text" id="city" placeholder="Lieu de travail">
+                </div>
+            </div>
+            <div class="field-group">
+                <label class="field-label" for="contractType">Type de contrat</label>
+                <div class="field-input-wrap">
+                    <select id="contractType" class="field-select" required>
+                        <option value="full-time">Temps plein</option>
+                        <option value="part-time">Temps partiel</option>
+                        <option value="cdd">CDD</option>
+                    </select>
+                </div>
+            </div>
+            <div class="field-group">
+                <label class="field-label" for="desc">Description</label>
+                <textarea id="desc" class="field-textarea" rows="4" required></textarea>
+            </div>
+            <button type="submit" class="register-submit" id="pubBtn">Publier</button>
+        </form>
+    </section>
+</div>
+
+<script type="module">
+import {
+    auth,
+    fetchUserProfile,
+    createOffre,
+    deleteOffre,
+    listOffres,
+    getFirebaseErrorMessage
+} from "./firebase.js";
+import { onAuthStateChanged } from "./firebase.js";
+
+const listEl = document.getElementById("offresList");
+const errEl = document.getElementById("err");
+const salonSection = document.getElementById("salonFormSection");
+const searchEl = document.getElementById("jobsSearchInput");
+const tabsEl = document.getElementById("jobsTabs");
+const countEl = document.getElementById("jobsCountText");
+
+let myUid = null;
+let myName = "";
+let isSalon = false;
+let activeFilter = "all";
+let searchTerm = "";
+let cachedRows = [];
+
+function escapeHtml(s) {
+    return String(s)
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;");
+}
+
+function isSalonRole(raw) {
+    return String(raw || "").trim().toLowerCase() === "salon";
+}
+
+function getContractType(offer) {
+    if (typeof offer?.contractType === "string" && offer.contractType.trim()) {
+        return offer.contractType.trim().toLowerCase();
+    }
+    const text = `${offer?.title || ""} ${offer?.description || ""}`.toLowerCase();
+    if (text.includes("temps plein") || text.includes("full time") || text.includes("full-time") || text.includes("cdi")) {
+        return "full-time";
+    }
+    if (text.includes("temps partiel") || text.includes("mi-temps") || text.includes("part time") || text.includes("part-time")) {
+        return "part-time";
+    }
+    if (text.includes("cdd")) {
+        return "cdd";
+    }
+    return "all";
+}
+
+function getContractLabel(type) {
+    if (type === "full-time") return "Temps plein";
+    if (type === "part-time") return "Temps partiel";
+    if (type === "cdd") return "CDD";
+    return "Offre";
+}
+
+function formatDate(raw) {
+    if (!raw) return "";
+    try {
+        let d = raw;
+        if (typeof raw?.toDate === "function") d = raw.toDate();
+        if (!(d instanceof Date)) d = new Date(d);
+        if (Number.isNaN(d.getTime())) return "";
+        return new Intl.DateTimeFormat("fr-FR", {
+            day: "numeric",
+            month: "long",
+            year: "numeric"
+        }).format(d);
+    } catch {
+        return "";
+    }
+}
+
+function offerMatchesFilters(offer) {
+    const query = searchTerm.trim().toLowerCase();
+    const type = getContractType(offer);
+    const matchesType = activeFilter === "all" ? true : type === activeFilter;
+    if (!matchesType) return false;
+    if (!query) return true;
+    const haystack = `${offer?.title || ""} ${offer?.description || ""} ${offer?.city || ""} ${offer?.salonName || ""}`.toLowerCase();
+    return haystack.includes(query);
+}
+
+function renderList(rows) {
+    listEl.innerHTML = "";
+    const visible = rows.filter(offerMatchesFilters);
+    countEl.textContent = `${visible.length} Poste${visible.length > 1 ? "s" : ""} Disponible${visible.length > 1 ? "s" : ""}`;
+    if (!visible.length) {
+        const li = document.createElement("li");
+        li.className = "jobs-empty";
+        li.textContent = "Aucune offre ne correspond à votre recherche.";
+        listEl.appendChild(li);
+        return;
+    }
+    for (const o of visible) {
+        const type = getContractType(o);
+        const createdAt = formatDate(o.createdAt || o.created_at);
+        const dateText = createdAt ? `Publié le ${createdAt}` : "Publication récente";
+        const city = o.city || "Lieu à préciser";
+        const desc = (o.description || "").trim() || "Le salon recherche un profil motivé pour rejoindre son équipe.";
+        const shortDesc = desc.length > 220 ? `${desc.slice(0, 220)}...` : desc;
+
+        const isOwner = isSalon && String(o.salonUid || "") === String(myUid || "");
+        const deleteBtn =
+            isOwner
+                ? "<button type=\"button\" class=\"jobs-card__delete\" data-offre-delete=\"" +
+                  escapeHtml(o.id) +
+                  "\" aria-label=\"Retirer cette offre\">Retirer l’offre</button>"
+                : "";
+        const applyControl = isSalon
+            ? "<span class=\"jobs-card__apply jobs-card__apply--disabled\" aria-disabled=\"true\">Postuler (réservé aux coiffeurs)</span>"
+            : "<a class=\"jobs-card__apply\" href=\"postuler.html?offre=" + encodeURIComponent(o.id) + "\">Postuler</a>";
+
+        const li = document.createElement("li");
+        li.className = "jobs-item";
+        li.innerHTML =
+            "<article class=\"jobs-card\">" +
+            "<div class=\"jobs-card__top\">" +
+            "<div class=\"jobs-card__thumb\" aria-hidden=\"true\"></div>" +
+            "<div class=\"jobs-card__head\">" +
+            "<h3 class=\"jobs-card__title\">" + escapeHtml(o.title || "Offre de coiffeur/se") + "</h3>" +
+            "<p class=\"jobs-card__salon\">" + escapeHtml(o.salonName || "Salon partenaire") + "</p>" +
+            "<p class=\"jobs-card__meta\">" +
+            "<span class=\"jobs-card__meta-icon\">📍</span>" +
+            escapeHtml(city) +
+            "</p>" +
+            "</div>" +
+            "<span class=\"jobs-badge\">" + getContractLabel(type) + "</span>" +
+            "</div>" +
+            "<p class=\"jobs-card__salary\">💰 Salaire selon profil + commissions</p>" +
+            "<p class=\"jobs-card__desc\">" + escapeHtml(shortDesc) + "</p>" +
+            "<div class=\"jobs-card__foot\">" +
+            "<span class=\"jobs-card__date\">⏱ " + escapeHtml(dateText) + "</span>" +
+            "<div class=\"jobs-card__foot-actions\">" +
+            deleteBtn +
+            applyControl +
+            "</div>" +
+            "</div>" +
+            "</article>";
+        listEl.appendChild(li);
+    }
+}
+
+async function loadList() {
+    cachedRows = await listOffres();
+    renderList(cachedRows);
+}
+
+onAuthStateChanged(auth, async (user) => {
+    if (!user) {
+        window.location.href = "login.html";
+        return;
+    }
+    myUid = user.uid;
+    const prof = await fetchUserProfile(user.uid);
+    myName = prof?.salonName || prof?.name || "";
+    const role = prof?.role || "";
+    const roleKey = String(role || "")
+        .trim()
+        .toLowerCase();
+    if (roleKey === "client") {
+        window.location.replace("dashboard.html");
+        return;
+    }
+    isSalon = isSalonRole(role);
+    if (isSalon) salonSection.hidden = false;
+    try {
+        await loadList();
+    } catch (e) {
+        errEl.textContent = getFirebaseErrorMessage(e);
+        errEl.hidden = false;
+    }
+});
+
+tabsEl.addEventListener("click", (event) => {
+    const btn = event.target.closest(".jobs-tab");
+    if (!btn) return;
+    activeFilter = btn.dataset.filter || "all";
+    for (const tab of tabsEl.querySelectorAll(".jobs-tab")) {
+        const selected = tab === btn;
+        tab.classList.toggle("is-active", selected);
+        tab.setAttribute("aria-selected", selected ? "true" : "false");
+    }
+    renderList(cachedRows);
+});
+
+searchEl.addEventListener("input", () => {
+    searchTerm = searchEl.value || "";
+    renderList(cachedRows);
+});
+
+listEl.addEventListener("click", async (e) => {
+    const btn = e.target.closest("[data-offre-delete]");
+    if (!btn || !myUid) return;
+    const offerId = btn.getAttribute("data-offre-delete");
+    if (!offerId) return;
+    if (
+        !window.confirm(
+            "Retirer cette offre ? Elle ne sera plus visible et les candidatures associées seront supprimées."
+        )
+    ) {
+        return;
+    }
+    btn.disabled = true;
+    errEl.hidden = true;
+    try {
+        await deleteOffre(offerId, myUid);
+        await loadList();
+    } catch (x) {
+        errEl.textContent = getFirebaseErrorMessage(x);
+        errEl.hidden = false;
+        btn.disabled = false;
+    }
+});
+
+document.getElementById("offreForm").addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const fe = document.getElementById("fe");
+    const fo = document.getElementById("fo");
+    fe.hidden = true;
+    fo.hidden = true;
+    if (!isSalon || !myUid) return;
+    const btn = document.getElementById("pubBtn");
+    btn.disabled = true;
+    try {
+        await createOffre(
+            myUid,
+            myName,
+            document.getElementById("title").value,
+            document.getElementById("desc").value,
+            document.getElementById("city").value,
+            document.getElementById("contractType").value
+        );
+        fo.textContent = "Offre publiée.";
+        fo.hidden = false;
+        document.getElementById("offreForm").reset();
+        await loadList();
+    } catch (x) {
+        fe.textContent = getFirebaseErrorMessage(x);
+        fe.hidden = false;
+    } finally {
+        btn.disabled = false;
+    }
+});
+</script>
+
+</body>
+</html>

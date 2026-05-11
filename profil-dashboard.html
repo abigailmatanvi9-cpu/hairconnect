@@ -1,0 +1,490 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mon profil — HairConnect</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body class="login-page hc-theme-pro profil-dashboard-page">
+
+<div class="login-container">
+    <header class="login-header">
+        <a href="dashboard.html" class="login-back" aria-label="Retour au tableau de bord">
+            <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M15.75 19.5 8.25 12l7.5-7.5"/></svg>
+        </a>
+        <h1 class="login-title">Mon profil</h1>
+    </header>
+
+    <p id="dpFormError" class="form-error" role="alert" hidden></p>
+    <p id="dpFormOk" class="form-success" role="status" hidden></p>
+
+    <section class="profil-hero" aria-labelledby="dpProfilHeroName">
+        <div class="profil-hero-main">
+            <div class="profil-hero-avatar-wrap" aria-hidden="true">
+                <img id="dpHubAvatar" class="profil-hero-avatar" alt="">
+                <span id="dpHubAvatarFb" class="profil-hero-avatar-fb">?</span>
+            </div>
+            <div class="profil-hero-text">
+                <h2 class="profil-hero-name" id="dpProfilHeroName">—</h2>
+                <p class="profil-hero-email" id="dpHubEmail">—</p>
+                <span class="profil-hero-role" id="dpHubRolePill">—</span>
+            </div>
+        </div>
+    </section>
+
+    <details class="profil-edit-details" id="dpEditDetails" open>
+        <summary class="profil-edit-summary">Modifier mes informations</summary>
+        <div class="profil-edit-inner">
+            <form id="dpForm" class="register-form profil-edit-form">
+                <div class="field-group">
+                    <label class="field-label" for="dpName">Nom affiché</label>
+                    <div class="field-input-wrap">
+                        <input type="text" id="dpName" name="name" autocomplete="name" required>
+                    </div>
+                </div>
+                <div class="field-group" id="dpWrapSalonName" hidden>
+                    <label class="field-label" for="dpSalonName">Nom du salon</label>
+                    <div class="field-input-wrap">
+                        <input type="text" id="dpSalonName" name="salonName" placeholder="Ex. Salon Élégance">
+                    </div>
+                </div>
+                <fieldset class="field-group register-metiers-fieldset" id="dpWrapProMetiers" hidden>
+                    <legend class="field-label">Mon activité</legend>
+                    <p class="field-hint">Tout ce que vous proposez ; les clients qui cochent ces types vous verront.</p>
+                    <div id="dpProMetiersList" class="register-metiers-list"></div>
+                </fieldset>
+                <div class="field-group">
+                    <label class="field-label" for="dpCity">Ville</label>
+                    <div class="field-input-wrap">
+                        <input type="text" id="dpCity" name="city" placeholder="Ex. Lomé" autocomplete="address-level2">
+                    </div>
+                </div>
+                <div class="field-group">
+                    <label class="field-label" for="dpPhone">Téléphone (optionnel)</label>
+                    <div class="field-input-wrap">
+                        <input type="tel" id="dpPhone" name="phone" autocomplete="tel">
+                    </div>
+                </div>
+                <div class="field-group">
+                    <label class="field-label" for="dpBio">Description</label>
+                    <textarea id="dpBio" name="bio" class="field-textarea" rows="4" placeholder="Présentez-vous ou décrivez votre établissement…"></textarea>
+                </div>
+                <div class="field-group" id="dpWrapServicesTarifs" hidden>
+                    <label class="field-label" for="dpServicesTarifs">Services &amp; tarifs</label>
+                    <textarea id="dpServicesTarifs" name="servicesTarifs" class="field-textarea" rows="5" placeholder="Ex. Coupe femme : 15 000 F — Brushing : …"></textarea>
+                </div>
+                <div class="field-group field-checkbox" id="dpWrapHomeVisit" hidden>
+                    <label class="field-label-checkbox">
+                        <input type="checkbox" id="dpHomeVisit" name="homeVisit">
+                        J’accepte les prestations à domicile
+                    </label>
+                </div>
+                <div class="field-group profil-geo-block" id="dpWrapGeo" hidden>
+                    <p class="profil-geo-lead">
+                        Pour apparaître dans l’annuaire <strong>À proximité</strong>, enregistrez l’emplacement de votre salon ou de votre zone d’activité (une demande de permission du navigateur peut s’afficher).
+                    </p>
+                    <p id="dpGeoStatus" class="profil-geo-status" aria-live="polite"></p>
+                    <div class="profil-geo-actions">
+                        <button type="button" class="register-submit profil-geo-primary" id="dpGeoSaveBtn">
+                            Enregistrer ma position actuelle (GPS)
+                        </button>
+                        <button type="button" class="profil-geo-secondary" id="dpGeoClearBtn">Effacer la position</button>
+                    </div>
+                </div>
+                <button type="submit" class="register-submit" id="dpSaveBtn">Enregistrer</button>
+            </form>
+        </div>
+    </details>
+
+    <button type="button" class="profil-logout" id="dpLogout">
+        <span class="profil-logout-icon" aria-hidden="true">
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.75" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M15.75 9V5.25A2.25 2.25 0 0013.5 3h-6a2.25 2.25 0 00-2.25 2.25v13.5A2.25 2.25 0 007.5 21h6a2.25 2.25 0 002.25-2.25V15M12 9l-3 3m0 0l3 3m-3-3h12.75"/></svg>
+        </span>
+        Déconnexion
+    </button>
+</div>
+
+<script type="module">
+import {
+    auth,
+    onAuthStateChanged,
+    signOut,
+    fetchUserProfile,
+    updateUserProfile,
+    getFirebaseErrorMessage,
+    HAIRCONNECT_METIERS
+} from "./firebase.js";
+
+function buildMetierBoxes(container, inputName, idPrefix) {
+    if (!container) return;
+    container.innerHTML = "";
+    for (const m of HAIRCONNECT_METIERS) {
+        const id = `${idPrefix}-${m.slug}`;
+        const label = document.createElement("label");
+        label.className = "field-label-checkbox register-metier-option";
+        const cb = document.createElement("input");
+        cb.type = "checkbox";
+        cb.name = inputName;
+        cb.value = m.slug;
+        cb.id = id;
+        label.appendChild(cb);
+        label.appendChild(document.createTextNode(` ${m.label}`));
+        container.appendChild(label);
+    }
+}
+
+buildMetierBoxes(document.getElementById("dpProMetiersList"), "dpProMetier", "dppm");
+
+function parseMetiersFromProfile(raw) {
+    if (raw == null) return [];
+    if (Array.isArray(raw)) return raw.map((s) => String(s).trim().toLowerCase()).filter(Boolean);
+    if (typeof raw === "string") {
+        try {
+            const j = JSON.parse(raw);
+            return Array.isArray(j) ? j.map((s) => String(s).trim().toLowerCase()).filter(Boolean) : [];
+        } catch {
+            return [];
+        }
+    }
+    return [];
+}
+
+function setMetierChecks(containerId, slugs) {
+    const root = document.getElementById(containerId);
+    if (!root) return;
+    const set = new Set(slugs);
+    root.querySelectorAll('input[type="checkbox"]').forEach((cb) => {
+        cb.checked = set.has(cb.value);
+    });
+}
+
+function readMetierChecks(inputName) {
+    return [...document.querySelectorAll(`input[name="${inputName}"]:checked`)].map((c) => c.value);
+}
+
+let profileUid = null;
+let profileCache = null;
+let roleDisplay = "";
+let photoUrl = "";
+
+function normalizeRole(raw) {
+    if (!raw || typeof raw !== "string") return "unknown";
+    const r = raw.trim().toLowerCase();
+    if (r === "client") return "client";
+    if (r === "coiffeur" || r === "coiffeuse" || r === "coiffeur indépendant" || r === "coiffeuse indépendante") return "coiffeur";
+    if (r === "salon") return "salon";
+    return "unknown";
+}
+
+function normRoleProfil(r) {
+    const key = normalizeRole(r);
+    if (key === "client") return "Client";
+    if (key === "coiffeur") return "Coiffeur";
+    if (key === "salon") return "Salon";
+    return String(r || "").trim() || "";
+}
+
+function initialsFromName(name) {
+    const parts = String(name || "")
+        .trim()
+        .split(/\s+/)
+        .filter(Boolean);
+    if (!parts.length) return "?";
+    if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
+    return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+}
+
+function applyHubAvatar(name, url) {
+    const img = document.getElementById("dpHubAvatar");
+    const fb = document.getElementById("dpHubAvatarFb");
+    if (!img || !fb) return;
+    const u = String(url || "").trim();
+    img.onerror = () => {
+        img.hidden = true;
+        fb.hidden = false;
+        fb.textContent = initialsFromName(name);
+        img.onerror = null;
+    };
+    if (u) {
+        img.src = u;
+        img.hidden = false;
+        fb.hidden = true;
+    } else {
+        img.onerror = null;
+        img.removeAttribute("src");
+        img.hidden = true;
+        fb.hidden = false;
+        fb.textContent = initialsFromName(name);
+    }
+}
+
+function syncFormFromCache() {
+    const user = auth.currentUser;
+    const data = profileCache;
+    const formError = document.getElementById("dpFormError");
+    const formOk = document.getElementById("dpFormOk");
+    if (formError) formError.hidden = true;
+    if (formOk) formOk.hidden = true;
+    if (!user || !data) return;
+
+    profileUid = user.uid;
+    roleDisplay = normRoleProfil(data.role);
+    const displayName = data.salonName || data.name || user.email || "Utilisateur";
+    const nameEl = document.getElementById("dpProfilHeroName");
+    const emailEl = document.getElementById("dpHubEmail");
+    const roleEl = document.getElementById("dpHubRolePill");
+    if (emailEl) emailEl.textContent = user.email || "—";
+    if (nameEl) nameEl.textContent = displayName;
+    if (roleEl) roleEl.textContent = roleDisplay || data.role || "—";
+    photoUrl = data.photoUrl || "";
+    applyHubAvatar(displayName, photoUrl);
+
+    const wrapSalon = document.getElementById("dpWrapSalonName");
+    const wrapHome = document.getElementById("dpWrapHomeVisit");
+    const wrapServicesTarifs = document.getElementById("dpWrapServicesTarifs");
+    const wrapProMetiers = document.getElementById("dpWrapProMetiers");
+    if (wrapSalon) wrapSalon.hidden = roleDisplay !== "Salon";
+    if (wrapHome) wrapHome.hidden = roleDisplay !== "Coiffeur";
+    if (wrapServicesTarifs) wrapServicesTarifs.hidden = roleDisplay !== "Coiffeur" && roleDisplay !== "Salon";
+    if (wrapProMetiers) wrapProMetiers.hidden = roleDisplay !== "Coiffeur" && roleDisplay !== "Salon";
+
+    if (roleDisplay === "Salon") {
+        const sn = document.getElementById("dpSalonName");
+        if (sn) sn.value = data.salonName || "";
+    }
+    if (roleDisplay === "Coiffeur") {
+        const hv = document.getElementById("dpHomeVisit");
+        if (hv) hv.checked = Boolean(data.homeVisit);
+    }
+    const nm = document.getElementById("dpName");
+    const city = document.getElementById("dpCity");
+    const phone = document.getElementById("dpPhone");
+    const bio = document.getElementById("dpBio");
+    const st = document.getElementById("dpServicesTarifs");
+    if (nm) nm.value = data.name || "";
+    if (city) city.value = data.city || "";
+    if (phone) phone.value = data.phone || "";
+    if (bio) bio.value = data.bio || "";
+    if (st) st.value = data.servicesTarifs || "";
+    setMetierChecks("dpProMetiersList", parseMetiersFromProfile(data.proMetiers));
+
+    const wrapGeo = document.getElementById("dpWrapGeo");
+    const geoStatus = document.getElementById("dpGeoStatus");
+    if (wrapGeo) {
+        wrapGeo.hidden = roleDisplay !== "Coiffeur" && roleDisplay !== "Salon";
+    }
+    if (geoStatus && (roleDisplay === "Coiffeur" || roleDisplay === "Salon")) {
+        const la = data.latitude != null ? Number(data.latitude) : null;
+        const lo = data.longitude != null ? Number(data.longitude) : null;
+        if (la != null && lo != null && Number.isFinite(la) && Number.isFinite(lo)) {
+            geoStatus.textContent =
+                "Position enregistrée : " +
+                la.toFixed(5) +
+                "°, " +
+                lo.toFixed(5) +
+                "° (visible dans l’annuaire « À proximité »).";
+        } else {
+            geoStatus.textContent = "Aucune position GPS enregistrée pour l’instant.";
+        }
+    }
+}
+
+function notifyParentProfileUpdated() {
+    try {
+        if (!window.parent || window.parent === window) return;
+        const o = window.location.origin;
+        window.parent.postMessage({ type: "hc-profile-updated" }, o && o !== "null" ? o : "*");
+    } catch (_) {
+        /* ignore */
+    }
+}
+
+onAuthStateChanged(auth, async (user) => {
+    if (!user) {
+        window.location.href = "login.html";
+        return;
+    }
+    profileUid = user.uid;
+    try {
+        profileCache = (await fetchUserProfile(user.uid)) || null;
+    } catch {
+        profileCache = null;
+    }
+    syncFormFromCache();
+});
+
+document.getElementById("dpLogout").addEventListener("click", async () => {
+    await signOut();
+    window.location.href = "login.html";
+});
+
+const geoOpts = { enableHighAccuracy: true, timeout: 22000, maximumAge: 120000 };
+
+document.getElementById("dpGeoSaveBtn").addEventListener("click", () => {
+    const formError = document.getElementById("dpFormError");
+    const formOk = document.getElementById("dpFormOk");
+    const btn = document.getElementById("dpGeoSaveBtn");
+    if (formError) formError.hidden = true;
+    if (formOk) formOk.hidden = true;
+    if (!profileUid) {
+        if (formError) {
+            formError.textContent = "Session non prête, patientez une seconde.";
+            formError.hidden = false;
+        }
+        return;
+    }
+    if (!navigator.geolocation) {
+        if (formError) {
+            formError.textContent = "La géolocalisation n’est pas disponible sur ce navigateur.";
+            formError.hidden = false;
+        }
+        return;
+    }
+    btn.disabled = true;
+    navigator.geolocation.getCurrentPosition(
+        async (pos) => {
+            const lat = pos.coords.latitude;
+            const lng = pos.coords.longitude;
+            try {
+                await updateUserProfile(profileUid, { latitude: lat, longitude: lng });
+                const fresh = await fetchUserProfile(profileUid);
+                profileCache = fresh || profileCache;
+                syncFormFromCache();
+                notifyParentProfileUpdated();
+                if (formOk) {
+                    formOk.textContent = "Position GPS enregistrée.";
+                    formOk.hidden = false;
+                }
+            } catch (err) {
+                console.error(err);
+                if (formError) {
+                    formError.textContent = getFirebaseErrorMessage(err);
+                    formError.hidden = false;
+                }
+            } finally {
+                btn.disabled = false;
+            }
+        },
+        (geoErr) => {
+            btn.disabled = false;
+            const msg =
+                geoErr && geoErr.code === 1
+                    ? "Accès à la position refusé. Autorisez la localisation pour ce site dans les paramètres du navigateur."
+                    : geoErr && geoErr.code === 2
+                      ? "Position indisponible. Réessayez à l’extérieur ou plus tard."
+                      : geoErr && geoErr.code === 3
+                        ? "Délai dépassé. Réessayez."
+                        : "Impossible d’obtenir votre position.";
+            if (formError) {
+                formError.textContent = msg;
+                formError.hidden = false;
+            }
+        },
+        geoOpts
+    );
+});
+
+document.getElementById("dpGeoClearBtn").addEventListener("click", async () => {
+    const formError = document.getElementById("dpFormError");
+    const formOk = document.getElementById("dpFormOk");
+    const btn = document.getElementById("dpGeoClearBtn");
+    if (formError) formError.hidden = true;
+    if (formOk) formOk.hidden = true;
+    if (!profileUid) return;
+    btn.disabled = true;
+    try {
+        await updateUserProfile(profileUid, { latitude: null, longitude: null });
+        const fresh = await fetchUserProfile(profileUid);
+        profileCache = fresh || profileCache;
+        syncFormFromCache();
+        notifyParentProfileUpdated();
+        if (formOk) {
+            formOk.textContent = "Position effacée.";
+            formOk.hidden = false;
+        }
+    } catch (err) {
+        console.error(err);
+        if (formError) {
+            formError.textContent = getFirebaseErrorMessage(err);
+            formError.hidden = false;
+        }
+    } finally {
+        btn.disabled = false;
+    }
+});
+
+document.getElementById("dpForm").addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const formError = document.getElementById("dpFormError");
+    const formOk = document.getElementById("dpFormOk");
+    const saveBtn = document.getElementById("dpSaveBtn");
+    if (formError) formError.hidden = true;
+    if (formOk) formOk.hidden = true;
+
+    if (!profileUid) {
+        if (formError) {
+            formError.textContent = "Session non prête, patientez une seconde.";
+            formError.hidden = false;
+        }
+        return;
+    }
+
+    const payload = {
+        name: document.getElementById("dpName").value.trim(),
+        city: document.getElementById("dpCity").value.trim(),
+        phone: document.getElementById("dpPhone").value.trim(),
+        photoUrl,
+        bio: document.getElementById("dpBio").value.trim(),
+        servicesTarifs: ""
+    };
+
+    if (!payload.name) {
+        if (formError) {
+            formError.textContent = "Le nom affiché est obligatoire.";
+            formError.hidden = false;
+        }
+        return;
+    }
+
+    if (roleDisplay === "Salon") {
+        payload.salonName = document.getElementById("dpSalonName").value.trim();
+    }
+    if (roleDisplay === "Coiffeur") {
+        payload.homeVisit = document.getElementById("dpHomeVisit").checked;
+    }
+    if (roleDisplay === "Coiffeur" || roleDisplay === "Salon") {
+        payload.servicesTarifs = document.getElementById("dpServicesTarifs").value.trim();
+    }
+    if (roleDisplay === "Coiffeur" || roleDisplay === "Salon") {
+        payload.proMetiers = readMetierChecks("dpProMetier");
+    }
+
+    if (saveBtn) saveBtn.disabled = true;
+    try {
+        await updateUserProfile(profileUid, payload);
+        photoUrl = payload.photoUrl;
+        const fresh = await fetchUserProfile(profileUid);
+        profileCache = fresh || profileCache;
+        syncFormFromCache();
+        notifyParentProfileUpdated();
+        if (formOk) {
+            formOk.textContent = "Profil enregistré.";
+            formOk.hidden = false;
+        }
+    } catch (err) {
+        console.error(err);
+        if (formError) {
+            formError.textContent = getFirebaseErrorMessage(err);
+            formError.hidden = false;
+        }
+    } finally {
+        if (saveBtn) saveBtn.disabled = false;
+    }
+});
+</script>
+</body>
+</html>
