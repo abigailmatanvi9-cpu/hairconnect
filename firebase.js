@@ -1,4 +1,4 @@
-/** Même origine si la page vient du backend (port 3000), sinon URL explicite vers l’API Node. */
+/** Base de l’API : même origine en prod (Express sert le front + /api), localhost:3000 en dev séparé (Live Server, etc.). */
 function resolveApiBase() {
     const override = window.__HAIRCONNECT_API_BASE__;
     if (override != null && String(override).trim() !== "") {
@@ -6,9 +6,15 @@ function resolveApiBase() {
     }
     try {
         const { protocol, hostname, port } = window.location;
-        if (String(port) === "3000") {
-            return `${protocol}//${hostname}:${port}/api`;
+        if (!protocol.startsWith("http")) {
+            return "http://localhost:3000/api";
         }
+        const isLocal = hostname === "localhost" || hostname === "127.0.0.1";
+        const portStr = String(port || "");
+        if (isLocal && portStr !== "" && portStr !== "3000") {
+            return `http://${hostname}:3000/api`;
+        }
+        return `${window.location.origin}/api`;
     } catch {
         /* ignore */
     }
@@ -363,9 +369,20 @@ export async function fetchOffreById(offerId) {
     }
 }
 
-export async function listOffres() {
-    const payload = await apiFetch("/offres");
+export async function listOffres(forSalonUid) {
+    const uid = forSalonUid != null ? String(forSalonUid || "").trim() : "";
+    const suffix = uid ? `?forSalon=${encodeURIComponent(uid)}` : "";
+    const payload = await apiFetch(`/offres${suffix}`);
     return (payload.offres || []).map((o) => ({ ...o, createdAt: { toMillis: () => new Date(o.createdAt).getTime() } }));
+}
+
+/** Marque une offre comme pourvue (filled) ou la rouvre (open). Réservé au salon propriétaire. */
+export async function updateOffreStatus(offerId, salonUid, status) {
+    const s = String(status || "").trim().toLowerCase();
+    await apiFetch(`/offres/${encodeURIComponent(offerId)}`, {
+        method: "PATCH",
+        body: JSON.stringify({ salonUid: String(salonUid || "").trim(), status: s })
+    });
 }
 
 /** Retire une offre (salon propriétaire uniquement). Supprime aussi les candidatures liées. */
@@ -564,8 +581,16 @@ export function getFirebaseErrorMessage(error) {
     if (code === "failed-precondition") {
         return "Index Firestore manquant : la console propose souvent un lien pour le créer.";
     }
-    if (msg.includes("Failed to fetch") || msg.includes("NetworkError")) {
-        return "Impossible de joindre le serveur. Vérifiez que `npm run dev` tourne bien sur le port 3000.";
+    if (
+        msg.includes("Failed to fetch") ||
+        msg.includes("NetworkError") ||
+        msg === "Load failed" ||
+        msg.includes("Load failed")
+    ) {
+        return "Impossible de joindre le serveur. Vérifiez votre connexion, attendez quelques secondes (démarrage Render) et réessayez.";
+    }
+    if (msg.includes("column") && msg.includes("does not exist")) {
+        return "Base de données non à jour sur le serveur. Relancez le déploiement avec « npx prisma migrate deploy ».";
     }
     if (error?.status === 404 || /Cannot POST|Cannot GET/i.test(msg)) {
         return "Le serveur n’a pas trouvé cette action (404). Lancez « npm run dev » dans le dossier HairConnect, ouvrez l’agenda via le même hôte que l’API (ex. http://127.0.0.1:3000/agenda-pro.html si vous utilisez 127.0.0.1), puis rechargez la page.";
