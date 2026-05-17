@@ -1766,6 +1766,25 @@ app.delete("/api/publications/:id", async (req, res) => {
   }
 });
 
+/** Vérifier quelle version tourne en prod (commit Render ou local). */
+app.get("/api/version", (_req, res) => {
+  res.json({
+    app: "HairConnect",
+    commit: process.env.RENDER_GIT_COMMIT || process.env.GIT_COMMIT || "dev-local",
+    builtAt: new Date().toISOString()
+  });
+});
+
+app.use((req, res, next) => {
+  const p = String(req.path || "");
+  if (p === "/" || p.endsWith(".html")) {
+    res.setHeader("Cache-Control", "no-cache, no-store, must-revalidate");
+    res.setHeader("Pragma", "no-cache");
+    res.setHeader("Expires", "0");
+  }
+  next();
+});
+
 app.use(express.static("."));
 
 app.listen(port, () => {

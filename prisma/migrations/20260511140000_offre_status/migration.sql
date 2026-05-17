@@ -1,2 +1,2 @@
 -- AlterTable
-ALTER TABLE "Offre" ADD COLUMN "status" TEXT NOT NULL DEFAULT 'open';
+ALTER TABLE "Offre" ADD COLUMN IF NOT EXISTS "status" TEXT NOT NULL DEFAULT 'open';

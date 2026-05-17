@@ -1,2 +1,2 @@
 -- AlterTable
-ALTER TABLE "User" ADD COLUMN "tarifMenuPhotoUrl" TEXT;
+ALTER TABLE "User" ADD COLUMN IF NOT EXISTS "tarifMenuPhotoUrl" TEXT;
