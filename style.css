@@ -2183,6 +2183,92 @@ button.dash-home-cat {
     text-align: left;
 }
 
+.avis-my-published {
+    margin-top: 1.75rem;
+    padding-top: 1rem;
+    border-top: 1px solid #2e2924;
+}
+
+.avis-my-published__hint {
+    margin-top: 0.35rem;
+    margin-bottom: 0.75rem;
+}
+
+.avis-my-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+
+.avis-my-list__empty {
+    padding: 0.9rem 1rem;
+    border: 1px dashed #3a3632;
+    border-radius: 12px;
+    color: #8a8278;
+    font-size: 0.92rem;
+}
+
+.avis-my-list__item {
+    padding: 0.85rem 1rem;
+    border-radius: 14px;
+    border: 1px solid #2e2924;
+    background: #1a1714;
+}
+
+.avis-my-list__meta {
+    margin: 0;
+    font-size: 0.88rem;
+    color: #d59a73;
+    font-weight: 600;
+}
+
+.avis-my-list__pro {
+    margin: 0.35rem 0 0;
+    font-size: 0.9rem;
+    color: #d5cec5;
+}
+
+.avis-my-list__photo {
+    margin: 0.5rem 0 0;
+}
+
+.avis-my-list__photo a {
+    display: inline-block;
+    max-width: 12rem;
+    line-height: 0;
+    border-radius: 10px;
+    overflow: hidden;
+    border: 1px solid #3a3632;
+}
+
+.avis-my-list__photo img {
+    display: block;
+    width: 100%;
+    max-height: 9rem;
+    object-fit: cover;
+    background: #120f0c;
+}
+
+.avis-my-list__comment {
+    margin: 0.45rem 0 0;
+    font-size: 0.92rem;
+    line-height: 1.45;
+    color: #d3ccc4;
+}
+
+.avis-my-list__link {
+    margin: 0.5rem 0 0;
+    font-size: 0.88rem;
+}
+
+.avis-my-list__link a {
+    color: #d59a73;
+    font-weight: 600;
+}
+
 .form-success {
     margin: 0 0 1rem;
     padding: 0.65rem 0.9rem;
@@ -2293,6 +2379,12 @@ button.dash-home-cat {
     color: #a9a29a;
 }
 
+.pro-card-quartier {
+    margin: 0.2rem 0 0;
+    font-size: 0.82rem;
+    color: #c4bbb2;
+}
+
 .pro-card-snippet {
     margin: 0.5rem 0 0;
     font-size: 0.82rem;
@@ -2313,6 +2405,27 @@ button.dash-home-cat {
 
 .pro-card-links a:hover {
     text-decoration: underline;
+}
+
+.pro-card-avis-photo {
+    margin: 0.65rem 0 0;
+}
+
+.pro-card-avis-photo__link {
+    display: block;
+    max-width: 14rem;
+    line-height: 0;
+    border-radius: 10px;
+    overflow: hidden;
+    border: 1px solid #3a3632;
+}
+
+.pro-card-avis-photo__img {
+    display: block;
+    width: 100%;
+    max-height: 10rem;
+    object-fit: cover;
+    background: #120f0c;
 }
 
 .msg-thread {
@@ -2388,6 +2501,12 @@ button.dash-home-cat {
     grid-template-columns: 1fr auto;
     gap: 0.5rem;
     margin-bottom: 0.75rem;
+    align-items: start;
+}
+
+.msg-chat__new-hint {
+    grid-column: 1 / -1;
+    margin: 0;
 }
 
 .msg-chat__new-btn {
@@ -2735,6 +2854,28 @@ button.dash-home-cat {
     border: 1px solid #3a3632;
 }
 
+.public-publications__avis-photo {
+    margin: 0.5rem 0 0;
+}
+
+.public-publications__avis-photo-link {
+    display: block;
+    line-height: 0;
+    border-radius: 10px;
+    overflow: hidden;
+    outline: none;
+}
+
+.public-publications__avis-photo-link:focus-visible {
+    box-shadow: 0 0 0 2px #d59a73;
+}
+
+.public-publications__img--avis {
+    max-height: 16rem;
+    object-fit: contain;
+    background: #120f0c;
+}
+
 .public-publications__caption {
     margin: 0.55rem 0 0;
     font-size: 0.85rem;
@@ -2763,6 +2904,90 @@ button.dash-home-cat {
     font-size: 0.9rem;
     text-align: center;
     padding: 0.75rem;
+}
+
+.public-avis-compact,
+.public-gallery-compact {
+    margin-top: 0.85rem;
+    padding: 0.85rem 0.95rem;
+    border-radius: 10px;
+    border: 1px solid #3a342c;
+    background: rgba(0, 0, 0, 0.12);
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    align-items: stretch;
+}
+
+.public-avis-compact__summary {
+    margin: 0;
+    color: #c9c2b8;
+    font-size: 0.9rem;
+    line-height: 1.45;
+}
+
+.public-avis-compact .register-submit,
+.public-gallery-compact .register-submit {
+    align-self: flex-start;
+}
+
+.public-tarif-menu-section {
+    margin-top: 1rem;
+}
+
+.public-tarif-menu-lead {
+    margin: 0 0 0.65rem;
+    color: #a39a91;
+    font-size: 0.85rem;
+}
+
+.public-tarif-menu-link {
+    display: block;
+    border-radius: 10px;
+    overflow: hidden;
+    border: 1px solid #3a342c;
+    line-height: 0;
+}
+
+.public-tarif-menu__img {
+    width: 100%;
+    max-height: min(70vh, 520px);
+    object-fit: contain;
+    background: #1a1714;
+    display: block;
+}
+
+.profil-tarif-menu-preview {
+    margin-top: 0.65rem;
+    border-radius: 10px;
+    overflow: hidden;
+    border: 1px solid #302b26;
+    max-width: 100%;
+    line-height: 0;
+}
+
+.profil-tarif-menu-preview__img {
+    width: 100%;
+    max-height: 220px;
+    object-fit: contain;
+    display: block;
+    background: #151210;
+}
+
+.profil-tarif-menu-remove {
+    margin-top: 0.55rem;
+    padding: 0.35rem 0.75rem;
+    font-size: 0.82rem;
+    border-radius: 8px;
+    border: 1px solid #5c5248;
+    background: transparent;
+    color: #d4cbc0;
+    cursor: pointer;
+}
+
+.profil-tarif-menu-remove:hover {
+    border-color: #8a8075;
+    color: #fff;
 }
 
 .profil-publication {
@@ -3544,6 +3769,12 @@ button.dash-home-cat {
     background: rgba(40, 110, 58, 0.25);
 }
 
+.jobs-badge--filled {
+    border-color: rgba(180, 140, 70, 0.55);
+    color: #e8c88b;
+    background: rgba(120, 90, 40, 0.35);
+}
+
 .jobs-card__salary {
     margin: 0.8rem 0 0;
     font-size: 1rem;
@@ -3597,6 +3828,28 @@ button.dash-home-cat {
     cursor: not-allowed;
 }
 
+.jobs-card__status-btn {
+    font: inherit;
+    font-size: 0.82rem;
+    font-weight: 600;
+    cursor: pointer;
+    min-height: 2.3rem;
+    padding: 0.25rem 0.85rem;
+    border-radius: 999px;
+    border: 1px solid rgba(120, 140, 200, 0.55);
+    background: transparent;
+    color: #b8c4f0;
+}
+
+.jobs-card__status-btn:hover:not(:disabled) {
+    background: rgba(120, 140, 200, 0.12);
+}
+
+.jobs-card__status-btn:disabled {
+    opacity: 0.55;
+    cursor: not-allowed;
+}
+
 .jobs-card__date {
     font-size: 0.85rem;
     color: #968e84;
@@ -3638,6 +3891,49 @@ button.dash-home-cat {
     height: 100%;
     object-fit: cover;
     border-radius: 10px;
+}
+
+.market-card__thumb {
+    width: 7.25rem;
+    height: 7.25rem;
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.market-card__thumb .market-card__img {
+    border-radius: 12px;
+}
+
+.market-card__thumb-fallback {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    height: 100%;
+    font-size: 1.75rem;
+    line-height: 1;
+    opacity: 0.45;
+}
+
+.market-mode-tabs--buy-only {
+    grid-template-columns: 1fr;
+    max-width: 14rem;
+}
+
+.market-photo-preview-wrap {
+    margin-top: 0.65rem;
+}
+
+.market-photo-preview {
+    display: block;
+    max-width: 100%;
+    max-height: 11rem;
+    border-radius: 12px;
+    border: 1px solid #3f352e;
+    object-fit: contain;
+    background: #120f0c;
 }
 
 .market-publish,
@@ -4384,6 +4680,44 @@ body.hc-theme-pro .subpage-lead {
     color: var(--hc-pro-muted);
 }
 
+body.hc-theme-pro .avis-my-published {
+    border-top-color: var(--hc-pro-line);
+}
+
+body.hc-theme-pro .avis-my-list__empty {
+    border-color: var(--hc-pro-line);
+    color: var(--hc-pro-muted);
+}
+
+body.hc-theme-pro .avis-my-list__item {
+    border-color: var(--hc-pro-line);
+    background: var(--hc-pro-card);
+}
+
+body.hc-theme-pro .avis-my-list__meta {
+    color: var(--hc-pro-purple);
+}
+
+body.hc-theme-pro .avis-my-list__pro {
+    color: var(--hc-pro-muted);
+}
+
+body.hc-theme-pro .avis-my-list__photo a {
+    border-color: var(--hc-pro-line);
+}
+
+body.hc-theme-pro .avis-my-list__photo img {
+    background: #f1f5f9;
+}
+
+body.hc-theme-pro .avis-my-list__comment {
+    color: var(--hc-pro-ink);
+}
+
+body.hc-theme-pro .avis-my-list__link a {
+    color: var(--hc-pro-purple);
+}
+
 body.hc-theme-pro .field-label {
     color: var(--hc-pro-ink);
 }
@@ -4511,101 +4845,6 @@ body.hc-theme-pro .field-label-checkbox {
 
 body.hc-theme-pro .field-label-checkbox input {
     accent-color: var(--hc-pro-purple);
-}
-
-/* Profil pro — bloc géolocalisation annuaire */
-.profil-geo-block {
-    margin-top: 1rem;
-    padding-top: 1rem;
-    border-top: 1px solid var(--hc-pro-line);
-}
-
-.profil-geo-lead {
-    margin: 0 0 0.65rem;
-    font-size: 0.88rem;
-    line-height: 1.45;
-    color: var(--hc-pro-muted);
-}
-
-.profil-geo-status {
-    margin: 0 0 0.85rem;
-    font-size: 0.85rem;
-    color: var(--hc-pro-ink);
-}
-
-.profil-geo-actions {
-    display: flex;
-    flex-direction: column;
-    gap: 0.65rem;
-}
-
-.profil-geo-primary {
-    width: 100%;
-}
-
-.profil-geo-secondary {
-    font: inherit;
-    font-size: 0.9rem;
-    font-weight: 600;
-    padding: 0.65rem 1rem;
-    border-radius: 12px;
-    border: 1px solid var(--hc-pro-line);
-    background: #f8fafc;
-    color: var(--hc-pro-purple);
-    cursor: pointer;
-}
-
-.profil-geo-secondary:hover {
-    background: var(--hc-pro-purple-soft);
-}
-
-/* Annuaire — recherche GPS */
-.recherche-near {
-    margin: 1.25rem 0 0.5rem;
-    padding: 1rem 1.1rem;
-    border-radius: var(--hc-pro-radius);
-    border: 1px solid var(--hc-pro-line);
-    background: var(--hc-pro-purple-soft);
-}
-
-.recherche-near__title {
-    margin: 0 0 0.35rem;
-    font-size: 1.05rem;
-}
-
-.recherche-near__lead {
-    margin: 0 0 1rem;
-    font-size: 0.85rem;
-}
-
-.recherche-near__actions {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 0.65rem;
-    align-items: center;
-}
-
-.recherche-near__reset {
-    font: inherit;
-    font-size: 0.9rem;
-    font-weight: 600;
-    padding: 0.55rem 0.9rem;
-    border-radius: 10px;
-    border: 1px solid var(--hc-pro-line);
-    background: #fff;
-    color: var(--hc-pro-ink);
-    cursor: pointer;
-}
-
-.recherche-near__reset:hover {
-    border-color: var(--hc-pro-focus);
-}
-
-.pro-card-distance {
-    margin: 0.35rem 0 0;
-    font-size: 0.82rem;
-    font-weight: 600;
-    color: var(--hc-pro-purple-deep);
 }
 
 body.hc-theme-pro .guest-discovery-banner {
@@ -4768,10 +5007,26 @@ body.hc-theme-pro .jobs-card__delete:hover:not(:disabled) {
     background: #fef2f2;
 }
 
+body.hc-theme-pro .jobs-card__status-btn {
+    border-color: var(--hc-pro-line);
+    color: var(--hc-pro-purple);
+    background: #fff;
+}
+
+body.hc-theme-pro .jobs-card__status-btn:hover:not(:disabled) {
+    background: #f5f3ff;
+}
+
 body.hc-theme-pro .jobs-badge {
     border-color: rgba(16, 185, 129, 0.45);
     color: #047857;
     background: rgba(209, 250, 229, 0.9);
+}
+
+body.hc-theme-pro .jobs-badge--filled {
+    border-color: rgba(180, 83, 9, 0.45);
+    color: #9a3412;
+    background: rgba(254, 243, 199, 0.95);
 }
 
 body.hc-theme-pro .jobs-create {
@@ -4807,6 +5062,7 @@ body.hc-theme-pro .pro-card-role {
 }
 
 body.hc-theme-pro .pro-card-city,
+body.hc-theme-pro .pro-card-quartier,
 body.hc-theme-pro .pro-card-snippet {
     color: var(--hc-pro-muted);
 }
@@ -4963,6 +5219,15 @@ body.hc-theme-pro .public-publications__item {
     background: var(--hc-pro-card);
 }
 
+body.hc-theme-pro .public-publications__img,
+body.hc-theme-pro .public-publications__avis-photo-link {
+    border-color: var(--hc-pro-line);
+}
+
+body.hc-theme-pro .public-publications__img--avis {
+    background: #f1f5f9;
+}
+
 body.hc-theme-pro .public-publications__meta,
 body.hc-theme-pro .public-publications__caption {
     color: var(--hc-pro-muted);
@@ -4972,6 +5237,28 @@ body.hc-theme-pro .public-publications__delete {
     color: #b91c1c;
     border-color: #fecaca;
     background: #fff1f2;
+}
+
+body.hc-theme-pro .public-avis-compact,
+body.hc-theme-pro .public-gallery-compact {
+    border-color: var(--hc-pro-border, #e2e8f0);
+    background: #f8fafc;
+}
+
+body.hc-theme-pro .public-avis-compact__summary {
+    color: var(--hc-pro-muted);
+}
+
+body.hc-theme-pro .public-tarif-menu-lead {
+    color: var(--hc-pro-muted);
+}
+
+body.hc-theme-pro .public-tarif-menu-link {
+    border-color: var(--hc-pro-border, #e2e8f0);
+}
+
+body.hc-theme-pro .public-tarif-menu__img {
+    background: #f1f5f9;
 }
 
 body.hc-theme-pro .public-btn--ghost {
@@ -5060,6 +5347,49 @@ body.hc-theme-pro .agenda-pro__card {
 
 body.hc-theme-pro .agenda-pro__when {
     color: var(--hc-pro-purple);
+}
+
+/* Statut RDV : lisible sur carte claire (thème pro) */
+body.hc-theme-pro .agenda-pro__status {
+    border-color: var(--hc-pro-line);
+    color: var(--hc-pro-ink);
+    background: #f1f5f9;
+    box-shadow: none;
+}
+
+body.hc-theme-pro .agenda-pro__status--planned {
+    border-color: #d97706;
+    color: #7c2d12;
+    background: #fff7ed;
+}
+
+body.hc-theme-pro .agenda-pro__status--completed {
+    border-color: #16a34a;
+    color: #14532d;
+    background: #ecfdf5;
+}
+
+body.hc-theme-pro .agenda-pro__status--cancelled {
+    border-color: #dc2626;
+    color: #7f1d1d;
+    background: #fef2f2;
+}
+
+body.hc-theme-pro .agenda-pro__status--noshow {
+    border-color: #7c3aed;
+    color: #4c1d95;
+    background: #f5f3ff;
+}
+
+body.hc-theme-pro .agenda-pro select.agenda-pro__select {
+    border: 1px solid var(--hc-pro-line);
+    background: #fff;
+    color: var(--hc-pro-ink);
+}
+
+body.hc-theme-pro .agenda-pro select.agenda-pro__select:focus {
+    border-color: var(--hc-pro-focus);
+    box-shadow: 0 0 0 2px rgba(124, 58, 237, 0.18);
 }
 
 body.hc-theme-pro .agenda-pro__client-name {

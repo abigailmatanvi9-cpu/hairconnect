@@ -23,10 +23,13 @@
         <aside class="msg-chat__sidebar">
             <h2 class="subpage-h2 msg-chat__title">Conversations</h2>
             <div class="msg-chat__new">
-                <select id="toUid" class="field-select">
+                <select id="toUid" class="field-select" aria-label="Choisir un destinataire">
                     <option value="">Choisir un destinataire…</option>
                 </select>
-                <button type="button" class="register-submit msg-chat__new-btn" id="startChatBtn">Ouvrir</button>
+                <button type="button" class="register-submit msg-chat__new-btn" id="startChatBtn">Ouvrir la conversation</button>
+                <p class="field-hint msg-chat__new-hint">
+                    Choisissez un professionnel, puis « Ouvrir la conversation » pour afficher le fil à droite et envoyer un premier message.
+                </p>
             </div>
             <ul id="conversationList" class="msg-chat__conversations"></ul>
         </aside>
@@ -232,7 +235,18 @@ function buildConversations(items) {
 
 function renderConversationList() {
     conversationList.innerHTML = "";
-    const conversations = buildConversations(allMessages);
+    let conversations = buildConversations(allMessages);
+    /** Conversation choisie dans la liste mais encore sans message : la faire apparaître à gauche. */
+    if (activePeerUid && !conversations.some((c) => c.uid === activePeerUid)) {
+        conversations = [
+            {
+                uid: activePeerUid,
+                isPending: true,
+                lastMessage: { text: "", createdAt: new Date() }
+            },
+            ...conversations
+        ];
+    }
     if (!conversations.length) {
         const li = document.createElement("li");
         li.className = "msg-chat__conv msg-chat__conv--empty";
@@ -245,7 +259,9 @@ function renderConversationList() {
         const li = document.createElement("li");
         li.className = "msg-chat__conv";
         if (c.uid === activePeerUid) li.classList.add("is-active");
-        const text = snippetFromMessage(c.lastMessage.text);
+        const text = c.isPending
+            ? "Pas encore de message — écrivez ci-dessous"
+            : snippetFromMessage(c.lastMessage.text);
         li.innerHTML =
             "<button type=\"button\" class=\"msg-chat__conv-btn\" data-peer-uid=\"" +
             escapeHtml(c.uid) +
@@ -439,17 +455,48 @@ if (msgPhotoInput) {
 
 startChatBtn.addEventListener("click", async () => {
     const uid = document.getElementById("toUid").value.trim();
-    if (!uid) return;
+    formError.hidden = true;
+    formOk.hidden = true;
+    if (!uid) {
+        formError.textContent = "Choisissez d’abord un destinataire dans la liste.";
+        formError.hidden = false;
+        return;
+    }
+    if (uid === myUid) {
+        formError.textContent = "Vous ne pouvez pas ouvrir une conversation avec vous-même.";
+        formError.hidden = false;
+        return;
+    }
     activePeerUid = uid;
     await ensureProfile(uid);
     renderConversationList();
     renderActiveMessages();
+    try {
+        document.getElementById("msgText")?.focus();
+    } catch {
+        /* ignore */
+    }
 });
+
+const toUidSelect = document.getElementById("toUid");
+if (toUidSelect) {
+    toUidSelect.addEventListener("keydown", (e) => {
+        if (e.key === "Enter") {
+            e.preventDefault();
+            startChatBtn.click();
+        }
+    });
+}
 
 conversationList.addEventListener("click", (e) => {
     const btn = e.target.closest("[data-peer-uid]");
     if (!btn) return;
     activePeerUid = btn.getAttribute("data-peer-uid") || "";
+    const sel = document.getElementById("toUid");
+    if (sel && activePeerUid) {
+        const opt = [...sel.options].some((o) => o.value === activePeerUid);
+        if (opt) sel.value = activePeerUid;
+    }
     renderConversationList();
     renderActiveMessages();
 });

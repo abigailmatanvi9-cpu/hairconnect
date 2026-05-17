@@ -16,7 +16,11 @@
         <h1 class="login-title">Avis</h1>
     </header>
 
-    <p class="subpage-lead">Notez une prestation (après rendez-vous). Sélectionnez directement le professionnel dans la liste.</p>
+    <p class="subpage-lead">
+        Notez une prestation (après rendez-vous). Vos avis et commentaires sont <strong>publics</strong> : ils s’affichent sur la
+        <strong>fiche profil du professionnel</strong> (comme sur la plupart des plateformes), donc tout visiteur qui consulte ce
+        profil peut les lire. Votre nom n’y figure pas automatiquement, seulement la note, la date et votre texte.
+    </p>
 
     <form id="avisForm" class="register-form">
         <p id="formError" class="form-error" role="alert" hidden></p>
@@ -49,10 +53,19 @@
         </div>
         <button type="submit" class="register-submit" id="btn">Publier l’avis</button>
     </form>
+
+    <section class="avis-my-published" aria-labelledby="myAvisTitle">
+        <h2 id="myAvisTitle" class="subpage-h2">Vos avis publiés</h2>
+        <p class="field-hint avis-my-published__hint">
+            Retrouvez ici ce que vous avez déjà publié. Pour voir comment cela apparaît côté public, ouvrez la
+            <a href="recherche.html">fiche du professionnel</a> depuis l’annuaire.
+        </p>
+        <ul id="myAvisList" class="avis-my-list"></ul>
+    </section>
 </div>
 
 <script type="module">
-import { auth, createReview, getFirebaseErrorMessage, listProfessionals } from "./firebase.js";
+import { auth, createReview, getFirebaseErrorMessage, listProfessionals, listAvisByClient, fetchUserProfile } from "./firebase.js";
 import { onAuthStateChanged } from "./firebase.js";
 
 const params = new URLSearchParams(location.search);
@@ -68,7 +81,91 @@ const photoFileInput = document.getElementById("photoFile");
 const photoPickerWrap = document.getElementById("photoPickerWrap");
 const photoHint = document.getElementById("photoHint");
 
+const myAvisList = document.getElementById("myAvisList");
+
 let clientUid = null;
+
+function escapeHtml(s) {
+    return String(s || "")
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;");
+}
+
+function avisDateLabel(createdAt) {
+    const ms = createdAt?.toMillis ? createdAt.toMillis() : new Date(createdAt || 0).getTime();
+    if (!ms) return "";
+    return new Date(ms).toLocaleString("fr-FR", {
+        day: "2-digit",
+        month: "2-digit",
+        year: "numeric",
+        hour: "2-digit",
+        minute: "2-digit"
+    });
+}
+
+async function loadMyReviews() {
+    if (!myAvisList || !clientUid) return;
+    myAvisList.innerHTML = "";
+    try {
+        const mine = await listAvisByClient(clientUid);
+        if (!mine.length) {
+            const li = document.createElement("li");
+            li.className = "avis-my-list__empty";
+            li.textContent = "Vous n’avez pas encore publié d’avis.";
+            myAvisList.appendChild(li);
+            return;
+        }
+        const uids = [...new Set(mine.map((a) => String(a.toProUid || "").trim()).filter(Boolean))];
+        const profiles = await Promise.all(uids.map((id) => fetchUserProfile(id).catch(() => null)));
+        const nameBy = new Map(
+            uids.map((id, i) => {
+                const p = profiles[i];
+                const label = p?.salonName || p?.name || p?.email || `Professionnel (${id.slice(0, 8)}…)`;
+                return [id, label];
+            })
+        );
+        for (const a of mine) {
+            const proId = String(a.toProUid || "").trim();
+            const label = nameBy.get(proId) || "Professionnel";
+            const rating = Math.min(5, Math.max(1, Number(a.rating) || 0));
+            const stars = "★".repeat(rating) + "☆".repeat(5 - rating);
+            const pUrl = String(a.photoUrl || "").trim();
+            const photoHtml = pUrl
+                ? "<div class=\"avis-my-list__photo\"><a href=\"" +
+                  escapeHtml(pUrl) +
+                  "\" target=\"_blank\" rel=\"noopener noreferrer\">" +
+                  "<img src=\"" +
+                  escapeHtml(pUrl) +
+                  "\" alt=\"Photo de l’avis\" loading=\"lazy\" decoding=\"async\"></a></div>"
+                : "";
+            const li = document.createElement("li");
+            li.className = "avis-my-list__item";
+            li.innerHTML =
+                "<p class=\"avis-my-list__meta\">" +
+                escapeHtml(stars + " · " + rating + "/5") +
+                (avisDateLabel(a.createdAt) ? " · " + escapeHtml(avisDateLabel(a.createdAt)) : "") +
+                "</p>" +
+                "<p class=\"avis-my-list__pro\">Pour : <strong>" +
+                escapeHtml(label) +
+                "</strong></p>" +
+                photoHtml +
+                "<p class=\"avis-my-list__comment\">" +
+                escapeHtml(String(a.comment || "").trim() || "—") +
+                "</p>" +
+                "<p class=\"avis-my-list__link\"><a href=\"profil-public.html?uid=" +
+                encodeURIComponent(proId) +
+                "\">Voir la fiche publique</a></p>";
+            myAvisList.appendChild(li);
+        }
+    } catch {
+        const li = document.createElement("li");
+        li.className = "avis-my-list__empty";
+        li.textContent = "Impossible de charger votre historique d’avis pour le moment.";
+        myAvisList.appendChild(li);
+    }
+}
 
 async function loadProfessionals() {
     try {
@@ -113,6 +210,7 @@ onAuthStateChanged(auth, (user) => {
         return;
     }
     clientUid = user.uid;
+    loadMyReviews();
 });
 
 loadProfessionals();
@@ -159,10 +257,11 @@ form.addEventListener("submit", async (e) => {
             photoUrl = await fileToDataUrl(photoFile);
         }
         await createReview(clientUid, toPro, rating, comment, photoUrl);
-        formOk.textContent = "Merci, votre avis a été enregistré.";
+        formOk.textContent = "Merci, votre avis a été enregistré. Il est visible sur la fiche publique du professionnel.";
         formOk.hidden = false;
         form.reset();
         if (pre) toProSelect.value = pre;
+        await loadMyReviews();
     } catch (err) {
         formError.textContent = getFirebaseErrorMessage(err);
         formError.hidden = false;

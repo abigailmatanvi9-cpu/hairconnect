@@ -35,7 +35,7 @@
         </div>
         <nav class="dash-sidebar-nav" id="dashSidebarNav" aria-label="Sections du tableau de bord"></nav>
         <p class="dash-sidebar-empty" id="dashSidebarEmptyMsg" hidden>Rôle non reconnu — navigation limitée.</p>
-        <div class="dash-sidebar-pro-cta">
+        <div class="dash-sidebar-pro-cta" id="dashSidebarAnnuaireCta">
             <p class="dash-sidebar-pro-cta__title">HairConnect</p>
             <p class="dash-sidebar-pro-cta__text">Votre beauté, votre choix — salons et talents près de vous.</p>
             <a href="recherche.html" class="dash-sidebar-pro-cta__btn" data-dash-embed="recherche.html">Découvrir l’annuaire</a>
@@ -127,9 +127,13 @@
 
             <div class="dash-client-view" id="clientViewSearch" data-client-view="search" hidden>
                 <div class="dash-near-head">
-                    <h2 class="dash-near-title">Coiffeurs à proximité</h2>
-                    <a href="recherche.html" class="dash-near-seeall" data-dash-embed="recherche.html">Voir tout</a>
+                    <h2 class="dash-near-title">À proximité</h2>
+                    <a href="recherche.html" class="dash-near-seeall" data-dash-embed="recherche.html">Annuaire complet</a>
                 </div>
+                <p class="dash-near-hint field-hint">
+                    Raccourci : professionnels du <strong>même quartier</strong> que vous si vous l’avez renseigné dans votre profil ;
+                    sinon liste par <strong>ville</strong>. L’annuaire complet permet d’affiner par métier, ville et quartier.
+                </p>
                 <p id="clientNearError" class="dash-near-error" role="alert" hidden></p>
                 <p id="clientNearLoading" class="dash-near-loading">Chargement…</p>
                 <ul id="clientNearList" class="dash-near-list"></ul>
@@ -156,13 +160,6 @@
                             <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.75" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M14.857 17.082a23.848 23.848 0 005.454-1.31A8.967 8.967 0 0118 9.75V9A6 6 0 006 9v.75a8.967 8.967 0 01-2.312 6.022c1.733.64 3.56 1.085 5.455 1.31m5.714 0a24.255 24.255 0 01-5.714 0m5.714 0a3 3 0 11-5.714 0"/></svg>
                         </a>
                     </div>
-                    <form class="dash-home-search dash-hide-when-sidebar" action="recherche.html" method="get" role="search">
-                        <span class="dash-home-search-icon" aria-hidden="true">
-                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.75" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z"/></svg>
-                        </span>
-                        <input type="search" name="city" class="dash-home-search-input" data-dash-home="search" placeholder="Rechercher salons, ville…" autocomplete="off">
-                    </form>
-
                     <section class="dash-pro-hero dash-pro-hero--coiffeur" aria-labelledby="dashHeroCoiffTitle">
                         <div class="dash-pro-hero__text">
                             <h2 id="dashHeroCoiffTitle" class="dash-pro-hero__title">Postulez aux salons qui recrutent</h2>
@@ -176,7 +173,6 @@
                     <nav class="dash-home-cats dash-pro-cats" aria-label="Raccourcis coiffeur">
                         <a href="offres.html" class="dash-home-cat" data-dash-embed="offres.html"><span class="dash-home-cat-icon" aria-hidden="true"><svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M20.25 14.15v4.125c0 .621-.504 1.125-1.125 1.125H4.875c-.621 0-1.125-.504-1.125-1.125v-4.125M19.5 7.125l-7.5 4.875-7.5-4.875M3.375 7.125h17.25c.621 0 1.125.504 1.125 1.125v.75c0 .621-.504 1.125-1.125 1.125H3.375a1.125 1.125 0 01-1.125-1.125v-.75c0-.621.504-1.125 1.125-1.125z"/></svg></span><span class="dash-home-cat-label">Offres</span></a>
                         <a href="marketplace.html" class="dash-home-cat"><span class="dash-home-cat-icon" aria-hidden="true"><svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M15.75 10.5V6a3.75 3.75 0 10-7.5 0v4.5m11.356-1.993l1.106 8.844a1.125 1.125 0 01-1.118 1.274H4.406a1.125 1.125 0 01-1.118-1.274l1.106-8.844A1.125 1.125 0 015.505 7.5h12.99a1.125 1.125 0 011.111 1.007z"/></svg></span><span class="dash-home-cat-label">Marketplace</span></a>
-                        <a href="candidatures.html" class="dash-home-cat" data-dash-embed="candidatures.html"><span class="dash-home-cat-icon" aria-hidden="true"><svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m2.25 0H12m5.25 0H15M9.75 9.75v10.125m3-10.125v10.125m3-10.125v10.125M9 19.5h6.75"/></svg></span><span class="dash-home-cat-label">Candidatures</span></a>
                         <a href="messagerie.html" class="dash-home-cat" data-dash-embed="messagerie.html"><span class="dash-home-cat-icon" aria-hidden="true"><svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M8.625 12a.375.375 0 11-.75 0 .375.375 0 01.75 0zm0 0H8.25m4.125 0a.375.375 0 11-.75 0 .375.375 0 01.75 0zm0 0H12m4.125 0a.375.375 0 11-.75 0 .375.375 0 01.75 0zm0 0h-.375M21 12c0 4.556-4.03 8.25-9 8.25a9.764 9.764 0 01-2.555-.337A5.972 5.972 0 015.41 20.97a5.969 5.969 0 01-.474-.065 4.48 4.48 0 00.978-2.025c.09-.457-.133-.901-.467-1.226C3.93 16.178 3 14.189 3 12c0-4.556 4.03-8.25 9-8.25s9 3.694 9 8.25z"/></svg></span><span class="dash-home-cat-label">Messages</span></a>
                         <button type="button" class="dash-home-cat dash-home-cat--btn" data-dash-open-profile><span class="dash-home-cat-icon" aria-hidden="true"><svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z"/></svg></span><span class="dash-home-cat-label">Profil &amp; tarifs</span></button>
                     </nav>
@@ -195,7 +191,6 @@
                     <nav class="dash-home-links dash-hide-when-sidebar" aria-label="Liens utiles">
                         <button type="button" class="dash-home-links-btn" data-dash-open-profile>Profil &amp; tarifs</button>
                         <a href="messagerie.html" data-dash-embed="messagerie.html">Messagerie</a>
-                        <a href="candidatures.html" data-dash-embed="candidatures.html">Candidatures</a>
                         <a href="marketplace.html">Marketplace</a>
                     </nav>
                 </div>
@@ -221,13 +216,6 @@
                             <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.75" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M14.857 17.082a23.848 23.848 0 005.454-1.31A8.967 8.967 0 0118 9.75V9A6 6 0 006 9v.75a8.967 8.967 0 01-2.312 6.022c1.733.64 3.56 1.085 5.455 1.31m5.714 0a24.255 24.255 0 01-5.714 0m5.714 0a3 3 0 11-5.714 0"/></svg>
                         </a>
                     </div>
-                    <form class="dash-home-search dash-hide-when-sidebar" action="recherche.html" method="get" role="search">
-                        <span class="dash-home-search-icon" aria-hidden="true">
-                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.75" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z"/></svg>
-                        </span>
-                        <input type="search" name="city" class="dash-home-search-input" data-dash-home="search" placeholder="Rechercher coiffeurs, ville…" autocomplete="off">
-                    </form>
-
                     <section class="dash-pro-hero dash-pro-hero--salon" aria-labelledby="dashHeroSalonTitle">
                         <div class="dash-pro-hero__text">
                             <h2 id="dashHeroSalonTitle" class="dash-pro-hero__title">Recrutez les bonnes têtes</h2>
@@ -338,7 +326,6 @@
             <div class="dash-rail__stat-grid">
                 <div class="dash-rail__stat"><span class="dash-rail__stat-num" data-coiffeur-stat="messages">0</span><span class="dash-rail__stat-label">Messages</span></div>
                 <div class="dash-rail__stat"><span class="dash-rail__stat-num" data-coiffeur-stat="offers">0</span><span class="dash-rail__stat-label">Offres</span></div>
-                <div class="dash-rail__stat"><span class="dash-rail__stat-num" data-coiffeur-stat="candidatures">0</span><span class="dash-rail__stat-label">Candidatures</span></div>
             </div>
         </div>
         <div class="dash-rail__card dash-rail__stats dash-rail__stats--salon">
@@ -377,7 +364,6 @@ import {
     listAvisByClient,
     listFavorites,
     listOffres,
-    listCandidaturesForCoiffeur,
     listCandidaturesForSalon,
     listProfessionals,
     listAllAvis,
@@ -403,6 +389,7 @@ const DASH_EMBED_INSPIRE = "__inspire__";
 const DASH_EMBED_PROFIL = "profil-dashboard.html";
 
 let clientDashCity = "";
+let clientDashQuartier = "";
 let clientNearDataLoaded = false;
 let clientNearLoading = false;
 let dashboardClientUid = null;
@@ -524,6 +511,15 @@ function closeDashEmbed() {
 function openDashEmbed(url, titleText) {
     if (!url || dashActiveRoleKey === "unknown") return;
     if (url === DASH_EMBED_INSPIRE && dashActiveRoleKey !== "client") return;
+    if (dashActiveRoleKey === "coiffeur" || dashActiveRoleKey === "salon") {
+        if (
+            url === DASH_EMBED_NEARBY ||
+            url === DASH_EMBED_INSPIRE ||
+            (typeof url === "string" && url.indexOf("recherche.html") !== -1)
+        ) {
+            return;
+        }
+    }
     dashEmbedOpen = true;
     dashEmbedRoute = url;
     const frame = document.getElementById("dashPageEmbedFrame");
@@ -609,6 +605,21 @@ function openDashEmbed(url, titleText) {
     refreshDashNavActive();
 }
 
+/** Après profil-public depuis la liste proximité (?ret=nearby-*), rouvre le panneau intégré. */
+function tryOpenNearbyFromQuery() {
+    if (dashActiveRoleKey !== "client") return;
+    try {
+        const u = new URL(window.location.href);
+        if (u.searchParams.get("openNearby") !== "1") return;
+        u.searchParams.delete("openNearby");
+        const qs = u.searchParams.toString();
+        history.replaceState(null, "", u.pathname + (qs ? "?" + qs : "") + u.hash);
+        openDashEmbed(DASH_EMBED_NEARBY, "Proximité");
+    } catch (_) {
+        /* ignore */
+    }
+}
+
 let dashEmbedResizeTimer;
 window.addEventListener("resize", () => {
     if (!dashEmbedOpen) return;
@@ -646,15 +657,12 @@ function setClientStats({ unread, favorites, reviews }) {
     });
 }
 
-function setCoiffeurStats({ messages, offers, candidatures }) {
+function setCoiffeurStats({ messages, offers }) {
     document.querySelectorAll("[data-coiffeur-stat=\"messages\"]").forEach((el) => {
         el.textContent = String(messages);
     });
     document.querySelectorAll("[data-coiffeur-stat=\"offers\"]").forEach((el) => {
         el.textContent = String(offers);
-    });
-    document.querySelectorAll("[data-coiffeur-stat=\"candidatures\"]").forEach((el) => {
-        el.textContent = String(candidatures);
     });
 }
 
@@ -700,14 +708,19 @@ function initialsFromName(name) {
     return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
 }
 
-function fillDashHomeHero(homeRoot, { name, city, photoUrl, roleKey }) {
+function fillDashHomeHero(homeRoot, { name, city, quartier, photoUrl, roleKey }) {
     if (!homeRoot) return;
     const nm = homeRoot.querySelector("[data-dash-home=name]");
     if (nm) nm.textContent = name || "—";
     const cityEl = homeRoot.querySelector("[data-dash-home=city]");
     if (cityEl) {
         const c = String(city || "").trim();
-        cityEl.textContent = c ? c : "Ajoutez votre ville dans le profil";
+        const q = String(quartier || "").trim();
+        if (c && q) cityEl.textContent = `${c} — ${q}`;
+        else if (c) cityEl.textContent = c;
+        else if (q) cityEl.textContent = q;
+        else cityEl.textContent =
+            roleKey === "client" ? "Ajoutez ville et quartier dans le profil" : "Ajoutez votre ville dans le profil";
     }
     const search = homeRoot.querySelector("[data-dash-home=search]");
     if (search) {
@@ -747,10 +760,11 @@ function fillDashHomeHero(homeRoot, { name, city, photoUrl, roleKey }) {
     }
 }
 
-function applyClientHomeUI({ name, city, photoUrl }) {
+function applyClientHomeUI({ name, city, quartier, photoUrl }) {
     clientDashCity = String(city || "").trim();
+    clientDashQuartier = String(quartier || "").trim();
     const root = document.querySelector("#panel-client .dash-home-client");
-    fillDashHomeHero(root, { name, city, photoUrl, roleKey: "client" });
+    fillDashHomeHero(root, { name, city, quartier, photoUrl, roleKey: "client" });
 }
 
 function escapeHtml(s) {
@@ -854,7 +868,7 @@ async function loadClientNearList() {
     listEl.innerHTML = "";
 
     try {
-        await loadNearbyListInto({ listEl, loadEl, errEl });
+        await loadNearbyListInto({ listEl, loadEl, errEl, profileRet: "nearby-home" });
         clientNearDataLoaded = true;
     } catch (_) {
         clientNearDataLoaded = false;
@@ -863,22 +877,31 @@ async function loadClientNearList() {
     }
 }
 
-async function loadNearbyListInto({ listEl, loadEl, errEl }) {
+async function loadNearbyListInto({ listEl, loadEl, errEl, profileRet }) {
     try {
         const [pros, avis] = await Promise.all([listProfessionals(), listAllAvis()]);
         const ratings = ratingMapFromAvis(avis);
         const clientCityNormalized = normalizeCityValue(clientDashCity);
+        const clientQuartierRaw = String(clientDashQuartier || "").trim().toLowerCase();
         let sorted = [];
-        if (clientCityNormalized) {
+        if (clientQuartierRaw) {
+            const match = pros.filter((p) =>
+                String(p.quartier || "")
+                    .toLowerCase()
+                    .includes(clientQuartierRaw)
+            );
+            sorted = sortProsForClient(match, clientDashCity);
+        } else if (clientCityNormalized) {
             const sameCityPros = pros.filter((p) => normalizeCityValue(p.city) === clientCityNormalized);
             sorted = sortProsForClient(sameCityPros, clientDashCity);
         }
         if (loadEl) loadEl.hidden = true;
 
-        if (!clientCityNormalized) {
+        if (!clientQuartierRaw && !clientCityNormalized) {
             const li = document.createElement("li");
             li.className = "dash-near-empty";
-            li.textContent = "Ajoutez votre ville dans votre profil pour voir les professionnels a proximite.";
+            li.textContent =
+                "Indiquez votre ville et votre quartier dans Mon profil pour voir des professionnels à proximité.";
             listEl.appendChild(li);
             return;
         }
@@ -886,13 +909,15 @@ async function loadNearbyListInto({ listEl, loadEl, errEl }) {
         if (!sorted.length) {
             const li = document.createElement("li");
             li.className = "dash-near-empty";
-            li.textContent = "Aucun professionnel trouve dans votre ville pour le moment.";
+            li.textContent = clientQuartierRaw
+                ? "Aucun professionnel ne correspond à ce quartier pour le moment."
+                : "Aucun professionnel trouvé dans votre ville pour le moment.";
             listEl.appendChild(li);
             return;
         }
 
         for (const p of sorted) {
-            listEl.appendChild(buildNearCard(p, ratings));
+            listEl.appendChild(buildNearCard(p, ratings, profileRet));
         }
     } catch (e) {
         console.error(e);
@@ -916,14 +941,19 @@ async function loadEmbedNearby() {
     }
     if (loadEl) loadEl.hidden = false;
     listEl.innerHTML = "";
-    await loadNearbyListInto({ listEl, loadEl, errEl });
+    await loadNearbyListInto({ listEl, loadEl, errEl, profileRet: "nearby-embed" });
 }
 
-function buildNearCard(p, ratings) {
+function buildNearCard(p, ratings, profileRet) {
     const li = document.createElement("li");
     const a = document.createElement("a");
     a.className = "dash-near-card";
-    a.href = "profil-public.html?uid=" + encodeURIComponent(p.id);
+    const uidEnc = encodeURIComponent(p.id);
+    const retSuffix =
+        profileRet === "nearby-embed" || profileRet === "nearby-home"
+            ? "&ret=" + encodeURIComponent(profileRet)
+            : "";
+    a.href = "profil-public.html?uid=" + uidEnc + retSuffix;
 
     const imgWrap = document.createElement("div");
     imgWrap.className = "dash-near-card__media";
@@ -976,12 +1006,17 @@ function buildNearCard(p, ratings) {
     const loc = document.createElement("p");
     loc.className = "dash-near-card__loc";
     const cityStr = String(p.city || "").trim() || "Ville non renseignée";
+    const quartStr = String(p.quartier || "").trim();
+    const quartHtml = quartStr
+        ? " · <span class=\"dash-near-card__quart\">" + escapeHtml(quartStr) + "</span>"
+        : "";
     loc.innerHTML =
         '<span class="dash-near-pin" aria-hidden="true">' +
         '<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.75" viewBox="0 0 24 24">' +
         '<path stroke-linecap="round" stroke-linejoin="round" d="M15 10.5a3 3 0 11-6 0 3 3 0 016 0z"/>' +
         '<path stroke-linecap="round" stroke-linejoin="round" d="M19.5 10.5c0 7.125-7.5 11.25-7.5 11.25S4.5 17.625 4.5 10.5a7.5 7.5 0 1115 0z"/></svg></span> ' +
-        escapeHtml(cityStr);
+        escapeHtml(cityStr) +
+        quartHtml;
 
     const tagsWrap = document.createElement("div");
     tagsWrap.className = "dash-near-tags";
@@ -1345,7 +1380,7 @@ function sidebarNavHtml(roleKey) {
             '<a href="recherche.html" class="dash-sidebar__link" data-dash-embed="__nearby__">' +
             '<span class="dash-sidebar__icon" aria-hidden="true">' +
             ICON_SEARCH +
-            "</span><span class=\"dash-sidebar__label\">À proximité</span></a>" +
+            "</span><span class=\"dash-sidebar__label\">Proximité</span></a>" +
             '<a href="recherche.html" class="dash-sidebar__link" data-dash-embed="__inspire__">' +
             '<span class="dash-sidebar__icon" aria-hidden="true">' +
             ICON_GALLERY_NAV +
@@ -1383,10 +1418,6 @@ function sidebarNavHtml(roleKey) {
             '<span class="dash-sidebar__icon" aria-hidden="true">' +
             ICON_HOME +
             "</span><span class=\"dash-sidebar__label\">Accueil</span></button>" +
-            '<a href="recherche.html" class="dash-sidebar__link" data-dash-embed="recherche.html">' +
-            '<span class="dash-sidebar__icon" aria-hidden="true">' +
-            ICON_SEARCH +
-            "</span><span class=\"dash-sidebar__label\">Recherche</span></a>" +
             '<a href="marketplace.html" class="dash-sidebar__link">' +
             '<span class="dash-sidebar__icon" aria-hidden="true">' +
             ICON_MARKET_NAV +
@@ -1403,10 +1434,6 @@ function sidebarNavHtml(roleKey) {
             '<span class="dash-sidebar__icon" aria-hidden="true">' +
             ICON_CAL_NAV +
             "</span><span class=\"dash-sidebar__label\">Agenda &amp; RDV</span></a>" +
-            '<a href="candidatures.html" class="dash-sidebar__link" data-dash-embed="candidatures.html">' +
-            '<span class="dash-sidebar__icon" aria-hidden="true">' +
-            ICON_LIST_NAV +
-            "</span><span class=\"dash-sidebar__label\">Candidatures</span></a>" +
             '<a href="avis-recus.html" class="dash-sidebar__link" data-dash-embed="avis-recus.html">' +
             '<span class="dash-sidebar__icon" aria-hidden="true">' +
             ICON_STAR_NAV +
@@ -1424,10 +1451,6 @@ function sidebarNavHtml(roleKey) {
             '<span class="dash-sidebar__icon" aria-hidden="true">' +
             ICON_HOME +
             "</span><span class=\"dash-sidebar__label\">Accueil</span></button>" +
-            '<a href="recherche.html" class="dash-sidebar__link" data-dash-embed="recherche.html">' +
-            '<span class="dash-sidebar__icon" aria-hidden="true">' +
-            ICON_SEARCH +
-            "</span><span class=\"dash-sidebar__label\">Recherche</span></a>" +
             '<a href="marketplace.html" class="dash-sidebar__link">' +
             '<span class="dash-sidebar__icon" aria-hidden="true">' +
             ICON_MARKET_NAV +
@@ -1456,10 +1479,6 @@ function sidebarNavHtml(roleKey) {
             '<span class="dash-sidebar__icon" aria-hidden="true">' +
             ICON_DIR_NAV +
             "</span><span class=\"dash-sidebar__label\">Photos publiées</span></a>" +
-            '<a href="recherche.html?role=Coiffeur" class="dash-sidebar__link" data-dash-embed="recherche.html?role=Coiffeur">' +
-            '<span class="dash-sidebar__icon" aria-hidden="true">' +
-            ICON_USERS_NAV +
-            "</span><span class=\"dash-sidebar__label\">Coiffeurs</span></a>" +
             profilBtn
         );
     }
@@ -1482,6 +1501,8 @@ function mountGlobalBottomNav(roleKey) {
     if (emptyMsg) emptyMsg.hidden = true;
     nav.hidden = false;
     if (sideNav) sideNav.innerHTML = sidebarNavHtml(roleKey);
+    const annCta = document.getElementById("dashSidebarAnnuaireCta");
+    if (annCta) annCta.hidden = roleKey !== "client";
     if (roleKey === "client") {
         nav.innerHTML =
             '<button type="button" class="dash-bottom-nav__btn is-active" data-dash-tab="home" aria-current="page">' +
@@ -1491,7 +1512,7 @@ function mountGlobalBottomNav(roleKey) {
             '<a href="recherche.html" class="dash-bottom-nav__link" data-dash-embed="__nearby__">' +
             '<span class="dash-bottom-nav__icon" aria-hidden="true">' +
             ICON_SEARCH +
-            "</span><span class=\"dash-bottom-nav__label\">À proximité</span></a>" +
+            "</span><span class=\"dash-bottom-nav__label\">Proximité</span></a>" +
             '<a href="recherche.html" class="dash-bottom-nav__link" data-dash-embed="__inspire__">' +
             '<span class="dash-bottom-nav__icon" aria-hidden="true">' +
             ICON_GALLERY_NAV +
@@ -1514,10 +1535,6 @@ function mountGlobalBottomNav(roleKey) {
             '<span class="dash-bottom-nav__icon" aria-hidden="true">' +
             ICON_HOME +
             "</span><span class=\"dash-bottom-nav__label\">Accueil</span></button>" +
-            '<a href="recherche.html" class="dash-bottom-nav__link" data-dash-embed="recherche.html">' +
-            '<span class="dash-bottom-nav__icon" aria-hidden="true">' +
-            ICON_SEARCH +
-            "</span><span class=\"dash-bottom-nav__label\">Recherche</span></a>" +
             '<a href="marketplace.html" class="dash-bottom-nav__link">' +
             '<span class="dash-bottom-nav__icon" aria-hidden="true">' +
             ICON_MARKET_NAV +
@@ -1748,22 +1765,17 @@ function fileToDataUrlDp(file) {
 }
 
 async function loadCoiffeurStats(uid) {
-    const [messages, offres, candidatures] = await Promise.all([
-        listMessagesForUser(uid),
-        listOffres(),
-        listCandidaturesForCoiffeur(uid)
-    ]);
+    const [messages, offres] = await Promise.all([listMessagesForUser(uid), listOffres()]);
     setCoiffeurStats({
         messages: messages.length,
-        offers: offres.length,
-        candidatures: candidatures.length
+        offers: offres.length
     });
 }
 
 async function loadSalonStats(uid) {
     const [messages, offres, candidatures] = await Promise.all([
         listMessagesForUser(uid),
-        listOffres(),
+        listOffres(uid),
         listCandidaturesForSalon(uid)
     ]);
     const myOffres = offres.filter((o) => String(o.salonUid) === String(uid)).length;
@@ -1799,17 +1811,20 @@ onAuthStateChanged(auth, async (user) => {
     document.getElementById("dashWelcome").textContent = "Bonjour, " + name;
     const heroName = (data && (data.salonName || data.name)) || name;
     const heroCity = data && data.city;
+    const heroQuartier = data && data.quartier;
     const heroPhoto = data && data.photoUrl;
     if (roleKey === "client") {
         applyClientHomeUI({
             name,
             city: heroCity,
+            quartier: heroQuartier,
             photoUrl: heroPhoto
         });
     } else if (roleKey === "coiffeur") {
         fillDashHomeHero(document.querySelector("#panel-coiffeur .dash-home-client"), {
             name: heroName,
             city: heroCity,
+            quartier: heroQuartier,
             photoUrl: heroPhoto,
             roleKey: "coiffeur"
         });
@@ -1817,6 +1832,7 @@ onAuthStateChanged(auth, async (user) => {
         fillDashHomeHero(document.querySelector("#panel-salon .dash-home-client"), {
             name: heroName,
             city: heroCity,
+            quartier: heroQuartier,
             photoUrl: heroPhoto,
             roleKey: "salon"
         });
@@ -1853,11 +1869,12 @@ onAuthStateChanged(auth, async (user) => {
         } catch {
             setClientStats({ unread: 0, favorites: 0, reviews: 0 });
         }
+        tryOpenNearbyFromQuery();
     } else if (roleKey === "coiffeur") {
         try {
             await loadCoiffeurStats(user.uid);
         } catch {
-            setCoiffeurStats({ messages: 0, offers: 0, candidatures: 0 });
+            setCoiffeurStats({ messages: 0, offers: 0 });
         }
     } else if (roleKey === "salon") {
         try {
@@ -1896,15 +1913,17 @@ function refreshDashHeroesFromProfileCache() {
     const displayPerson = data.name || u.email || "Utilisateur";
     const heroName = (data.salonName || data.name) || displayPerson;
     const heroCity = data.city;
+    const heroQuartier = data.quartier;
     const heroPhoto = data.photoUrl;
     const rk = normalizeRole(data.role);
     document.getElementById("dashWelcome").textContent = "Bonjour, " + displayPerson;
     if (rk === "client") {
-        applyClientHomeUI({ name: displayPerson, city: heroCity, photoUrl: heroPhoto });
+        applyClientHomeUI({ name: displayPerson, city: heroCity, quartier: heroQuartier, photoUrl: heroPhoto });
     } else if (rk === "coiffeur") {
         fillDashHomeHero(document.querySelector("#panel-coiffeur .dash-home-client"), {
             name: heroName,
             city: heroCity,
+            quartier: heroQuartier,
             photoUrl: heroPhoto,
             roleKey: "coiffeur"
         });
@@ -1912,6 +1931,7 @@ function refreshDashHeroesFromProfileCache() {
         fillDashHomeHero(document.querySelector("#panel-salon .dash-home-client"), {
             name: heroName,
             city: heroCity,
+            quartier: heroQuartier,
             photoUrl: heroPhoto,
             roleKey: "salon"
         });
@@ -1939,7 +1959,7 @@ window.addEventListener("message", async (ev) => {
             try {
                 await loadCoiffeurStats(u.uid);
             } catch {
-                setCoiffeurStats({ messages: 0, offers: 0, candidatures: 0 });
+                setCoiffeurStats({ messages: 0, offers: 0 });
             }
         } else if (dashActiveRoleKey === "salon") {
             try {

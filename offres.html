@@ -86,6 +86,7 @@ import {
     createOffre,
     deleteOffre,
     listOffres,
+    updateOffreStatus,
     getFirebaseErrorMessage
 } from "./firebase.js";
 import { onAuthStateChanged } from "./firebase.js";
@@ -187,15 +188,31 @@ function renderList(rows) {
         const shortDesc = desc.length > 220 ? `${desc.slice(0, 220)}...` : desc;
 
         const isOwner = isSalon && String(o.salonUid || "") === String(myUid || "");
+        const isFilled = String(o.status || "").trim().toLowerCase() === "filled";
         const deleteBtn =
             isOwner
                 ? "<button type=\"button\" class=\"jobs-card__delete\" data-offre-delete=\"" +
                   escapeHtml(o.id) +
                   "\" aria-label=\"Retirer cette offre\">Retirer l’offre</button>"
                 : "";
+        const statusBtn = isOwner
+            ? isFilled
+                ? "<button type=\"button\" class=\"jobs-card__status-btn\" data-offre-reopen=\"" +
+                  escapeHtml(o.id) +
+                  "\">Rouvrir l’offre</button>"
+                : "<button type=\"button\" class=\"jobs-card__status-btn\" data-offre-fill=\"" +
+                  escapeHtml(o.id) +
+                  "\">Marquer comme pourvue</button>"
+            : "";
         const applyControl = isSalon
             ? "<span class=\"jobs-card__apply jobs-card__apply--disabled\" aria-disabled=\"true\">Postuler (réservé aux coiffeurs)</span>"
-            : "<a class=\"jobs-card__apply\" href=\"postuler.html?offre=" + encodeURIComponent(o.id) + "\">Postuler</a>";
+            : isFilled
+              ? "<span class=\"jobs-card__apply jobs-card__apply--disabled\" aria-disabled=\"true\">Poste pourvu</span>"
+              : "<a class=\"jobs-card__apply\" href=\"postuler.html?offre=" + encodeURIComponent(o.id) + "\">Postuler</a>";
+
+        const filledBadge = isFilled
+            ? "<span class=\"jobs-badge jobs-badge--filled\">Poste pourvu</span>"
+            : "";
 
         const li = document.createElement("li");
         li.className = "jobs-item";
@@ -212,6 +229,7 @@ function renderList(rows) {
             "</p>" +
             "</div>" +
             "<span class=\"jobs-badge\">" + getContractLabel(type) + "</span>" +
+            filledBadge +
             "</div>" +
             "<p class=\"jobs-card__salary\">💰 Salaire selon profil + commissions</p>" +
             "<p class=\"jobs-card__desc\">" + escapeHtml(shortDesc) + "</p>" +
@@ -219,6 +237,7 @@ function renderList(rows) {
             "<span class=\"jobs-card__date\">⏱ " + escapeHtml(dateText) + "</span>" +
             "<div class=\"jobs-card__foot-actions\">" +
             deleteBtn +
+            statusBtn +
             applyControl +
             "</div>" +
             "</div>" +
@@ -228,7 +247,7 @@ function renderList(rows) {
 }
 
 async function loadList() {
-    cachedRows = await listOffres();
+    cachedRows = await listOffres(isSalon ? myUid : undefined);
     renderList(cachedRows);
 }
 
@@ -276,6 +295,38 @@ searchEl.addEventListener("input", () => {
 });
 
 listEl.addEventListener("click", async (e) => {
+    const fillBtn = e.target.closest("[data-offre-fill]");
+    if (fillBtn && myUid) {
+        const offerId = fillBtn.getAttribute("data-offre-fill");
+        if (!offerId) return;
+        fillBtn.disabled = true;
+        errEl.hidden = true;
+        try {
+            await updateOffreStatus(offerId, myUid, "filled");
+            await loadList();
+        } catch (x) {
+            errEl.textContent = getFirebaseErrorMessage(x);
+            errEl.hidden = false;
+            fillBtn.disabled = false;
+        }
+        return;
+    }
+    const reopenBtn = e.target.closest("[data-offre-reopen]");
+    if (reopenBtn && myUid) {
+        const offerId = reopenBtn.getAttribute("data-offre-reopen");
+        if (!offerId) return;
+        reopenBtn.disabled = true;
+        errEl.hidden = true;
+        try {
+            await updateOffreStatus(offerId, myUid, "open");
+            await loadList();
+        } catch (x) {
+            errEl.textContent = getFirebaseErrorMessage(x);
+            errEl.hidden = false;
+            reopenBtn.disabled = false;
+        }
+        return;
+    }
     const btn = e.target.closest("[data-offre-delete]");
     if (!btn || !myUid) return;
     const offerId = btn.getAttribute("data-offre-delete");

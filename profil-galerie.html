@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Photos clients — HairConnect</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body class="login-page hc-theme-pro">
+<div class="login-container subpage-container subpage-wide">
+    <header class="login-header">
+        <a href="#" id="proGalBack" class="login-back" aria-label="Retour à la fiche">
+            <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M15.75 19.5 8.25 12l7.5-7.5"/></svg>
+        </a>
+        <h1 class="login-title" id="proGalTitle">Photos partagées</h1>
+    </header>
+
+    <p id="guestBannerProGal" class="guest-discovery-banner" hidden>
+        <strong>Mode découverte.</strong> Consultation seule —
+        <a href="login.html">connectez-vous</a> pour partager une photo depuis la fiche du professionnel.
+    </p>
+
+    <p id="proGalErr" class="form-error" role="alert" hidden></p>
+    <p id="proGalLead" class="subpage-lead" hidden></p>
+    <p id="proGalPostErr" class="form-error" role="alert" hidden></p>
+    <p id="proGalPostOk" class="form-success" role="status" hidden></p>
+    <ul id="proGalList" class="public-publications__list pro-gal-page__list"></ul>
+</div>
+
+<script type="module">
+import {
+    auth,
+    onAuthStateChanged,
+    fetchUserProfile,
+    listPublications,
+    deletePublication,
+    isGuestDiscovery,
+    clearGuestDiscovery,
+    getFirebaseErrorMessage
+} from "./firebase.js";
+
+const params = new URLSearchParams(location.search);
+const uid = params.get("uid");
+const galRet = params.get("ret");
+const PROFILE_RET_PROPAGATE = new Set(["nearby-embed", "nearby-home"]);
+const errEl = document.getElementById("proGalErr");
+const listEl = document.getElementById("proGalList");
+const leadEl = document.getElementById("proGalLead");
+const titleEl = document.getElementById("proGalTitle");
+const backEl = document.getElementById("proGalBack");
+const guestBar = document.getElementById("guestBannerProGal");
+const postErr = document.getElementById("proGalPostErr");
+const postOk = document.getElementById("proGalPostOk");
+
+function escapeHtml(s) {
+    return String(s || "")
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;");
+}
+
+function pubDateText(createdAt) {
+    const ms = createdAt?.toMillis ? createdAt.toMillis() : new Date(createdAt || 0).getTime();
+    if (!ms) return "";
+    return new Date(ms).toLocaleString("fr-FR", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" });
+}
+
+function publicationAuthorText(p, proName) {
+    if (p.kind === "pro") return `${proName} a publié`;
+    return "Client après prestation";
+}
+
+function renderGallery(list, proName, currentViewerUid) {
+    if (!listEl) return;
+    listEl.innerHTML = "";
+    if (!list.length) {
+        const li = document.createElement("li");
+        li.className = "public-publications__empty";
+        li.textContent = "Aucune photo publiée pour le moment.";
+        listEl.appendChild(li);
+        return;
+    }
+    for (const p of list) {
+        const li = document.createElement("li");
+        li.className = "public-publications__item";
+        const canDelete =
+            !!currentViewerUid &&
+            String(p.kind || "").toLowerCase() === "client_after_service" &&
+            String(p.authorUid || "") === String(currentViewerUid);
+        li.innerHTML =
+            "<p class=\"public-publications__meta\">" +
+            escapeHtml(publicationAuthorText(p, proName)) +
+            " · " +
+            escapeHtml(pubDateText(p.createdAt)) +
+            "</p>" +
+            "<img class=\"public-publications__img\" src=\"" +
+            escapeHtml(p.photoUrl || "") +
+            "\" alt=\"Publication\">" +
+            (p.caption ? "<p class=\"public-publications__caption\">" + escapeHtml(p.caption) + "</p>" : "") +
+            (canDelete
+                ? "<button type=\"button\" class=\"public-publications__delete\" data-pub-delete=\"" +
+                  escapeHtml(p.id || "") +
+                  "\">Supprimer ma photo</button>"
+                : "");
+        listEl.appendChild(li);
+    }
+}
+
+async function loadGallery(viewerUid) {
+    if (postErr) postErr.hidden = true;
+    if (postOk) postOk.hidden = true;
+    const publications = await listPublications({ targetProUid: uid }).catch(() => []);
+    const d = await fetchUserProfile(uid).catch(() => null);
+    const proName = d?.salonName || d?.name || "Ce professionnel";
+    renderGallery(publications, proName, viewerUid || "");
+}
+
+if (!uid) {
+    errEl.textContent = "Paramètre uid manquant.";
+    errEl.hidden = false;
+} else {
+    const retQ = galRet && PROFILE_RET_PROPAGATE.has(galRet) ? "&ret=" + encodeURIComponent(galRet) : "";
+    const backUrl = "profil-public.html?uid=" + encodeURIComponent(uid) + retQ;
+    backEl.href = backUrl;
+    backEl.addEventListener("click", (e) => {
+        e.preventDefault();
+        window.location.replace(backUrl);
+    });
+
+    onAuthStateChanged(auth, async (user) => {
+        if (user) clearGuestDiscovery();
+        if (!user && !isGuestDiscovery()) {
+            window.location.href = "login.html";
+            return;
+        }
+
+        let d;
+        try {
+            d = await fetchUserProfile(uid);
+        } catch (e) {
+            errEl.textContent = getFirebaseErrorMessage(e);
+            errEl.hidden = false;
+            return;
+        }
+        if (!d) {
+            errEl.textContent = "Ce profil n’existe pas.";
+            errEl.hidden = false;
+            return;
+        }
+
+        const proName = d.salonName || d.name || "Ce professionnel";
+        titleEl.textContent = "Photos — " + proName;
+        leadEl.textContent =
+            "Photos et légendes partagées sur la fiche de " + proName + " (publications après prestation).";
+        leadEl.hidden = false;
+
+        if (!user && isGuestDiscovery()) {
+            guestBar.hidden = false;
+        } else if (guestBar) {
+            guestBar.hidden = true;
+        }
+
+        try {
+            await loadGallery(user?.uid || "");
+        } catch (e2) {
+            errEl.textContent = getFirebaseErrorMessage(e2);
+            errEl.hidden = false;
+        }
+    });
+
+    if (listEl) {
+        listEl.addEventListener("click", async (e) => {
+            const btn = e.target.closest("[data-pub-delete]");
+            if (!btn) return;
+            const u = auth.currentUser;
+            const pubId = String(btn.getAttribute("data-pub-delete") || "").trim();
+            if (!u || !pubId || !uid) return;
+            if (postErr) postErr.hidden = true;
+            if (postOk) postOk.hidden = true;
+            if (!window.confirm("Supprimer cette photo ?")) return;
+            btn.disabled = true;
+            try {
+                await deletePublication(pubId, u.uid);
+                if (postOk) {
+                    postOk.textContent = "Photo supprimée.";
+                    postOk.hidden = false;
+                }
+                await loadGallery(u.uid);
+            } catch (err) {
+                if (postErr) {
+                    postErr.textContent = getFirebaseErrorMessage(err);
+                    postErr.hidden = false;
+                }
+                btn.disabled = false;
+            }
+        });
+    }
+}
+</script>
+</body>
+</html>

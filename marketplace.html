@@ -15,13 +15,17 @@
         <h1 class="login-title">Marketplace Coiffure</h1>
     </header>
 
-    <p class="subpage-lead">Articles de la communauté HairConnect. Commission plateforme sur chaque vente : <strong>10&nbsp;%</strong>. Utilisez les onglets pour séparer achat et vente.</p>
+    <p class="subpage-lead" id="marketLead">
+        Articles de la communauté HairConnect. Commission plateforme sur chaque vente : <strong>10&nbsp;%</strong>.
+        Après validation du panier, chaque vendeur concerné reçoit un <strong>message dans la messagerie</strong> avec le détail de la commande.
+        <span id="marketLeadRoleNote" hidden> La vente est réservée aux salons et coiffeurs ; les clients achètent uniquement.</span>
+    </p>
     <p id="marketErr" class="form-error" role="alert" hidden></p>
     <p id="marketOk" class="form-success" role="status" hidden></p>
 
-    <div class="jobs-tabs market-mode-tabs" role="tablist" aria-label="Mode marketplace">
+    <div class="jobs-tabs market-mode-tabs" id="marketModeTabs" role="tablist" aria-label="Mode marketplace">
         <button type="button" class="jobs-tab is-active" id="marketTabBuy" role="tab" aria-selected="true" aria-controls="marketPanelBuy" data-market-tab="buy">Acheter</button>
-        <button type="button" class="jobs-tab" id="marketTabSell" role="tab" aria-selected="false" aria-controls="marketPanelSell" data-market-tab="sell">Vendre</button>
+        <button type="button" class="jobs-tab" id="marketTabSell" role="tab" aria-selected="false" aria-controls="marketPanelSell" data-market-tab="sell" hidden>Vendre</button>
     </div>
 
     <div id="marketPanelBuy" class="market-panel" role="tabpanel" aria-labelledby="marketTabBuy">
@@ -82,8 +86,19 @@
                     <div class="field-input-wrap"><input id="marketStock" type="number" min="1" step="1" value="1" required></div>
                 </div>
                 <div class="field-group">
-                    <label class="field-label" for="marketPhoto">Photo URL (optionnel)</label>
-                    <div class="field-input-wrap"><input id="marketPhoto" type="url" placeholder="https://..."></div>
+                    <label class="field-label" for="marketPhotoFile">Photo de l’article (recommandé)</label>
+                    <div class="field-input-wrap">
+                        <input type="file" id="marketPhotoFile" accept="image/png,image/jpeg,image/webp,image/gif">
+                    </div>
+                    <p class="field-hint" id="marketPhotoFileHint">Formats : JPG, PNG, WebP ou GIF — max 2&nbsp;Mo. Visible par tous les acheteurs dans le catalogue.</p>
+                    <div id="marketPhotoPreviewWrap" class="market-photo-preview-wrap" hidden>
+                        <p class="field-hint">Aperçu :</p>
+                        <img id="marketPhotoPreview" class="market-photo-preview" alt="Aperçu de la photo de l’article">
+                    </div>
+                </div>
+                <div class="field-group">
+                    <label class="field-label" for="marketPhoto">Ou lien photo (https), optionnel</label>
+                    <div class="field-input-wrap"><input id="marketPhoto" type="url" placeholder="https://…"></div>
                 </div>
                 <div class="field-group">
                     <label class="field-label" for="marketDescription">Description</label>
@@ -132,7 +147,77 @@ const marketTabBuy = document.getElementById("marketTabBuy");
 const marketTabSell = document.getElementById("marketTabSell");
 const marketPanelBuy = document.getElementById("marketPanelBuy");
 const marketPanelSell = document.getElementById("marketPanelSell");
+const marketModeTabs = document.getElementById("marketModeTabs");
 const MARKET_TAB_KEY = "hc_market_tab";
+const marketPhotoFile = document.getElementById("marketPhotoFile");
+const marketPhotoFileHint = document.getElementById("marketPhotoFileHint");
+const marketPhotoPreviewWrap = document.getElementById("marketPhotoPreviewWrap");
+const marketPhotoPreview = document.getElementById("marketPhotoPreview");
+const MARKET_PHOTO_MAX_BYTES = 2 * 1024 * 1024;
+
+let canSellMarketplace = false;
+let marketTabsListenersBound = false;
+
+function normalizeProfileRole(raw) {
+    if (!raw || typeof raw !== "string") return "unknown";
+    const r = raw.trim().toLowerCase();
+    if (r === "client") return "client";
+    if (r === "coiffeur" || r === "coiffeuse" || r === "coiffeur indépendant" || r === "coiffeuse indépendante") return "coiffeur";
+    if (r === "salon") return "salon";
+    return "unknown";
+}
+
+function computeCanSellMarketplace(prof) {
+    const k = normalizeProfileRole(prof?.role || "");
+    return k === "coiffeur" || k === "salon";
+}
+
+function applyMarketplaceSellUiVisibility() {
+    const note = document.getElementById("marketLeadRoleNote");
+    if (marketTabSell) marketTabSell.hidden = !canSellMarketplace;
+    if (marketModeTabs) marketModeTabs.classList.toggle("market-mode-tabs--buy-only", !canSellMarketplace);
+    if (note) note.hidden = canSellMarketplace;
+}
+
+function fileToDataUrl(file) {
+    return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(String(reader.result || ""));
+        reader.onerror = () => reject(new Error("Impossible de lire le fichier sélectionné."));
+        reader.readAsDataURL(file);
+    });
+}
+
+if (marketPhotoFile && marketPhotoPreview && marketPhotoPreviewWrap) {
+    marketPhotoFile.addEventListener("change", () => {
+        const f = marketPhotoFile.files?.[0];
+        if (!f) {
+            marketPhotoPreviewWrap.hidden = true;
+            marketPhotoPreview.removeAttribute("src");
+            if (marketPhotoFileHint) {
+                marketPhotoFileHint.textContent =
+                    "Formats : JPG, PNG, WebP ou GIF — max 2 Mo. Visible par tous les acheteurs dans le catalogue.";
+            }
+            return;
+        }
+        if (marketPhotoFileHint) marketPhotoFileHint.textContent = `Fichier sélectionné : ${f.name}`;
+        if (f.size > MARKET_PHOTO_MAX_BYTES) {
+            if (marketPhotoFileHint) marketPhotoFileHint.textContent = "Fichier trop volumineux (max 2 Mo).";
+            marketPhotoFile.value = "";
+            marketPhotoPreviewWrap.hidden = true;
+            marketPhotoPreview.removeAttribute("src");
+            return;
+        }
+        fileToDataUrl(f)
+            .then((url) => {
+                marketPhotoPreview.src = url;
+                marketPhotoPreviewWrap.hidden = false;
+            })
+            .catch(() => {
+                if (marketPhotoFileHint) marketPhotoFileHint.textContent = "Impossible de lire cette image.";
+            });
+    });
+}
 
 function marketTabFromHash() {
     const h = (location.hash || "").replace(/^#/, "").toLowerCase();
@@ -146,6 +231,15 @@ function normalizeMarketTab(t) {
 }
 
 function getInitialMarketTab() {
+    if (!canSellMarketplace) {
+        try {
+            if (localStorage.getItem(MARKET_TAB_KEY) === "sell") localStorage.setItem(MARKET_TAB_KEY, "buy");
+        } catch {
+            /* ignore */
+        }
+        if (marketTabFromHash() === "sell") return "buy";
+        return "buy";
+    }
     const fromHash = marketTabFromHash();
     if (fromHash) return fromHash;
     try {
@@ -168,6 +262,7 @@ function syncMarketTabHash(tab) {
 function applyMarketTab(tab) {
     if (!marketTabBuy || !marketTabSell || !marketPanelBuy || !marketPanelSell) return;
     tab = normalizeMarketTab(tab);
+    if (!canSellMarketplace && tab === "sell") tab = "buy";
     const isSell = tab === "sell";
     marketTabBuy.classList.toggle("is-active", !isSell);
     marketTabSell.classList.toggle("is-active", isSell);
@@ -185,19 +280,27 @@ function applyMarketTab(tab) {
 
 function initMarketTabs() {
     if (!marketTabBuy || !marketTabSell || !marketPanelBuy || !marketPanelSell) return;
+    if (!marketTabsListenersBound) {
+        marketTabsListenersBound = true;
+        marketTabBuy.parentElement?.addEventListener("click", (e) => {
+            const btn = e.target.closest("[data-market-tab]");
+            if (!btn) return;
+            const want = btn.getAttribute("data-market-tab");
+            if (want === "sell" && !canSellMarketplace) return;
+            applyMarketTab(want);
+        });
+        window.addEventListener("hashchange", () => {
+            const t = marketTabFromHash();
+            if (!t) return;
+            if (t === "sell" && !canSellMarketplace) {
+                applyMarketTab("buy");
+                return;
+            }
+            applyMarketTab(t);
+        });
+    }
     applyMarketTab(getInitialMarketTab());
-    marketTabBuy.parentElement?.addEventListener("click", (e) => {
-        const btn = e.target.closest("[data-market-tab]");
-        if (!btn) return;
-        applyMarketTab(btn.getAttribute("data-market-tab"));
-    });
-    window.addEventListener("hashchange", () => {
-        const t = marketTabFromHash();
-        if (t) applyMarketTab(t);
-    });
 }
-
-initMarketTabs();
 
 let me = null;
 let profile = null;
@@ -329,6 +432,17 @@ function renderCart() {
     }
 }
 
+function productPhotoHtml(photoUrl, title) {
+    const u = String(photoUrl || "").trim();
+    if (!u) {
+        return '<span class="market-card__thumb-fallback" aria-hidden="true">📷</span>';
+    }
+    const alt = escapeHtml(String(title || "Article").slice(0, 120));
+    return (
+        `<img src="${escapeHtml(u)}" alt="${alt}" class="market-card__img" loading="lazy" decoding="async">`
+    );
+}
+
 function filteredProducts() {
     const q = searchTerm.trim().toLowerCase();
     if (!q) return products;
@@ -358,11 +472,11 @@ function renderProducts() {
         li.innerHTML =
             `<article class="jobs-card market-card">` +
             `<div class="jobs-card__top">` +
-            `<div class="jobs-card__thumb" aria-hidden="true">${p.photoUrl ? `<img src="${escapeHtml(p.photoUrl)}" alt="" class="market-card__img">` : ""}</div>` +
+            `<div class="jobs-card__thumb market-card__thumb">${productPhotoHtml(p.photoUrl, p.title)}</div>` +
             `<div class="jobs-card__head">` +
             `<h3 class="jobs-card__title">${escapeHtml(p.title || "Article")}</h3>` +
             `<p class="jobs-card__salon">Vendeur : ${escapeHtml(p.sellerName || "—")}</p>` +
-            `<p class="jobs-card__meta">${escapeHtml(p.category || "Catégorie libre")} · Stock: ${stock}${inCart ? ` · Dans le panier : ${inCart}` : ""}</p>` +
+            `<p class="jobs-card__meta">${escapeHtml(p.category || "Catégorie libre")} · Stock: ${stock} · Vendus: ${Number(p.unitsSold || 0)}${inCart ? ` · Dans le panier : ${inCart}` : ""}</p>` +
             `</div>` +
             `<span class="jobs-badge">${money(p.priceFcfa)}</span>` +
             `</div>` +
@@ -436,12 +550,14 @@ async function loadProducts() {
 
 async function loadOrders() {
     if (!me) return;
-    const [buyer, seller] = await Promise.all([
-        listMarketplaceOrders({ buyerUid: me.uid }),
-        listMarketplaceOrders({ sellerUid: me.uid })
-    ]);
+    const buyer = await listMarketplaceOrders({ buyerUid: me.uid });
     renderOrders(buyerOrdersEl, buyer.orders || [], "buyer");
-    renderOrders(sellerOrdersEl, seller.orders || [], "seller");
+    if (canSellMarketplace) {
+        const seller = await listMarketplaceOrders({ sellerUid: me.uid });
+        renderOrders(sellerOrdersEl, seller.orders || [], "seller");
+    } else {
+        sellerOrdersEl.innerHTML = "";
+    }
 }
 
 function showError(msg) {
@@ -463,6 +579,9 @@ onAuthStateChanged(auth, async (user) => {
     cartItems = readCartFromStorage();
     try {
         profile = await fetchUserProfile(me.uid);
+        canSellMarketplace = computeCanSellMarketplace(profile);
+        applyMarketplaceSellUiVisibility();
+        initMarketTabs();
         await Promise.all([loadProducts(), loadOrders()]);
         renderCart();
     } catch (e) {
@@ -541,7 +660,11 @@ checkoutBtn.addEventListener("click", async () => {
     try {
         const res = await createMarketplaceOrder(me.uid, lines);
         const n = (res.orders || []).length;
-        showOk(n > 1 ? `${n} commandes créées (une par vendeur).` : "Commande créée.");
+        showOk(
+            n > 1
+                ? `${n} commandes créées (une par vendeur). Les vendeurs ont été prévenus par messagerie.`
+                : "Commande créée. Le vendeur a été prévenu par messagerie."
+        );
         clearCart();
         await Promise.all([loadProducts(), loadOrders()]);
     } catch (e2) {
@@ -597,21 +720,40 @@ sellerOrdersEl.addEventListener("click", async (e) => {
 document.getElementById("marketProductForm").addEventListener("submit", async (e) => {
     e.preventDefault();
     if (!me) return;
+    if (!canSellMarketplace) {
+        showError("La vente sur le marketplace est réservée aux professionnels (salon ou coiffeur).");
+        return;
+    }
     errEl.hidden = true;
     okEl.hidden = true;
     const btn = document.getElementById("marketPublishBtn");
     btn.disabled = true;
     try {
+        let photoUrl = document.getElementById("marketPhoto").value.trim();
+        const file = marketPhotoFile?.files?.[0];
+        if (file) {
+            if (file.size > MARKET_PHOTO_MAX_BYTES) {
+                showError("Photo trop volumineuse (max 2 Mo).");
+                return;
+            }
+            photoUrl = await fileToDataUrl(file);
+        }
         await createMarketplaceProduct(me.uid, displayNameFromProfile(profile, me), {
             title: document.getElementById("marketTitle").value,
             category: document.getElementById("marketCategory").value,
             priceFcfa: document.getElementById("marketPrice").value,
             stock: document.getElementById("marketStock").value,
-            photoUrl: document.getElementById("marketPhoto").value,
+            photoUrl,
             description: document.getElementById("marketDescription").value
         });
         showOk("Article publié.");
         e.target.reset();
+        if (marketPhotoPreviewWrap) marketPhotoPreviewWrap.hidden = true;
+        if (marketPhotoPreview) marketPhotoPreview.removeAttribute("src");
+        if (marketPhotoFileHint) {
+            marketPhotoFileHint.textContent =
+                "Formats : JPG, PNG, WebP ou GIF — max 2 Mo. Visible par tous les acheteurs dans le catalogue.";
+        }
         await loadProducts();
     } catch (e5) {
         showError(getFirebaseErrorMessage(e5));

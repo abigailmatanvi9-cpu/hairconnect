@@ -60,6 +60,15 @@ if (!offerId) {
             document.getElementById("f").hidden = true;
             return;
         }
+        if (String(off.status || "").trim().toLowerCase() === "filled") {
+            document.getElementById("formError").textContent = "Ce poste a déjà été pourvu — les candidatures ne sont plus acceptées.";
+            document.getElementById("formError").hidden = false;
+            document.getElementById("f").hidden = true;
+            document.getElementById("otitle").textContent = off.title || "Offre";
+            document.getElementById("odesc").textContent = off.description || "";
+            document.getElementById("offerBox").hidden = false;
+            return;
+        }
         salonUid = off.salonUid;
         document.getElementById("otitle").textContent = off.title || "Offre";
         document.getElementById("odesc").textContent = off.description || "";

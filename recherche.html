@@ -22,7 +22,8 @@
     </p>
 
     <p class="subpage-lead">
-        Coiffeurs indépendants et salons. Filtrez par ville ou par rôle, par type de professionnel (ci-dessous), ou utilisez votre position (GPS).
+        Liste de <strong>tous les salons et coiffeurs</strong> enregistrés sur HairConnect (sauf filtre métier ci-dessous). Affinez avec la
+        <strong>ville</strong>, le <strong>quartier</strong> et le <strong>rôle</strong>.
     </p>
 
     <fieldset class="field-group register-metiers-fieldset recherche-metiers-fs" id="annuaireMetiersWrap">
@@ -48,26 +49,12 @@
         </div>
     </div>
 
-    <section class="recherche-near" aria-labelledby="rechercheNearTitle">
-        <h2 id="rechercheNearTitle" class="subpage-h2 recherche-near__title">À proximité (GPS)</h2>
-        <p class="subpage-lead recherche-near__lead">
-            Affiche les professionnels qui ont enregistré une position dans leur profil. Connexion HTTPS recommandée pour la géolocalisation.
-        </p>
-        <div class="field-group">
-            <label class="field-label" for="nearRadius">Rayon</label>
-            <div class="field-input-wrap">
-                <select id="nearRadius" class="field-select">
-                    <option value="10">10 km</option>
-                    <option value="25" selected>25 km</option>
-                    <option value="50">50 km</option>
-                </select>
-            </div>
+    <div class="field-group">
+        <label class="field-label" for="filterQuartier">Quartier</label>
+        <div class="field-input-wrap">
+            <input type="text" id="filterQuartier" placeholder="Ex. Tokoin, Bè… (selon le profil du pro)">
         </div>
-        <div class="recherche-near__actions">
-            <button type="button" class="register-submit" id="nearMeBtn">Autour de moi</button>
-            <button type="button" class="recherche-near__reset" id="nearMeReset" hidden>Quitter le mode proximité</button>
-        </div>
-    </section>
+    </div>
 
     <p id="err" class="form-error" role="alert" hidden></p>
     <ul id="list" class="pro-list"></ul>
@@ -93,16 +80,11 @@ const listEl = document.getElementById("list");
 const errEl = document.getElementById("err");
 const filterCity = document.getElementById("filterCity");
 const filterRole = document.getElementById("filterRole");
-const nearRadiusEl = document.getElementById("nearRadius");
-const nearMeBtn = document.getElementById("nearMeBtn");
-const nearMeReset = document.getElementById("nearMeReset");
+const filterQuartier = document.getElementById("filterQuartier");
 
 let all = [];
 let favorites = [];
 let currentUser = null;
-let nearMode = false;
-let refLat = null;
-let refLng = null;
 
 function buildAnnuaireMetierBoxes() {
     const container = document.getElementById("annuaireMetiersList");
@@ -172,70 +154,35 @@ function normalizeRole(raw) {
     return String(raw || "").trim();
 }
 
-function proCoords(p) {
-    const la = p.latitude != null ? Number(p.latitude) : NaN;
-    const lo = p.longitude != null ? Number(p.longitude) : NaN;
-    if (!Number.isFinite(la) || !Number.isFinite(lo)) return null;
-    if (la < -90 || la > 90 || lo < -180 || lo > 180) return null;
-    return { lat: la, lng: lo };
-}
-
-function haversineKm(lat1, lon1, lat2, lon2) {
-    const R = 6371;
-    const toRad = (d) => (d * Math.PI) / 180;
-    const dLat = toRad(lat2 - lat1);
-    const dLon = toRad(lon2 - lon1);
-    const a =
-        Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-        Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLon / 2) * Math.sin(dLon / 2);
-    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-    return R * c;
-}
-
-function formatKm(km) {
-    if (km == null || !Number.isFinite(km)) return "";
-    return km < 10 ? km.toFixed(1) + " km" : Math.round(km) + " km";
-}
-
 function buildDisplayedRows() {
     const city = filterCity.value.trim().toLowerCase();
+    const quart = filterQuartier.value.trim().toLowerCase();
     const role = filterRole.value.trim();
-    const base = all.filter((p) => {
+    return all.filter((p) => {
         if (currentUser && String(p.id) === String(currentUser.uid)) return false;
         if (role && normalizeRole(p.role) !== role) return false;
         if (city && !(p.city || "").toLowerCase().includes(city)) return false;
+        if (quart) {
+            const pq = String(p.quartier || "").toLowerCase();
+            if (!pq.includes(quart)) return false;
+        }
         return true;
     });
-    if (!nearMode || refLat == null || refLng == null) {
-        return base.map((p) => ({ p, km: null }));
-    }
-    const radius = parseInt(String(nearRadiusEl && nearRadiusEl.value), 10);
-    const rKm = Number.isFinite(radius) && radius > 0 ? radius : 25;
-    const out = [];
-    for (const p of base) {
-        const c = proCoords(p);
-        if (!c) continue;
-        const km = haversineKm(refLat, refLng, c.lat, c.lng);
-        if (km <= rKm) out.push({ p, km });
-    }
-    out.sort((a, b) => a.km - b.km);
-    return out;
 }
 
 function render() {
     listEl.innerHTML = "";
-    if (nearMeReset) nearMeReset.hidden = !nearMode;
     const entries = buildDisplayedRows();
     if (!entries.length) {
         const li = document.createElement("li");
         li.className = "pro-card pro-card--empty";
-        li.textContent = nearMode
-            ? "Aucun professionnel avec position GPS dans ce rayon (vérifiez le filtre ville ou élargissez le rayon). Les coiffeurs et salons peuvent enregistrer leur position dans Mon profil."
+        li.textContent = filterQuartier.value.trim()
+            ? "Aucun professionnel ne correspond à ce quartier (vérifiez l’orthographe ou le filtre ville)."
             : "Aucun résultat.";
         listEl.appendChild(li);
         return;
     }
-    for (const { p, km } of entries) {
+    for (const p of entries) {
         const li = document.createElement("li");
         li.className = "pro-card";
         const title = p.salonName || p.name || "Sans nom";
@@ -254,20 +201,19 @@ function render() {
               escapeHtml(favText) +
               "</button>"
             : "";
-        const distHtml =
-            km != null
-                ? "<p class=\"pro-card-distance\">≈ " + escapeHtml(formatKm(km)) + "</p>"
-                : "";
+        const quartLine = String(p.quartier || "").trim()
+            ? "<p class=\"pro-card-quartier\">Quartier : " + escapeHtml(String(p.quartier).trim()) + "</p>"
+            : "";
         li.innerHTML =
             "<strong>" +
             escapeHtml(title) +
             "</strong> <span class=\"pro-card-role\">" +
             escapeHtml(p.role || "") +
             "</span>" +
-            distHtml +
             "<p class=\"pro-card-city\">" +
             escapeHtml(p.city || "Ville non renseignée") +
             "</p>" +
+            quartLine +
             "<p class=\"pro-card-snippet\">" +
             escapeHtml((p.bio || "").slice(0, 120)) +
             ((p.bio || "").length > 120 ? "…" : "") +
@@ -321,6 +267,7 @@ function escapeHtml(s) {
 
 filterCity.addEventListener("input", render);
 filterRole.addEventListener("change", render);
+if (filterQuartier) filterQuartier.addEventListener("input", render);
 
 document.addEventListener("change", (e) => {
     if (e.target && e.target.matches && e.target.matches("input.annuaire-metier-cb")) {
@@ -335,54 +282,6 @@ document.addEventListener("change", (e) => {
             }
         })();
     }
-});
-if (nearRadiusEl) {
-    nearRadiusEl.addEventListener("change", () => {
-        if (nearMode) render();
-    });
-}
-
-const geoOpts = { enableHighAccuracy: true, timeout: 22000, maximumAge: 120000 };
-
-nearMeBtn.addEventListener("click", () => {
-    errEl.hidden = true;
-    errEl.textContent = "";
-    if (!navigator.geolocation) {
-        errEl.textContent = "La géolocalisation n’est pas disponible sur ce navigateur.";
-        errEl.hidden = false;
-        return;
-    }
-    nearMeBtn.disabled = true;
-    navigator.geolocation.getCurrentPosition(
-        (pos) => {
-            nearMode = true;
-            refLat = pos.coords.latitude;
-            refLng = pos.coords.longitude;
-            nearMeBtn.disabled = false;
-            render();
-        },
-        (geoErr) => {
-            nearMeBtn.disabled = false;
-            const msg =
-                geoErr && geoErr.code === 1
-                    ? "Accès à la position refusé. Autorisez la localisation pour ce site dans les paramètres du navigateur."
-                    : geoErr && geoErr.code === 2
-                      ? "Position indisponible."
-                      : geoErr && geoErr.code === 3
-                        ? "Délai dépassé. Réessayez."
-                        : "Impossible d’obtenir votre position.";
-            errEl.textContent = msg;
-            errEl.hidden = false;
-        },
-        geoOpts
-    );
-});
-
-nearMeReset.addEventListener("click", () => {
-    nearMode = false;
-    refLat = null;
-    refLng = null;
-    render();
 });
 
 onAuthStateChanged(auth, async (user) => {
@@ -423,6 +322,10 @@ onAuthStateChanged(auth, async (user) => {
         const cityQ = params.get("city");
         if (cityQ) {
             filterCity.value = cityQ.trim();
+        }
+        const quartQ = params.get("quartier");
+        if (quartQ && filterQuartier) {
+            filterQuartier.value = quartQ.trim();
         }
         render();
     } catch (e) {

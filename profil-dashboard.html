@@ -64,36 +64,38 @@
                     </div>
                 </div>
                 <div class="field-group">
+                    <label class="field-label" for="dpQuartier">Quartier ou zone</label>
+                    <div class="field-input-wrap">
+                        <input type="text" id="dpQuartier" name="quartier" placeholder="Ex. Tokoin, Bè, Ablogamé…" autocomplete="address-line2">
+                    </div>
+                    <p class="field-hint">Les clients peuvent filtrer l’annuaire par quartier pour vous trouver.</p>
+                </div>
+                <div class="field-group">
                     <label class="field-label" for="dpPhone">Téléphone (optionnel)</label>
                     <div class="field-input-wrap">
                         <input type="tel" id="dpPhone" name="phone" autocomplete="tel">
                     </div>
                 </div>
-                <div class="field-group">
+                <div class="field-group" id="dpWrapBio">
                     <label class="field-label" for="dpBio">Description</label>
                     <textarea id="dpBio" name="bio" class="field-textarea" rows="4" placeholder="Présentez-vous ou décrivez votre établissement…"></textarea>
                 </div>
-                <div class="field-group" id="dpWrapServicesTarifs" hidden>
-                    <label class="field-label" for="dpServicesTarifs">Services &amp; tarifs</label>
-                    <textarea id="dpServicesTarifs" name="servicesTarifs" class="field-textarea" rows="5" placeholder="Ex. Coupe femme : 15 000 F — Brushing : …"></textarea>
+                <div class="field-group" id="dpWrapTarifMenuPhoto" hidden>
+                    <label class="field-label" for="dpTarifMenuPhoto">Photo du menu tarifs (optionnel)</label>
+                    <p class="field-hint">Une image de votre carte tarifs, visible par les clients sur votre fiche publique. PNG ou JPEG, max 2 Mo.</p>
+                    <div class="field-input-wrap">
+                        <input type="file" id="dpTarifMenuPhoto" accept="image/*">
+                    </div>
+                    <div id="dpTarifMenuPreviewWrap" class="profil-tarif-menu-preview" hidden>
+                        <img id="dpTarifMenuPreview" class="profil-tarif-menu-preview__img" alt="Aperçu du menu tarifs">
+                    </div>
+                    <button type="button" class="profil-tarif-menu-remove" id="dpTarifMenuRemove" hidden>Retirer la photo du menu</button>
                 </div>
                 <div class="field-group field-checkbox" id="dpWrapHomeVisit" hidden>
                     <label class="field-label-checkbox">
                         <input type="checkbox" id="dpHomeVisit" name="homeVisit">
                         J’accepte les prestations à domicile
                     </label>
-                </div>
-                <div class="field-group profil-geo-block" id="dpWrapGeo" hidden>
-                    <p class="profil-geo-lead">
-                        Pour apparaître dans l’annuaire <strong>À proximité</strong>, enregistrez l’emplacement de votre salon ou de votre zone d’activité (une demande de permission du navigateur peut s’afficher).
-                    </p>
-                    <p id="dpGeoStatus" class="profil-geo-status" aria-live="polite"></p>
-                    <div class="profil-geo-actions">
-                        <button type="button" class="register-submit profil-geo-primary" id="dpGeoSaveBtn">
-                            Enregistrer ma position actuelle (GPS)
-                        </button>
-                        <button type="button" class="profil-geo-secondary" id="dpGeoClearBtn">Effacer la position</button>
-                    </div>
                 </div>
                 <button type="submit" class="register-submit" id="dpSaveBtn">Enregistrer</button>
             </form>
@@ -170,6 +172,7 @@ let profileUid = null;
 let profileCache = null;
 let roleDisplay = "";
 let photoUrl = "";
+let tarifMenuPhotoUrl = "";
 
 function normalizeRole(raw) {
     if (!raw || typeof raw !== "string") return "unknown";
@@ -222,6 +225,53 @@ function applyHubAvatar(name, url) {
     }
 }
 
+function applyTarifMenuPreview(url) {
+    const wrap = document.getElementById("dpTarifMenuPreviewWrap");
+    const img = document.getElementById("dpTarifMenuPreview");
+    const btn = document.getElementById("dpTarifMenuRemove");
+    const u = String(url || "").trim();
+    if (!wrap || !img) return;
+    if (u) {
+        img.src = u;
+        wrap.hidden = false;
+        if (btn) btn.hidden = false;
+    } else {
+        img.removeAttribute("src");
+        wrap.hidden = true;
+        if (btn) btn.hidden = true;
+    }
+}
+
+const dpTarifMenuPhotoInput = document.getElementById("dpTarifMenuPhoto");
+const dpTarifMenuRemoveBtn = document.getElementById("dpTarifMenuRemove");
+
+if (dpTarifMenuPhotoInput) {
+    dpTarifMenuPhotoInput.addEventListener("change", () => {
+        const f = dpTarifMenuPhotoInput.files?.[0];
+        if (!f) return;
+        if (f.size > 2 * 1024 * 1024) {
+            alert("La photo du menu est trop volumineuse (max 2 Mo).");
+            dpTarifMenuPhotoInput.value = "";
+            return;
+        }
+        const reader = new FileReader();
+        reader.onload = () => {
+            tarifMenuPhotoUrl = String(reader.result || "").trim();
+            applyTarifMenuPreview(tarifMenuPhotoUrl);
+        };
+        reader.onerror = () => alert("Impossible de lire cette image.");
+        reader.readAsDataURL(f);
+    });
+}
+
+if (dpTarifMenuRemoveBtn) {
+    dpTarifMenuRemoveBtn.addEventListener("click", () => {
+        tarifMenuPhotoUrl = "";
+        if (dpTarifMenuPhotoInput) dpTarifMenuPhotoInput.value = "";
+        applyTarifMenuPreview("");
+    });
+}
+
 function syncFormFromCache() {
     const user = auth.currentUser;
     const data = profileCache;
@@ -245,12 +295,14 @@ function syncFormFromCache() {
 
     const wrapSalon = document.getElementById("dpWrapSalonName");
     const wrapHome = document.getElementById("dpWrapHomeVisit");
-    const wrapServicesTarifs = document.getElementById("dpWrapServicesTarifs");
+    const wrapTarifMenuPhoto = document.getElementById("dpWrapTarifMenuPhoto");
     const wrapProMetiers = document.getElementById("dpWrapProMetiers");
+    const wrapBio = document.getElementById("dpWrapBio");
     if (wrapSalon) wrapSalon.hidden = roleDisplay !== "Salon";
     if (wrapHome) wrapHome.hidden = roleDisplay !== "Coiffeur";
-    if (wrapServicesTarifs) wrapServicesTarifs.hidden = roleDisplay !== "Coiffeur" && roleDisplay !== "Salon";
+    if (wrapTarifMenuPhoto) wrapTarifMenuPhoto.hidden = roleDisplay !== "Coiffeur" && roleDisplay !== "Salon";
     if (wrapProMetiers) wrapProMetiers.hidden = roleDisplay !== "Coiffeur" && roleDisplay !== "Salon";
+    if (wrapBio) wrapBio.hidden = roleDisplay === "Client";
 
     if (roleDisplay === "Salon") {
         const sn = document.getElementById("dpSalonName");
@@ -264,33 +316,17 @@ function syncFormFromCache() {
     const city = document.getElementById("dpCity");
     const phone = document.getElementById("dpPhone");
     const bio = document.getElementById("dpBio");
-    const st = document.getElementById("dpServicesTarifs");
     if (nm) nm.value = data.name || "";
     if (city) city.value = data.city || "";
+    const quart = document.getElementById("dpQuartier");
+    if (quart) quart.value = data.quartier || "";
     if (phone) phone.value = data.phone || "";
-    if (bio) bio.value = data.bio || "";
-    if (st) st.value = data.servicesTarifs || "";
+    if (bio) bio.value = roleDisplay === "Client" ? "" : data.bio || "";
+    tarifMenuPhotoUrl = String(data.tarifMenuPhotoUrl || "").trim();
+    applyTarifMenuPreview(tarifMenuPhotoUrl);
+    const tarifFile = document.getElementById("dpTarifMenuPhoto");
+    if (tarifFile) tarifFile.value = "";
     setMetierChecks("dpProMetiersList", parseMetiersFromProfile(data.proMetiers));
-
-    const wrapGeo = document.getElementById("dpWrapGeo");
-    const geoStatus = document.getElementById("dpGeoStatus");
-    if (wrapGeo) {
-        wrapGeo.hidden = roleDisplay !== "Coiffeur" && roleDisplay !== "Salon";
-    }
-    if (geoStatus && (roleDisplay === "Coiffeur" || roleDisplay === "Salon")) {
-        const la = data.latitude != null ? Number(data.latitude) : null;
-        const lo = data.longitude != null ? Number(data.longitude) : null;
-        if (la != null && lo != null && Number.isFinite(la) && Number.isFinite(lo)) {
-            geoStatus.textContent =
-                "Position enregistrée : " +
-                la.toFixed(5) +
-                "°, " +
-                lo.toFixed(5) +
-                "° (visible dans l’annuaire « À proximité »).";
-        } else {
-            geoStatus.textContent = "Aucune position GPS enregistrée pour l’instant.";
-        }
-    }
 }
 
 function notifyParentProfileUpdated() {
@@ -322,101 +358,6 @@ document.getElementById("dpLogout").addEventListener("click", async () => {
     window.location.href = "login.html";
 });
 
-const geoOpts = { enableHighAccuracy: true, timeout: 22000, maximumAge: 120000 };
-
-document.getElementById("dpGeoSaveBtn").addEventListener("click", () => {
-    const formError = document.getElementById("dpFormError");
-    const formOk = document.getElementById("dpFormOk");
-    const btn = document.getElementById("dpGeoSaveBtn");
-    if (formError) formError.hidden = true;
-    if (formOk) formOk.hidden = true;
-    if (!profileUid) {
-        if (formError) {
-            formError.textContent = "Session non prête, patientez une seconde.";
-            formError.hidden = false;
-        }
-        return;
-    }
-    if (!navigator.geolocation) {
-        if (formError) {
-            formError.textContent = "La géolocalisation n’est pas disponible sur ce navigateur.";
-            formError.hidden = false;
-        }
-        return;
-    }
-    btn.disabled = true;
-    navigator.geolocation.getCurrentPosition(
-        async (pos) => {
-            const lat = pos.coords.latitude;
-            const lng = pos.coords.longitude;
-            try {
-                await updateUserProfile(profileUid, { latitude: lat, longitude: lng });
-                const fresh = await fetchUserProfile(profileUid);
-                profileCache = fresh || profileCache;
-                syncFormFromCache();
-                notifyParentProfileUpdated();
-                if (formOk) {
-                    formOk.textContent = "Position GPS enregistrée.";
-                    formOk.hidden = false;
-                }
-            } catch (err) {
-                console.error(err);
-                if (formError) {
-                    formError.textContent = getFirebaseErrorMessage(err);
-                    formError.hidden = false;
-                }
-            } finally {
-                btn.disabled = false;
-            }
-        },
-        (geoErr) => {
-            btn.disabled = false;
-            const msg =
-                geoErr && geoErr.code === 1
-                    ? "Accès à la position refusé. Autorisez la localisation pour ce site dans les paramètres du navigateur."
-                    : geoErr && geoErr.code === 2
-                      ? "Position indisponible. Réessayez à l’extérieur ou plus tard."
-                      : geoErr && geoErr.code === 3
-                        ? "Délai dépassé. Réessayez."
-                        : "Impossible d’obtenir votre position.";
-            if (formError) {
-                formError.textContent = msg;
-                formError.hidden = false;
-            }
-        },
-        geoOpts
-    );
-});
-
-document.getElementById("dpGeoClearBtn").addEventListener("click", async () => {
-    const formError = document.getElementById("dpFormError");
-    const formOk = document.getElementById("dpFormOk");
-    const btn = document.getElementById("dpGeoClearBtn");
-    if (formError) formError.hidden = true;
-    if (formOk) formOk.hidden = true;
-    if (!profileUid) return;
-    btn.disabled = true;
-    try {
-        await updateUserProfile(profileUid, { latitude: null, longitude: null });
-        const fresh = await fetchUserProfile(profileUid);
-        profileCache = fresh || profileCache;
-        syncFormFromCache();
-        notifyParentProfileUpdated();
-        if (formOk) {
-            formOk.textContent = "Position effacée.";
-            formOk.hidden = false;
-        }
-    } catch (err) {
-        console.error(err);
-        if (formError) {
-            formError.textContent = getFirebaseErrorMessage(err);
-            formError.hidden = false;
-        }
-    } finally {
-        btn.disabled = false;
-    }
-});
-
 document.getElementById("dpForm").addEventListener("submit", async (e) => {
     e.preventDefault();
     const formError = document.getElementById("dpFormError");
@@ -436,11 +377,12 @@ document.getElementById("dpForm").addEventListener("submit", async (e) => {
     const payload = {
         name: document.getElementById("dpName").value.trim(),
         city: document.getElementById("dpCity").value.trim(),
+        quartier: document.getElementById("dpQuartier").value.trim() || null,
         phone: document.getElementById("dpPhone").value.trim(),
-        photoUrl,
-        bio: document.getElementById("dpBio").value.trim(),
-        servicesTarifs: ""
+        photoUrl
     };
+    payload.bio =
+        roleDisplay === "Client" ? "" : document.getElementById("dpBio").value.trim();
 
     if (!payload.name) {
         if (formError) {
@@ -457,7 +399,7 @@ document.getElementById("dpForm").addEventListener("submit", async (e) => {
         payload.homeVisit = document.getElementById("dpHomeVisit").checked;
     }
     if (roleDisplay === "Coiffeur" || roleDisplay === "Salon") {
-        payload.servicesTarifs = document.getElementById("dpServicesTarifs").value.trim();
+        payload.tarifMenuPhotoUrl = tarifMenuPhotoUrl.trim() || null;
     }
     if (roleDisplay === "Coiffeur" || roleDisplay === "Salon") {
         payload.proMetiers = readMetierChecks("dpProMetier");

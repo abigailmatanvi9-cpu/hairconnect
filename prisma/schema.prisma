@@ -14,13 +14,14 @@ model User {
   name          String
   role          String
   city          String?
-  /// WGS84 — pour recherche « à proximité » dans l’annuaire (optionnel).
-  latitude      Float?
-  longitude     Float?
+  /// Quartier ou zone (annuaire, mise en relation client / pro).
+  quartier      String?
   phone         String?
   photoUrl      String?
   bio           String?
   servicesTarifs String?
+  /// Photo du menu tarifs (data URL ou https) — affichée sur la fiche publique.
+  tarifMenuPhotoUrl String?
   salonName     String?
   /// homme | femme — identité du client ou du coiffeur (optionnel côté salon).
   gender        String?
@@ -81,6 +82,8 @@ model Offre {
   description String
   city        String?
   contractType String?
+  /// open = visible pour tous ; filled = poste pourvu, masqué pour les autres utilisateurs.
+  status      String   @default("open")
   createdAt   DateTime @default(now())
 }
 
@@ -145,6 +148,8 @@ model Product {
   description String
   priceFcfa   Int
   stock       Int      @default(1)
+  /// Unités vendues (cumul, hors annulations ultérieures gérées au remboursement stock).
+  unitsSold   Int      @default(0)
   category    String?
   photoUrl    String?
   status      String   @default("active")

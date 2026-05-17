@@ -59,9 +59,12 @@ onAuthStateChanged(auth, async (user) => {
             const li = document.createElement("li");
             li.className = "pro-card";
             const photo = a.photoUrl
-                ? "<p class=\"pro-card-links\"><a href=\"" +
+                ? "<div class=\"pro-card-avis-photo\"><a href=\"" +
                   escapeHtml(a.photoUrl) +
-                  "\" target=\"_blank\" rel=\"noopener\">Photo</a></p>"
+                  "\" target=\"_blank\" rel=\"noopener noreferrer\" class=\"pro-card-avis-photo__link\">" +
+                  "<img class=\"pro-card-avis-photo__img\" src=\"" +
+                  escapeHtml(a.photoUrl) +
+                  "\" alt=\"Photo envoyée avec l’avis\" loading=\"lazy\" decoding=\"async\"></a></div>"
                 : "";
             li.innerHTML =
                 "<strong>" +

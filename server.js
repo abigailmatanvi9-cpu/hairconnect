@@ -65,10 +65,10 @@ function sanitizeUser(user) {
   return safeUser;
 }
 
-/** Colonnes publiques (hors mot de passe) — lecture SQL pour inclure latitude/longitude même si le client Prisma n’a pas été régénéré. */
+/** Colonnes publiques (hors mot de passe) — lecture SQL pour inclure champs même si le client Prisma n’a pas été régénéré. */
 async function findUserPublicById(id) {
   const rows = await prisma.$queryRaw`
-    SELECT id, email, name, role, city, latitude, longitude, phone, "photoUrl", bio, "servicesTarifs", "salonName", gender, clientele,
+    SELECT id, email, name, role, city, quartier, phone, "photoUrl", bio, "servicesTarifs", "tarifMenuPhotoUrl", "salonName", gender, clientele,
       "proMetiers", "rechercheMetiers", "homeVisit",
       "balanceFloozFcfa", "balanceMixFcfa", "createdAt", "updatedAt"
     FROM "User"
@@ -82,7 +82,7 @@ async function findUsersPublic(roleInList) {
   const roles = Array.isArray(roleInList) ? roleInList.map((s) => String(s).trim()).filter(Boolean) : [];
   if (roles.length) {
     return prisma.$queryRaw`
-      SELECT id, email, name, role, city, latitude, longitude, phone, "photoUrl", bio, "servicesTarifs", "salonName", gender, clientele,
+      SELECT id, email, name, role, city, quartier, phone, "photoUrl", bio, "servicesTarifs", "tarifMenuPhotoUrl", "salonName", gender, clientele,
         "proMetiers", "rechercheMetiers", "homeVisit",
         "balanceFloozFcfa", "balanceMixFcfa", "createdAt", "updatedAt"
       FROM "User"
@@ -90,19 +90,11 @@ async function findUsersPublic(roleInList) {
     `;
   }
   return prisma.$queryRaw`
-    SELECT id, email, name, role, city, latitude, longitude, phone, "photoUrl", bio, "servicesTarifs", "salonName", gender, clientele,
+    SELECT id, email, name, role, city, quartier, phone, "photoUrl", bio, "servicesTarifs", "tarifMenuPhotoUrl", "salonName", gender, clientele,
       "proMetiers", "rechercheMetiers", "homeVisit",
       "balanceFloozFcfa", "balanceMixFcfa", "createdAt", "updatedAt"
     FROM "User"
   `;
-}
-
-async function getUserCoordinates(id) {
-  const rows = await prisma.$queryRaw`
-    SELECT latitude, longitude FROM "User" WHERE id = ${id} LIMIT 1
-  `;
-  if (!Array.isArray(rows) || !rows[0]) return { latitude: null, longitude: null };
-  return { latitude: rows[0].latitude ?? null, longitude: rows[0].longitude ?? null };
 }
 
 /** Entier FCFA ≥ 0 depuis le corps JSON (chaîne ou nombre). */
@@ -132,6 +124,17 @@ function isIndepCoiffeurRole(role) {
     r.includes("coiffeuse")
   );
 }
+
+/** Salon ou coiffeur(se) indépendant(e) — seuls ces comptes peuvent vendre sur le marketplace. */
+function isMarketplaceSellerRole(role) {
+  const r = String(role || "")
+    .trim()
+    .toLowerCase();
+  if (r === "salon") return true;
+  return isIndepCoiffeurRole(role);
+}
+
+const MARKETPLACE_PHOTO_URL_MAX_LEN = 3_500_000;
 
 /**
  * Client : ne garde que les pros (salon + coiffeur indep.) dont `proMetiers` a au moins un slug
@@ -325,6 +328,32 @@ async function writePublications(rows) {
   await fs.writeFile(publicationsFile, JSON.stringify(rows, null, 2), "utf8");
 }
 
+/**
+ * Garde uniquement les publications dont l'auteur ET le pro cible existent encore en base.
+ * Permet de retirer les photos « S'inspirer » quand un compte a été supprimé (hors cascade JSON).
+ */
+async function filterPublicationRowsByExistingUsers(rows) {
+  const ids = new Set();
+  for (const p of rows) {
+    if (p && p.authorUid != null && String(p.authorUid).trim()) ids.add(String(p.authorUid).trim());
+    if (p && p.targetProUid != null && String(p.targetProUid).trim()) ids.add(String(p.targetProUid).trim());
+  }
+  const idArr = [...ids];
+  if (!idArr.length) return rows;
+  const existing = await prisma.user.findMany({
+    where: { id: { in: idArr } },
+    select: { id: true }
+  });
+  const ok = new Set(existing.map((u) => u.id));
+  return rows.filter((p) => {
+    const author = p && p.authorUid != null ? String(p.authorUid).trim() : "";
+    const target = p && p.targetProUid != null ? String(p.targetProUid).trim() : "";
+    if (author && !ok.has(author)) return false;
+    if (target && !ok.has(target)) return false;
+    return true;
+  });
+}
+
 app.post("/api/auth/register", async (req, res) => {
   try {
     const { email, password } = req.body;
@@ -392,33 +421,12 @@ app.get("/api/users/:id", async (req, res) => {
   }
 });
 
-function parseOptionalLatLng(body) {
-  const out = { ...body };
-  if ("latitude" in out) {
-    const v = out.latitude;
-    if (v === null || v === undefined || v === "") out.latitude = null;
-    else {
-      const n = Number(v);
-      if (!Number.isFinite(n) || n < -90 || n > 90) delete out.latitude;
-      else out.latitude = n;
-    }
-  }
-  if ("longitude" in out) {
-    const v = out.longitude;
-    if (v === null || v === undefined || v === "") out.longitude = null;
-    else {
-      const n = Number(v);
-      if (!Number.isFinite(n) || n < -180 || n > 180) delete out.longitude;
-      else out.longitude = n;
-    }
-  }
-  return out;
-}
-
 app.put("/api/users/:id", async (req, res) => {
   try {
     const id = req.params.id;
-    const data = parseOptionalLatLng({ ...req.body });
+    const data = { ...req.body };
+    delete data.latitude;
+    delete data.longitude;
     delete data.passwordHash;
     delete data.balanceFloozFcfa;
     delete data.balanceMixFcfa;
@@ -465,18 +473,34 @@ app.put("/api/users/:id", async (req, res) => {
       rechercheMetiersJsonStr = JSON.stringify(arr);
     }
 
-    const hadLatKey = Object.prototype.hasOwnProperty.call(req.body, "latitude");
-    const hadLngKey = Object.prototype.hasOwnProperty.call(req.body, "longitude");
-    const latWasParsed = Object.prototype.hasOwnProperty.call(data, "latitude");
-    const lngWasParsed = Object.prototype.hasOwnProperty.call(data, "longitude");
-    const latValue = latWasParsed ? data.latitude : undefined;
-    const lngValue = lngWasParsed ? data.longitude : undefined;
-    delete data.latitude;
-    delete data.longitude;
+    if (Object.prototype.hasOwnProperty.call(data, "quartier")) {
+      const rawQ = data.quartier;
+      if (rawQ === null || rawQ === undefined || String(rawQ).trim() === "") {
+        data.quartier = null;
+      } else {
+        data.quartier = String(rawQ).trim().slice(0, 160);
+      }
+    }
 
-    let prevGeo = null;
-    if (hadLatKey || hadLngKey) {
-      prevGeo = await getUserCoordinates(id);
+    if (Object.prototype.hasOwnProperty.call(data, "tarifMenuPhotoUrl")) {
+      const raw = data.tarifMenuPhotoUrl;
+      if (raw === null || raw === undefined || String(raw).trim() === "") {
+        data.tarifMenuPhotoUrl = null;
+      } else {
+        const v = String(raw).trim();
+        if (v.length > MARKETPLACE_PHOTO_URL_MAX_LEN) {
+          return res.status(400).json({
+            message: "Photo du menu tarifs trop volumineuse (réduisez la taille ou compressez l’image)."
+          });
+        }
+        if (!/^https?:\/\//i.test(v) && !/^data:image\/(png|jpe?g|webp|gif);base64,/i.test(v)) {
+          return res.status(400).json({
+            message:
+              "Menu tarifs : image PNG, JPEG, WebP ou GIF (import depuis l’appareil), ou URL https."
+          });
+        }
+        data.tarifMenuPhotoUrl = v;
+      }
     }
 
     await prisma.user.update({
@@ -506,15 +530,6 @@ app.put("/api/users/:id", async (req, res) => {
         `UPDATE "User" SET "rechercheMetiers" = $1::jsonb, "updatedAt" = NOW() WHERE id = $2`,
         rechercheMetiersJsonStr,
         id
-      );
-    }
-
-    if (hadLatKey || hadLngKey) {
-      const prev = prevGeo || { latitude: null, longitude: null };
-      const nextLat = hadLatKey ? (latWasParsed ? latValue : prev.latitude) : prev.latitude;
-      const nextLng = hadLngKey ? (lngWasParsed ? lngValue : prev.longitude) : prev.longitude;
-      await prisma.$executeRaw(
-        Prisma.sql`UPDATE "User" SET latitude = ${nextLat}, longitude = ${nextLng}, "updatedAt" = NOW() WHERE id = ${id}`
       );
     }
 
@@ -1059,9 +1074,15 @@ app.post("/api/offres", async (req, res) => {
   }
 });
 
-app.get("/api/offres", async (_req, res) => {
+app.get("/api/offres", async (req, res) => {
   try {
-    const rows = await prisma.offre.findMany({ orderBy: { createdAt: "desc" } });
+    const forSalon = String(req.query.forSalon || "").trim();
+    const where = forSalon
+      ? {
+          OR: [{ status: "open" }, { salonUid: forSalon }]
+        }
+      : { status: "open" };
+    const rows = await prisma.offre.findMany({ where, orderBy: { createdAt: "desc" } });
     return res.json({ offres: rows });
   } catch (error) {
     return res.status(500).json({ code: "internal/error", message: error.message });
@@ -1072,6 +1093,29 @@ app.get("/api/offres/:id", async (req, res) => {
   try {
     const row = await prisma.offre.findUnique({ where: { id: req.params.id } });
     if (!row) return res.status(404).json({ message: "Offre introuvable." });
+    return res.json({ offre: row });
+  } catch (error) {
+    return res.status(500).json({ code: "internal/error", message: error.message });
+  }
+});
+
+app.patch("/api/offres/:id", async (req, res) => {
+  try {
+    const id = String(req.params.id || "").trim();
+    const salonUid = String(req.body?.salonUid || "").trim();
+    const raw = String(req.body?.status || "").trim().toLowerCase();
+    if (!id || !salonUid) {
+      return res.status(400).json({ message: "Identifiant d’offre et salonUid sont requis." });
+    }
+    if (raw !== "open" && raw !== "filled") {
+      return res.status(400).json({ message: "status doit être open ou filled." });
+    }
+    const offre = await prisma.offre.findUnique({ where: { id } });
+    if (!offre) return res.status(404).json({ message: "Offre introuvable." });
+    if (String(offre.salonUid) !== salonUid) {
+      return res.status(403).json({ message: "Seul le salon auteur peut modifier le statut de l’offre." });
+    }
+    const row = await prisma.offre.update({ where: { id }, data: { status: raw } });
     return res.json({ offre: row });
   } catch (error) {
     return res.status(500).json({ code: "internal/error", message: error.message });
@@ -1114,11 +1158,21 @@ app.get("/api/marketplace/products", async (req, res) => {
       where,
       orderBy: { createdAt: "desc" }
     });
+    const sellerIds = [...new Set(rows.map((p) => String(p.sellerUid || "").trim()).filter(Boolean))];
+    let roleBySellerId = {};
+    if (sellerIds.length) {
+      const sellers = await prisma.user.findMany({
+        where: { id: { in: sellerIds } },
+        select: { id: true, role: true }
+      });
+      roleBySellerId = Object.fromEntries(sellers.map((u) => [u.id, u.role]));
+    }
+    const proRows = rows.filter((p) => isMarketplaceSellerRole(roleBySellerId[p.sellerUid]));
     const filtered = q
-      ? rows.filter((p) =>
+      ? proRows.filter((p) =>
           `${p.title || ""} ${p.description || ""} ${p.category || ""} ${p.sellerName || ""}`.toLowerCase().includes(q)
         )
-      : rows;
+      : proRows;
     return res.json({ products: filtered, feeRateBp: MARKETPLACE_FEE_RATE_BP });
   } catch (error) {
     return res.status(500).json({ code: "internal/error", message: error.message });
@@ -1132,11 +1186,23 @@ app.post("/api/marketplace/products", async (req, res) => {
     const title = String(req.body?.title || "").trim();
     const description = String(req.body?.description || "").trim();
     const category = String(req.body?.category || "").trim() || null;
-    const photoUrl = String(req.body?.photoUrl || "").trim() || null;
+    let photoUrl = String(req.body?.photoUrl || "").trim() || null;
     const priceFcfa = parsePositiveInt(req.body?.priceFcfa);
     const stock = parsePositiveInt(req.body?.stock, 1);
     if (!sellerUid || !title || !description || !priceFcfa) {
       return res.status(400).json({ message: "sellerUid, title, description et priceFcfa sont requis." });
+    }
+    const sellerUser = await prisma.user.findUnique({ where: { id: sellerUid }, select: { id: true, role: true } });
+    if (!sellerUser || !isMarketplaceSellerRole(sellerUser.role)) {
+      return res.status(403).json({ message: "Seuls les professionnels (salon ou coiffeur) peuvent publier sur le marketplace." });
+    }
+    if (photoUrl && photoUrl.length > MARKETPLACE_PHOTO_URL_MAX_LEN) {
+      return res.status(400).json({ message: "Photo trop volumineuse (réduisez la taille ou compressez l’image)." });
+    }
+    if (photoUrl && !/^https?:\/\//i.test(photoUrl) && !/^data:image\/(png|jpe?g|webp|gif);base64,/i.test(photoUrl)) {
+      return res.status(400).json({
+        message: "Photo : fournissez une URL https ou une image (PNG, JPEG, WebP, GIF) importée depuis votre appareil."
+      });
     }
     const row = await prisma.product.create({
       data: {
@@ -1165,12 +1231,31 @@ app.patch("/api/marketplace/products/:id", async (req, res) => {
     if (!sellerUid || sellerUid !== String(existing.sellerUid || "")) {
       return res.status(403).json({ message: "Modification non autorisée." });
     }
+    const sellerUser = await prisma.user.findUnique({ where: { id: sellerUid }, select: { role: true } });
+    if (!sellerUser || !isMarketplaceSellerRole(sellerUser.role)) {
+      return res.status(403).json({ message: "Seuls les professionnels peuvent modifier des articles marketplace." });
+    }
     const data = {};
     if (req.body.title !== undefined) data.title = String(req.body.title || "").trim() || existing.title;
     if (req.body.description !== undefined)
       data.description = String(req.body.description || "").trim() || existing.description;
     if (req.body.category !== undefined) data.category = String(req.body.category || "").trim() || null;
-    if (req.body.photoUrl !== undefined) data.photoUrl = String(req.body.photoUrl || "").trim() || null;
+    if (req.body.photoUrl !== undefined) {
+      const nextPhoto = String(req.body.photoUrl || "").trim() || null;
+      if (nextPhoto && nextPhoto.length > MARKETPLACE_PHOTO_URL_MAX_LEN) {
+        return res.status(400).json({ message: "Photo trop volumineuse (réduisez la taille ou compressez l’image)." });
+      }
+      if (
+        nextPhoto &&
+        !/^https?:\/\//i.test(nextPhoto) &&
+        !/^data:image\/(png|jpe?g|webp|gif);base64,/i.test(nextPhoto)
+      ) {
+        return res.status(400).json({
+          message: "Photo : fournissez une URL https ou une image (PNG, JPEG, WebP, GIF) importée depuis votre appareil."
+        });
+      }
+      data.photoUrl = nextPhoto;
+    }
     if (req.body.status !== undefined) {
       const status = String(req.body.status || "").trim().toLowerCase();
       if (["active", "paused", "soldout", "deleted"].includes(status)) data.status = status;
@@ -1205,6 +1290,10 @@ app.delete("/api/marketplace/products/:id", async (req, res) => {
     if (!sellerUid || sellerUid !== String(existing.sellerUid || "")) {
       return res.status(403).json({ message: "Suppression non autorisée." });
     }
+    const sellerUser = await prisma.user.findUnique({ where: { id: sellerUid }, select: { role: true } });
+    if (!sellerUser || !isMarketplaceSellerRole(sellerUser.role)) {
+      return res.status(403).json({ message: "Seuls les professionnels peuvent retirer des articles marketplace." });
+    }
     await prisma.product.delete({ where: { id } });
     return res.status(204).send();
   } catch (error) {
@@ -1228,6 +1317,25 @@ function normalizeMarketplaceCartItems(body) {
   const singleQty = parsePositiveInt(body?.quantity, 1) || 1;
   if (singleId) return [{ productId: singleId, quantity: singleQty }];
   return [];
+}
+
+/** Texte du message automatique au vendeur après commande marketplace. */
+function marketplaceOrderSellerNoticeText(order, buyerName) {
+  const name = String(buyerName || "Acheteur").trim() || "Acheteur";
+  const items = Array.isArray(order.items) ? order.items : [];
+  const lines = items
+    .map(
+      (it) =>
+        `- ${String(it.productTitle || "Article").trim()} × ${Number(it.quantity || 0)} (${Number(it.lineTotalFcfa || 0)} FCFA)`
+    )
+    .join("\n");
+  const sub = Number(order.subtotalFcfa || 0);
+  const net = Number(order.sellerNetFcfa || 0);
+  const st = String(order.status || "pending");
+  const head = `[Marketplace HairConnect] Nouvelle commande\nRéférence : ${String(order.id)}\nAcheteur : ${name}\n`;
+  const foot = `\nTotal commande : ${sub} FCFA\nNet vendeur après commission : ${net} FCFA\nStatut : ${st}\nConvenez du retrait ou de la livraison avec l’acheteur via la messagerie HairConnect.`;
+  const body = `${head}\n${lines || "(détail indisponible)"}${foot}`;
+  return body.length > 8000 ? body.slice(0, 7997) + "…" : body;
 }
 
 app.post("/api/marketplace/orders", async (req, res) => {
@@ -1279,7 +1387,8 @@ app.post("/api/marketplace/orders", async (req, res) => {
           where: { id: productId },
           data: {
             stock: nextStock,
-            status: nextStock === 0 ? "soldout" : String(current.status || "active")
+            status: nextStock === 0 ? "soldout" : String(current.status || "active"),
+            unitsSold: { increment: quantity }
           }
         });
       }
@@ -1325,6 +1434,22 @@ app.post("/api/marketplace/orders", async (req, res) => {
       }
       return out;
     });
+
+    for (const order of ordersOut) {
+      if (!order || !order.sellerUid) continue;
+      try {
+        const text = marketplaceOrderSellerNoticeText(order, buyerName);
+        await prisma.message.create({
+          data: {
+            fromUid: buyerUid,
+            toUid: String(order.sellerUid),
+            text
+          }
+        });
+      } catch (notifyErr) {
+        console.error("[marketplace] message vendeur:", notifyErr);
+      }
+    }
 
     return res.status(201).json({ orders: ordersOut, feeRateBp: MARKETPLACE_FEE_RATE_BP });
   } catch (error) {
@@ -1408,11 +1533,17 @@ app.post("/api/marketplace/orders/:id/cancel", async (req, res) => {
         const p = await tx.product.findUnique({ where: { id: it.productId } });
         if (!p) continue;
         const nextStock = Number(p.stock || 0) + Number(it.quantity || 0);
+        const prevSold = Number(p.unitsSold || 0);
+        const dec = Number(it.quantity || 0);
         let nextStatus = String(p.status || "active");
         if (nextStock > 0 && nextStatus === "soldout") nextStatus = "active";
         await tx.product.update({
           where: { id: it.productId },
-          data: { stock: nextStock, status: nextStatus }
+          data: {
+            stock: nextStock,
+            status: nextStatus,
+            unitsSold: Math.max(0, prevSold - dec)
+          }
         });
       }
       await tx.marketOrder.update({ where: { id }, data: { status: "cancelled" } });
@@ -1444,6 +1575,9 @@ app.post("/api/candidatures", async (req, res) => {
     const offre = await prisma.offre.findUnique({ where: { id: offerId } });
     if (!offre) {
       return res.status(404).json({ message: "Offre introuvable." });
+    }
+    if (String(offre.status || "").toLowerCase() === "filled") {
+      return res.status(409).json({ message: "Ce poste a déjà été pourvu." });
     }
     if (String(offre.salonUid) !== salonUid) {
       return res.status(400).json({ message: "Le salon de l'offre ne correspond pas." });
@@ -1571,7 +1705,11 @@ app.get("/api/publications", async (req, res) => {
       String(req.query.withAuthorNames || "") === "1" ||
       String(req.query.withAuthorNames || "").toLowerCase() === "true";
     const rows = await readPublications();
-    let filtered = rows
+    const pruned = await filterPublicationRowsByExistingUsers(rows);
+    if (pruned.length !== rows.length) {
+      await writePublications(pruned);
+    }
+    let filtered = pruned
       .filter((p) => (targetProUid ? String(p.targetProUid) === targetProUid : true))
       .filter((p) => (authorUid ? String(p.authorUid) === authorUid : true))
       .filter((p) => (kind ? String(p.kind) === kind : true))

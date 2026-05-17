@@ -24,7 +24,6 @@
 import {
     auth,
     fetchUserProfile,
-    listCandidaturesForCoiffeur,
     listCandidaturesForSalon,
     getFirebaseErrorMessage
 } from "./firebase.js";
@@ -55,15 +54,17 @@ onAuthStateChanged(auth, async (user) => {
     }
     const prof = await fetchUserProfile(user.uid);
     const role = normalizeRole(prof?.role);
+    if (role === "coiffeur") {
+        window.location.replace("dashboard.html");
+        return;
+    }
     listEl.innerHTML = "";
     try {
         let rows = [];
-        if (role === "coiffeur") {
-            rows = await listCandidaturesForCoiffeur(user.uid);
-        } else if (role === "salon") {
+        if (role === "salon") {
             rows = await listCandidaturesForSalon(user.uid);
         } else {
-            errEl.textContent = "Réservé aux coiffeurs et aux salons.";
+            errEl.textContent = "Cette page est réservée aux salons.";
             errEl.hidden = false;
             return;
         }

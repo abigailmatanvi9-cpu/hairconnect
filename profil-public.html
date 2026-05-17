@@ -28,6 +28,13 @@
         <p class="public-meta" id="pubCity"></p>
         <p class="public-bio" id="pubBio"></p>
         <pre class="public-services" id="pubServices"></pre>
+        <section id="pubTarifMenuSection" class="public-tarif-menu-section" hidden aria-labelledby="pubTarifMenuTitle">
+            <h3 class="public-publications__title" id="pubTarifMenuTitle">Menu tarifs</h3>
+            <p class="public-tarif-menu-lead">Photo partagée par le professionnel.</p>
+            <a id="pubTarifMenuLink" class="public-tarif-menu-link" href="#" target="_blank" rel="noopener noreferrer">
+                <img id="pubTarifMenuImg" class="public-tarif-menu__img" alt="Menu tarifs du professionnel">
+            </a>
+        </section>
         <p id="pubHome" class="public-badge" hidden>Déplacements à domicile : oui</p>
         <div class="public-actions">
             <a class="register-submit public-btn" id="linkMsg" href="login.html">Message</a>
@@ -49,12 +56,22 @@
                     <label class="field-label" for="pubAvisComment">Commentaire</label>
                     <textarea id="pubAvisComment" class="field-textarea" rows="3" placeholder="Partagez votre experience..." required></textarea>
                 </div>
+                <div class="field-group">
+                    <label class="field-label" for="pubAvisPhoto">Photo de la prestation (optionnel)</label>
+                    <div class="field-input-wrap">
+                        <input type="file" id="pubAvisPhoto" accept="image/*">
+                    </div>
+                    <p class="field-hint" id="pubAvisPhotoHint">JPG, PNG… — max 2 Mo. Visible sur la page « Tous les avis ».</p>
+                </div>
                 <button type="submit" class="register-submit" id="pubAvisBtn">Publier mon avis</button>
             </form>
-            <ul id="pubAvisList" class="public-publications__list"></ul>
+            <div class="public-avis-compact" id="pubAvisCompact">
+                <p id="pubAvisSummaryText" class="public-avis-compact__summary"></p>
+                <a id="pubAvisAllLink" class="register-submit public-btn" href="#">Voir tous les avis</a>
+            </div>
         </section>
         <section class="public-publications" id="pubPublicationsSection">
-            <h3 class="public-publications__title">Publications</h3>
+            <h3 class="public-publications__title">Photos clients</h3>
             <p id="pubPostErr" class="form-error" role="alert" hidden></p>
             <p id="pubPostOk" class="form-success" role="status" hidden></p>
             <form id="pubClientPostForm" class="public-publications__form" hidden>
@@ -71,7 +88,10 @@
                 </div>
                 <button type="submit" class="register-submit">Partager ma photo</button>
             </form>
-            <ul id="pubPublicationsList" class="public-publications__list"></ul>
+            <div class="public-gallery-compact" id="pubGalleryCompact">
+                <p id="pubGallerySummaryText" class="public-avis-compact__summary"></p>
+                <a id="pubGalleryAllLink" class="register-submit public-btn public-btn--ghost" href="#">Voir toutes les photos</a>
+            </div>
         </section>
     </div>
 </div>
@@ -88,7 +108,6 @@ import {
     listAvisForPro,
     listPublications,
     createPublication,
-    deletePublication,
     isGuestDiscovery,
     clearGuestDiscovery,
     getFirebaseErrorMessage
@@ -96,10 +115,17 @@ import {
 
 const params = new URLSearchParams(location.search);
 const uid = params.get("uid");
+/** Retour explicite depuis la liste « Proximité » du tableau de bord (évite history.back vers une iframe ou une autre page). */
+const PROFILE_RET_DASH_NEARBY = new Set(["nearby-embed", "nearby-home"]);
+
+function profileRetQuerySuffix() {
+    const ret = params.get("ret");
+    return ret && PROFILE_RET_DASH_NEARBY.has(ret) ? "&ret=" + encodeURIComponent(ret) : "";
+}
+
 const errEl = document.getElementById("err");
 const content = document.getElementById("content");
 const favBtn = document.getElementById("favBtn");
-const pubListEl = document.getElementById("pubPublicationsList");
 const profileBackBtn = document.getElementById("profileBackBtn");
 const pubClientForm = document.getElementById("pubClientPostForm");
 const pubClientPhoto = document.getElementById("pubClientPhoto");
@@ -112,10 +138,18 @@ const pubAvisComment = document.getElementById("pubAvisComment");
 const pubAvisBtn = document.getElementById("pubAvisBtn");
 const pubAvisErr = document.getElementById("pubAvisErr");
 const pubAvisOk = document.getElementById("pubAvisOk");
-const pubAvisList = document.getElementById("pubAvisList");
+const pubAvisSummaryText = document.getElementById("pubAvisSummaryText");
+const pubAvisAllLink = document.getElementById("pubAvisAllLink");
+const pubGallerySummaryText = document.getElementById("pubGallerySummaryText");
+const pubGalleryAllLink = document.getElementById("pubGalleryAllLink");
 
 if (profileBackBtn) {
     profileBackBtn.addEventListener("click", () => {
+        const ret = params.get("ret");
+        if (ret && PROFILE_RET_DASH_NEARBY.has(ret)) {
+            window.location.href = "dashboard.html?openNearby=1";
+            return;
+        }
         if (window.history.length > 1) {
             window.history.back();
             return;
@@ -132,97 +166,36 @@ function escapeHtml(s) {
         .replace(/"/g, "&quot;");
 }
 
-function pubDateText(createdAt) {
-    const ms = createdAt?.toMillis ? createdAt.toMillis() : new Date(createdAt || 0).getTime();
-    if (!ms) return "";
-    return new Date(ms).toLocaleString("fr-FR", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" });
-}
-
-function publicationAuthorText(p, proName) {
-    if (p.kind === "pro") return `${proName} a publié`;
-    return "Client après prestation";
-}
-
-function renderPublications(list, proName, currentViewerUid = "") {
-    if (!pubListEl) return;
-    pubListEl.innerHTML = "";
-    if (!list.length) {
-        const li = document.createElement("li");
-        li.className = "public-publications__empty";
-        li.textContent = "Aucune photo publiée pour le moment.";
-        pubListEl.appendChild(li);
-        return;
-    }
-    for (const p of list) {
-        const li = document.createElement("li");
-        li.className = "public-publications__item";
-        const canDeleteOwnClientPublication =
-            !!currentViewerUid &&
-            String(p.kind || "").toLowerCase() === "client_after_service" &&
-            String(p.authorUid || "") === String(currentViewerUid);
-        li.innerHTML =
-            "<p class=\"public-publications__meta\">" +
-            escapeHtml(publicationAuthorText(p, proName)) +
-            " · " +
-            escapeHtml(pubDateText(p.createdAt)) +
-            "</p>" +
-            "<img class=\"public-publications__img\" src=\"" +
-            escapeHtml(p.photoUrl || "") +
-            "\" alt=\"Publication\">" +
-            (p.caption
-                ? "<p class=\"public-publications__caption\">" + escapeHtml(p.caption) + "</p>"
-                : "") +
-            (canDeleteOwnClientPublication
-                ? "<button type=\"button\" class=\"public-publications__delete\" data-pub-delete=\"" +
-                  escapeHtml(p.id || "") +
-                  "\">Supprimer ma photo</button>"
-                : "");
-        pubListEl.appendChild(li);
-    }
-}
-
-function avisDateText(createdAt) {
-    const ms = createdAt?.toMillis ? createdAt.toMillis() : new Date(createdAt || 0).getTime();
-    if (!ms) return "";
-    return new Date(ms).toLocaleString("fr-FR", { day: "2-digit", month: "2-digit", year: "numeric" });
-}
-
-function renderAvisList(list) {
-    if (!pubAvisList) return;
-    pubAvisList.innerHTML = "";
-    if (!list.length) {
-        const li = document.createElement("li");
-        li.className = "public-publications__empty";
-        li.textContent = "Pas encore d'avis sur ce profil.";
-        pubAvisList.appendChild(li);
-        return;
-    }
-    const sorted = [...list].sort((a, b) => {
-        const ta = a?.createdAt?.toMillis ? a.createdAt.toMillis() : new Date(a.createdAt || 0).getTime();
-        const tb = b?.createdAt?.toMillis ? b.createdAt.toMillis() : new Date(b.createdAt || 0).getTime();
-        return tb - ta;
-    });
-    for (const avis of sorted) {
-        const li = document.createElement("li");
-        li.className = "public-publications__item";
-        const rating = Math.max(1, Math.min(5, Number(avis.rating || 0))) || 0;
-        const stars = rating ? "★".repeat(rating) + "☆".repeat(5 - rating) : "";
-        li.innerHTML =
-            "<p class=\"public-publications__meta\">" +
-            escapeHtml(stars ? `${stars} · ${rating}/5` : "Avis") +
-            (avisDateText(avis.createdAt) ? " · " + escapeHtml(avisDateText(avis.createdAt)) : "") +
-            "</p>" +
-            "<p class=\"public-publications__caption\">" +
-            escapeHtml(String(avis.comment || "Sans commentaire.")) +
-            "</p>";
-        pubAvisList.appendChild(li);
-    }
-}
-
-async function refreshAvisList() {
-    if (!uid) return;
+async function refreshAvisSummary() {
+    if (!uid || !pubAvisSummaryText || !pubAvisAllLink) return;
+    pubAvisAllLink.href = "profil-avis.html?uid=" + encodeURIComponent(uid) + profileRetQuerySuffix();
     const avis = await listAvisForPro(uid).catch(() => []);
-    renderAvisList(avis);
+    if (!avis.length) {
+        pubAvisSummaryText.textContent = "Pas encore d’avis publié.";
+        return;
+    }
+    let sum = 0;
+    for (const a of avis) {
+        sum += Math.max(0, Math.min(5, Number(a.rating) || 0));
+    }
+    const avgRaw = sum / avis.length;
+    const avg = Number.isInteger(avgRaw) ? String(avgRaw) : avgRaw.toFixed(1);
+    const withPhoto = avis.filter((a) => String(a.photoUrl || "").trim()).length;
+    pubAvisSummaryText.textContent =
+        `${avis.length} avis · moyenne ${avg}/5` +
+        (withPhoto ? ` · ${withPhoto} avec photo` : "") +
+        " — ouvrez la page dédiée pour tout lire.";
+}
+
+async function refreshGallerySummary() {
+    if (!uid || !pubGallerySummaryText || !pubGalleryAllLink) return;
+    pubGalleryAllLink.href = "profil-galerie.html?uid=" + encodeURIComponent(uid) + profileRetQuerySuffix();
+    const publications = await listPublications({ targetProUid: uid }).catch(() => []);
+    const n = publications.length;
+    pubGallerySummaryText.textContent =
+        n === 0
+            ? "Aucune photo partagée par des clients pour le moment."
+            : `${n} photo${n > 1 ? "s" : ""} après prestation — voir la galerie pour les parcourir.`;
 }
 
 if (!uid) {
@@ -233,10 +206,42 @@ if (!uid) {
         document.getElementById("pubHome").hidden = true;
         document.getElementById("pubRole").textContent = d.role || "—";
         document.getElementById("pubName").textContent = d.salonName || d.name || "Sans nom";
-        document.getElementById("pubCity").textContent = d.city ? "Ville : " + d.city : "";
+        const cityStr = String(d.city || "").trim();
+        const quartStr = String(d.quartier || "").trim();
+        const locParts = [];
+        if (cityStr) locParts.push("Ville : " + cityStr);
+        if (quartStr) locParts.push("Proximité : " + quartStr);
+        document.getElementById("pubCity").textContent = locParts.join(" · ");
         document.getElementById("pubBio").textContent = d.bio || "";
-        document.getElementById("pubServices").textContent = d.servicesTarifs || "Services / tarifs non renseignés.";
+        const pubServicesEl = document.getElementById("pubServices");
+        const textTarifs = String(d.servicesTarifs || "").trim();
+        const menuUrl = String(d.tarifMenuPhotoUrl || "").trim();
+        if (pubServicesEl) {
+            if (textTarifs) {
+                pubServicesEl.textContent = textTarifs;
+                pubServicesEl.hidden = false;
+            } else if (menuUrl) {
+                pubServicesEl.hidden = true;
+            } else {
+                pubServicesEl.textContent = "Services / tarifs non renseignés.";
+                pubServicesEl.hidden = false;
+            }
+        }
         if (d.homeVisit) document.getElementById("pubHome").hidden = false;
+        const menuSec = document.getElementById("pubTarifMenuSection");
+        const menuLink = document.getElementById("pubTarifMenuLink");
+        const menuImg = document.getElementById("pubTarifMenuImg");
+        if (menuSec && menuLink && menuImg) {
+            if (menuUrl) {
+                menuLink.href = menuUrl;
+                menuImg.src = menuUrl;
+                menuSec.hidden = false;
+            } else {
+                menuSec.hidden = true;
+                menuImg.removeAttribute("src");
+                menuLink.href = "#";
+            }
+        }
     }
 
     onAuthStateChanged(auth, async (user) => {
@@ -263,11 +268,9 @@ if (!uid) {
         }
 
         fillPublicProfile(d);
-        const proName = d.salonName || d.name || "Ce professionnel";
         const guestBar = document.getElementById("guestBannerProfil");
-        await refreshAvisList();
-        const publications = await listPublications({ targetProUid: uid }).catch(() => []);
-        renderPublications(publications, proName, user?.uid || "");
+        await refreshAvisSummary();
+        await refreshGallerySummary();
 
         if (!user && isGuestDiscovery()) {
             document.getElementById("linkMsg").href = "login.html";
@@ -370,10 +373,7 @@ if (pubClientForm) {
                 pubPostOk.textContent = "Photo partagée.";
                 pubPostOk.hidden = false;
             }
-            const d = await fetchUserProfile(uid).catch(() => null);
-            const proName = d?.salonName || d?.name || "Ce professionnel";
-            const publications = await listPublications({ targetProUid: uid }).catch(() => []);
-            renderPublications(publications, proName, user?.uid || "");
+            await refreshGallerySummary();
         } catch (err) {
             if (pubPostErr) {
                 pubPostErr.textContent = getFirebaseErrorMessage(err);
@@ -383,33 +383,24 @@ if (pubClientForm) {
     });
 }
 
-if (pubListEl) {
-    pubListEl.addEventListener("click", async (e) => {
-        const btn = e.target.closest("[data-pub-delete]");
-        if (!btn) return;
-        const user = auth.currentUser;
-        const pubId = String(btn.getAttribute("data-pub-delete") || "").trim();
-        if (!user || !uid || !pubId) return;
-        if (pubPostErr) pubPostErr.hidden = true;
-        if (pubPostOk) pubPostOk.hidden = true;
-        if (!window.confirm("Supprimer cette photo publiee ?")) return;
-        btn.disabled = true;
-        try {
-            await deletePublication(pubId, user.uid);
-            if (pubPostOk) {
-                pubPostOk.textContent = "Photo supprimee.";
-                pubPostOk.hidden = false;
-            }
-            const d = await fetchUserProfile(uid).catch(() => null);
-            const proName = d?.salonName || d?.name || "Ce professionnel";
-            const publications = await listPublications({ targetProUid: uid }).catch(() => []);
-            renderPublications(publications, proName, user.uid);
-        } catch (err) {
-            if (pubPostErr) {
-                pubPostErr.textContent = getFirebaseErrorMessage(err);
-                pubPostErr.hidden = false;
-            }
-            btn.disabled = false;
+function fileToDataUrlPub(file) {
+    return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(String(reader.result || ""));
+        reader.onerror = () => reject(new Error("Impossible de lire la photo."));
+        reader.readAsDataURL(file);
+    });
+}
+
+const pubAvisPhotoInput = document.getElementById("pubAvisPhoto");
+const pubAvisPhotoHint = document.getElementById("pubAvisPhotoHint");
+if (pubAvisPhotoInput) {
+    pubAvisPhotoInput.addEventListener("change", () => {
+        const f = pubAvisPhotoInput.files?.[0];
+        if (pubAvisPhotoHint) {
+            pubAvisPhotoHint.textContent = f
+                ? `Fichier : ${f.name} (max 2 Mo)`
+                : "JPG, PNG… — max 2 Mo. Visible sur la page « Tous les avis ».";
         }
     });
 }
@@ -427,14 +418,23 @@ if (pubAvisForm) {
             const comment = String(pubAvisComment?.value || "").trim();
             if (rating < 1 || rating > 5) throw new Error("La note doit etre comprise entre 1 et 5.");
             if (!comment) throw new Error("Ajoutez un commentaire avant de publier votre avis.");
-            await createReview(user.uid, uid, rating, comment, "");
+            let photoUrl = "";
+            const file = pubAvisPhotoInput?.files?.[0] || null;
+            if (file) {
+                if (file.size > 2 * 1024 * 1024) throw new Error("La photo est trop volumineuse (max 2 Mo).");
+                photoUrl = await fileToDataUrlPub(file);
+            }
+            await createReview(user.uid, uid, rating, comment, photoUrl);
             if (pubAvisForm) pubAvisForm.reset();
             if (pubAvisRating) pubAvisRating.value = "5";
+            if (pubAvisPhotoHint) {
+                pubAvisPhotoHint.textContent = "JPG, PNG… — max 2 Mo. Visible sur la page « Tous les avis ».";
+            }
             if (pubAvisOk) {
                 pubAvisOk.textContent = "Merci, votre avis a ete publie.";
                 pubAvisOk.hidden = false;
             }
-            await refreshAvisList();
+            await refreshAvisSummary();
         } catch (err) {
             if (pubAvisErr) {
                 pubAvisErr.textContent = getFirebaseErrorMessage(err);
