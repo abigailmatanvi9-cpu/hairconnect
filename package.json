@@ -8,6 +8,7 @@
     "dev": "node server.js",
     "prisma:generate": "prisma generate",
     "prisma:sync": "prisma db push && prisma generate",
+    "build:render": "prisma generate && prisma db push --skip-generate",
     "prisma:migrate": "prisma migrate dev --name init",
     "db:seed": "prisma db seed"
   },

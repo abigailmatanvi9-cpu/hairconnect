@@ -1,2 +1,2 @@
 -- AlterTable
-ALTER TABLE "Offre" ADD COLUMN "contractType" TEXT;
+ALTER TABLE "Offre" ADD COLUMN IF NOT EXISTS "contractType" TEXT;
