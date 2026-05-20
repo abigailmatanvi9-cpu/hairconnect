@@ -17,6 +17,9 @@ export const PHONE_COUNTRIES = [
 
 export const DEFAULT_PHONE_COUNTRY_ISO = "TG";
 
+/** Pays d’Afrique de l’Ouest (indicatif téléphone + localisation). */
+export const WEST_AFRICA_PHONE_ISOS = ["TG", "BJ", "GH", "CI", "BF", "SN", "ML", "NE", "GN", "CM"];
+
 const BY_ISO = new Map(PHONE_COUNTRIES.map((c) => [c.iso, c]));
 const BY_DIAL_DESC = [...PHONE_COUNTRIES].sort((a, b) => b.dial.length - a.dial.length);
 
@@ -130,7 +133,14 @@ export function updatePhoneHint(hintEl, iso) {
     hintEl.textContent = `Format ${c.name} : ${c.digits} chiffres après ${c.dial} (ex. ${c.example}).`;
 }
 
-export function initPhoneField({ countrySelect, nationalInput, hintEl, storedPhone, defaultIso = DEFAULT_PHONE_COUNTRY_ISO }) {
+export function initPhoneField({
+    countrySelect,
+    nationalInput,
+    hintEl,
+    storedPhone,
+    defaultIso = DEFAULT_PHONE_COUNTRY_ISO,
+    onCountryChange = null
+}) {
     const parsed = parseStoredPhone(storedPhone, defaultIso);
     const iso = parsed.ok ? parsed.iso : defaultIso;
     fillPhoneCountrySelect(countrySelect, iso);
@@ -147,6 +157,7 @@ export function initPhoneField({ countrySelect, nationalInput, hintEl, storedPho
         const nextIso = countrySelect.value;
         updatePhoneHint(hintEl, nextIso);
         if (nationalInput) nationalInput.placeholder = getPhoneCountry(nextIso).example;
+        if (typeof onCountryChange === "function") onCountryChange(nextIso);
     });
 }
 

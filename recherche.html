@@ -33,10 +33,18 @@
     </fieldset>
 
     <div class="field-group">
+        <label class="field-label" for="filterLocCountry">Pays</label>
+        <div class="field-input-wrap">
+            <select id="filterLocCountry" class="field-select" aria-describedby="filterLocCountryHint"></select>
+        </div>
+        <p class="field-hint" id="filterLocCountryHint">Afrique de l’Ouest : villes et quartiers selon le pays.</p>
+    </div>
+    <div class="field-group">
         <label class="field-label" for="filterCity">Ville</label>
         <div class="field-input-wrap">
-            <input type="text" id="filterCity" placeholder="Tapez un nom de ville…">
+            <input type="text" id="filterCity" placeholder="Ex. Lomé — tapez ou choisissez…" aria-describedby="filterCityHint">
         </div>
+        <p class="field-hint" id="filterCityHint">Villes du pays sélectionné.</p>
     </div>
     <div class="field-group">
         <label class="field-label" for="filterRole">Rôle</label>
@@ -52,8 +60,9 @@
     <div class="field-group">
         <label class="field-label" for="filterQuartier">Quartier</label>
         <div class="field-input-wrap">
-            <input type="text" id="filterQuartier" placeholder="Ex. Tokoin, Bè… (selon le profil du pro)">
+            <input type="text" id="filterQuartier" placeholder="Ex. Tokoin, Bé… — tapez ou choisissez" aria-describedby="filterQuartierHint">
         </div>
+        <p class="field-hint" id="filterQuartierHint">Quartiers de la ville choisie uniquement.</p>
     </div>
 
     <p id="err" class="form-error" role="alert" hidden></p>
@@ -73,14 +82,25 @@ import {
     HAIRCONNECT_METIERS
 } from "./firebase.js";
 import { onAuthStateChanged } from "./firebase.js";
+import { initLocationFields, fillLocationCountrySelect } from "./west-africa-locations.js";
 
 const ANNUAIRE_METIERS_STORAGE = "hairconnect_annuaire_metiers";
 
 const listEl = document.getElementById("list");
 const errEl = document.getElementById("err");
+const filterLocCountry = document.getElementById("filterLocCountry");
 const filterCity = document.getElementById("filterCity");
 const filterRole = document.getElementById("filterRole");
 const filterQuartier = document.getElementById("filterQuartier");
+
+fillLocationCountrySelect(filterLocCountry, "TG");
+
+const rechercheLocationFields = initLocationFields(filterCity, filterQuartier, {
+    idPrefix: "hc-recherche-loc",
+    locCountrySelect: filterLocCountry,
+    cityHintEl: document.getElementById("filterCityHint"),
+    quartierHintEl: document.getElementById("filterQuartierHint")
+});
 
 let all = [];
 let favorites = [];
