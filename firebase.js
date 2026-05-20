@@ -222,16 +222,17 @@ export async function listRendezVousForClient(clientUid) {
     return payload.rendezVous || [];
 }
 
-export async function createRendezVous({ proUid, clientUid, scheduledAt, prestation, priceFcfa }) {
+export async function createRendezVous({ proUid, clientUid, scheduledAt, prestation, priceFcfa, prestationPriceFcfa }) {
     const body = {
         proUid: String(proUid || "").trim(),
         clientUid: String(clientUid || "").trim(),
         scheduledAt: scheduledAt instanceof Date ? scheduledAt.toISOString() : String(scheduledAt || ""),
         prestation: String(prestation || "").trim()
     };
-    if (priceFcfa != null && priceFcfa !== "") {
-        const n = Number(priceFcfa);
-        if (Number.isInteger(n) && n >= 0) body.priceFcfa = n;
+    const prestRaw = prestationPriceFcfa != null && prestationPriceFcfa !== "" ? prestationPriceFcfa : priceFcfa;
+    if (prestRaw != null && prestRaw !== "") {
+        const n = Number(prestRaw);
+        if (Number.isInteger(n) && n >= 0) body.prestationPriceFcfa = n;
     }
     const payload = await apiFetch("/rendez-vous", {
         method: "POST",
@@ -258,11 +259,42 @@ export async function updateRendezVous(id, proUid, partial) {
             if (Number.isFinite(n) && n >= 0) body.priceFcfa = n;
         }
     }
+    if (partial.prestationPriceFcfa !== undefined) {
+        if (partial.prestationPriceFcfa === null || partial.prestationPriceFcfa === "") {
+            body.prestationPriceFcfa = null;
+        } else {
+            const n = parseInt(String(partial.prestationPriceFcfa).replace(/\s/g, ""), 10);
+            if (Number.isFinite(n) && n >= 0) body.prestationPriceFcfa = n;
+        }
+    }
     const payload = await apiFetch(`/rendez-vous/${encodeURIComponent(id)}`, {
         method: "PATCH",
         body: JSON.stringify(body)
     });
     return payload.rendezVous;
+}
+
+export async function getRendezVousItemSelection(rendezVousId, uid) {
+    const payload = await apiFetch(
+        `/rendez-vous/${encodeURIComponent(rendezVousId)}/item-selection?uid=${encodeURIComponent(String(uid || "").trim())}`
+    );
+    return payload;
+}
+
+export async function saveRendezVousItemSelection(rendezVousId, clientUid, lines) {
+    const payload = await apiFetch(`/rendez-vous/${encodeURIComponent(rendezVousId)}/item-selection`, {
+        method: "PUT",
+        body: JSON.stringify({
+            clientUid: String(clientUid || "").trim(),
+            lines: Array.isArray(lines)
+                ? lines.map((row) => ({
+                      productId: String(row?.productId || "").trim(),
+                      quantity: Number(row?.quantity || 0)
+                  }))
+                : []
+        })
+    });
+    return payload.selection;
 }
 
 export async function sendRendezVousReminderNow(id, proUid) {
@@ -321,6 +353,41 @@ export async function sendMessage(fromUid, toUid, text) {
 export async function listMessagesForUser(uid) {
     const payload = await apiFetch(`/messages?uid=${encodeURIComponent(uid)}`);
     return (payload.messages || []).map((m) => ({ ...m, createdAt: { toMillis: () => new Date(m.createdAt).getTime() } }));
+}
+
+export async function listContactRequestsForUser(uid) {
+    const payload = await apiFetch(`/contact-requests?uid=${encodeURIComponent(uid)}`);
+    return payload.requests || [];
+}
+
+export async function getContactRequestBetween(clientUid, proUid) {
+    const payload = await apiFetch(
+        `/contact-requests/between?clientUid=${encodeURIComponent(clientUid)}&proUid=${encodeURIComponent(proUid)}`
+    );
+    return payload.request || null;
+}
+
+export async function createContactRequest(clientUid, proUid, message) {
+    const payload = await apiFetch("/contact-requests", {
+        method: "POST",
+        body: JSON.stringify({
+            clientUid: String(clientUid || "").trim(),
+            proUid: String(proUid || "").trim(),
+            message: message != null ? String(message).trim() : ""
+        })
+    });
+    return payload.request;
+}
+
+export async function respondContactRequest(requestId, proUid, status) {
+    const payload = await apiFetch(`/contact-requests/${encodeURIComponent(requestId)}`, {
+        method: "PATCH",
+        body: JSON.stringify({
+            proUid: String(proUid || "").trim(),
+            status: String(status || "").trim().toLowerCase()
+        })
+    });
+    return payload.request;
 }
 
 export async function createReview(fromClientUid, toProUid, rating, comment, photoUrl) {
@@ -574,6 +641,12 @@ export function getFirebaseErrorMessage(error) {
     };
     if (code.startsWith("auth/") && authMessages[code]) {
         return authMessages[code];
+    }
+    if (code === "contact/not-accepted" || code === "contact/already-accepted") {
+        return msg || "Action impossible pour cette demande de contact.";
+    }
+    if (code === "schema/missing-table") {
+        return msg;
     }
     if (code === "permission-denied") {
         return "Accès refusé : vérifiez les règles Firestore dans la console Firebase.";

@@ -8,22 +8,10 @@
 </head>
 <body class="login-page hc-theme-pro login-page--beauty">
 
-<div class="login-hero">
-    <button type="button" class="login-hero__back" id="loginBackBtn" aria-label="Retour">
+<div class="login-container login-container--beauty">
+    <button type="button" class="login-back login-back--beauty" id="loginBackBtn" aria-label="Retour">
         <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M15.75 19.5 8.25 12l7.5-7.5"/></svg>
     </button>
-    <img
-        class="login-hero__img"
-        src="images/login-hero.png"
-        alt="Intérieur de salon de coiffure"
-        width="1200"
-        height="640"
-        loading="eager"
-        decoding="async"
-    >
-</div>
-
-<div class="login-container login-container--beauty">
     <div class="login-beauty-blobs" aria-hidden="true">
         <span class="login-beauty-blobs__circle login-beauty-blobs__circle--1"></span>
         <span class="login-beauty-blobs__circle login-beauty-blobs__circle--2"></span>
@@ -47,6 +35,10 @@
             <label class="sr-only" for="password">Mot de passe</label>
             <div class="field-input-wrap field-input-wrap--beauty">
                 <input type="password" id="password" name="password" placeholder="Mot de passe" autocomplete="current-password" required>
+                <button type="button" class="password-toggle" data-target="password" aria-label="Afficher le mot de passe" aria-pressed="false">
+                    <svg class="password-toggle__icon password-toggle__icon--show" xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.75" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M2.036 12.322a1.012 1.012 0 010-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178z"/><path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+                    <svg class="password-toggle__icon password-toggle__icon--hide" xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.75" viewBox="0 0 24 24" aria-hidden="true" hidden><path stroke-linecap="round" stroke-linejoin="round" d="M3.98 8.223A10.477 10.477 0 001.934 12C3.226 16.338 7.244 19.5 12 19.5c.993 0 1.953-.138 2.863-.395M6.228 6.228A10.45 10.45 0 0112 4.5c4.756 0 8.773 3.162 10.065 7.498a10.523 10.523 0 01-4.293 5.774M6.228 6.228L3 3m3.228 3.228l3.65 3.65m7.894 7.894L21 21m-3.228-3.228l-3.65-3.65m0 0a3 3 0 10-4.243-4.243m4.242 4.242L9.88 9.88"/></svg>
+                </button>
             </div>
         </div>
 
@@ -68,6 +60,31 @@ import { loginUser, getFirebaseErrorMessage } from "./firebase.js";
 const form = document.getElementById("loginForm");
 const formError = document.getElementById("formError");
 const submitBtn = document.getElementById("loginSubmit");
+
+function setupPasswordToggle(btn) {
+    if (!btn) return;
+    const targetId = btn.getAttribute("data-target");
+    const input = targetId ? document.getElementById(targetId) : null;
+    if (!input) return;
+    const iconShow = btn.querySelector(".password-toggle__icon--show");
+    const iconHide = btn.querySelector(".password-toggle__icon--hide");
+    const setVisible = (visible) => {
+        const show = Boolean(visible);
+        input.setAttribute("type", show ? "text" : "password");
+        btn.setAttribute("aria-pressed", show ? "true" : "false");
+        btn.setAttribute("aria-label", show ? "Masquer le mot de passe" : "Afficher le mot de passe");
+        if (iconShow) iconShow.hidden = show;
+        if (iconHide) iconHide.hidden = !show;
+    };
+    const onToggle = (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        setVisible(input.getAttribute("type") === "password");
+    };
+    btn.addEventListener("click", onToggle);
+    btn.addEventListener("mousedown", (e) => e.preventDefault());
+}
+document.querySelectorAll(".password-toggle").forEach((btn) => setupPasswordToggle(btn));
 
 /** Évite le cycle tableau de bord → connexion si l’utilisateur n’est pas connecté. */
 function navigateLoginBack() {

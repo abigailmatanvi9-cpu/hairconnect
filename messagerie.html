@@ -19,6 +19,12 @@
     <p id="formError" class="form-error" role="alert" hidden></p>
     <p id="formOk" class="form-success" role="status" hidden></p>
 
+    <section id="msgContactGateSection" class="msg-contact-gate" hidden aria-labelledby="msgContactGateHeading">
+        <h2 class="subpage-h2" id="msgContactGateHeading">Demandes de contact</h2>
+        <div id="msgInboundRequests" class="msg-contact-inbound" hidden></div>
+        <div id="msgClientOutbound" class="msg-contact-outbound" hidden></div>
+    </section>
+
     <section class="msg-chat" aria-label="Chat">
         <aside class="msg-chat__sidebar">
             <h2 class="subpage-h2 msg-chat__title">Conversations</h2>
@@ -28,7 +34,7 @@
                 </select>
                 <button type="button" class="register-submit msg-chat__new-btn" id="startChatBtn">Ouvrir la conversation</button>
                 <p class="field-hint msg-chat__new-hint">
-                    Choisissez un professionnel, puis « Ouvrir la conversation » pour afficher le fil à droite et envoyer un premier message.
+                    Les clients doivent d’abord envoyer une demande depuis la fiche du professionnel ; une fois acceptée, ouvrez la conversation ici pour échanger.
                 </p>
             </div>
             <ul id="conversationList" class="msg-chat__conversations"></ul>
@@ -67,7 +73,9 @@ import {
     listMessagesForUser,
     listProfessionals,
     fetchUserProfile,
-    getFirebaseErrorMessage
+    getFirebaseErrorMessage,
+    listContactRequestsForUser,
+    respondContactRequest
 } from "./firebase.js";
 import { onAuthStateChanged } from "./firebase.js";
 
@@ -96,6 +104,230 @@ let activePeerUid = "";
 const profileMap = new Map();
 let refreshTimer = null;
 let pendingPhotoDataUrl = "";
+
+const msgContactGateSection = document.getElementById("msgContactGateSection");
+const msgInboundRequests = document.getElementById("msgInboundRequests");
+const msgClientOutbound = document.getElementById("msgClientOutbound");
+
+let contactRequests = [];
+let myRoleStr = "";
+
+function isProMessagingRoleLocal(role) {
+    const r = String(role || "")
+        .trim()
+        .toLowerCase();
+    return (
+        r === "salon" ||
+        r === "coiffeur" ||
+        r === "coiffeuse" ||
+        r === "coiffeur indépendant" ||
+        r === "coiffeuse indépendante"
+    );
+}
+
+function pairNeedsContactGate(roleA, roleB) {
+    const a = String(roleA || "")
+        .trim()
+        .toLowerCase();
+    const b = String(roleB || "")
+        .trim()
+        .toLowerCase();
+    return (a === "client" && isProMessagingRoleLocal(b)) || (isProMessagingRoleLocal(a) && b === "client");
+}
+
+async function loadContactRequests() {
+    if (!myUid) {
+        contactRequests = [];
+        return;
+    }
+    try {
+        contactRequests = await listContactRequestsForUser(myUid);
+    } catch {
+        contactRequests = [];
+    }
+}
+
+function hasAcceptedContact(clientUid, proUid) {
+    return contactRequests.some(
+        (r) => r.status === "accepted" && r.clientUid === clientUid && r.proUid === proUid
+    );
+}
+
+async function canMessagePeer(peerUid) {
+    if (!myUid || !peerUid || peerUid === myUid) return { ok: true };
+    await ensureProfile(peerUid);
+    await ensureProfile(myUid);
+    const rMe = profileMap.get(myUid)?.role || myRoleStr;
+    const rPeer = profileMap.get(peerUid)?.role || "";
+    if (!pairNeedsContactGate(rMe, rPeer)) return { ok: true };
+    let clientUid;
+    let proUid;
+    if (String(rMe).toLowerCase() === "client" && isProMessagingRoleLocal(rPeer)) {
+        clientUid = myUid;
+        proUid = peerUid;
+    } else if (isProMessagingRoleLocal(rMe) && String(rPeer).toLowerCase() === "client") {
+        clientUid = peerUid;
+        proUid = myUid;
+    } else {
+        return { ok: true };
+    }
+    if (hasAcceptedContact(clientUid, proUid)) return { ok: true };
+    return {
+        ok: false,
+        reason:
+            "La messagerie avec ce contact n’est ouverte qu’après acceptation d’une demande. En tant que client, ouvrez la fiche du professionnel et utilisez « Envoyer une demande de contact »."
+    };
+}
+
+async function renderContactGate() {
+    if (!msgContactGateSection || !msgInboundRequests || !msgClientOutbound) return;
+    const proMe = isProMessagingRoleLocal(myRoleStr);
+    const clientMe =
+        String(myRoleStr || "")
+            .trim()
+            .toLowerCase() === "client";
+
+    const inbound = contactRequests.filter((r) => r.proUid === myUid && r.status === "pending");
+    const outbound = contactRequests.filter(
+        (r) => r.clientUid === myUid && (r.status === "pending" || r.status === "rejected")
+    );
+    const acceptedAsClient = contactRequests.filter((r) => r.clientUid === myUid && r.status === "accepted");
+
+    for (const r of inbound) {
+        await ensureProfile(r.clientUid);
+    }
+    for (const r of outbound) {
+        await ensureProfile(r.proUid);
+    }
+    for (const r of acceptedAsClient) {
+        await ensureProfile(r.proUid);
+    }
+
+    if (!proMe && !clientMe) {
+        msgContactGateSection.hidden = true;
+        return;
+    }
+
+    const show =
+        (proMe && inbound.length > 0) ||
+        (clientMe && (outbound.length > 0 || acceptedAsClient.length > 0));
+    msgContactGateSection.hidden = !show;
+    if (!show) return;
+
+    if (proMe && inbound.length) {
+        msgInboundRequests.hidden = false;
+        msgInboundRequests.innerHTML =
+            "<h3 class=\"msg-contact-gate__sub\">À traiter</h3>" +
+            inbound
+                .map((r) => {
+                    const name = escapeHtml(displayNameForUid(r.clientUid));
+                    const msg = escapeHtml(String(r.message || "").slice(0, 160));
+                    return (
+                        "<div class=\"msg-contact-card\" data-req-id=\"" +
+                        escapeHtml(r.id) +
+                        "\">" +
+                        "<p class=\"msg-contact-card__who\"><strong>" +
+                        name +
+                        "</strong> souhaite vous contacter.</p>" +
+                        (msg ? "<p class=\"msg-contact-card__msg\">" + msg + "</p>" : "") +
+                        "<div class=\"msg-contact-card__actions\">" +
+                        "<button type=\"button\" class=\"register-submit msg-contact-card__btn\" data-action=\"accept\" data-req=\"" +
+                        escapeHtml(r.id) +
+                        "\">Accepter</button>" +
+                        "<button type=\"button\" class=\"register-submit msg-contact-card__btn msg-contact-card__btn--ghost\" data-action=\"reject\" data-req=\"" +
+                        escapeHtml(r.id) +
+                        "\">Refuser</button>" +
+                        "</div></div>"
+                    );
+                })
+                .join("");
+    } else {
+        msgInboundRequests.hidden = true;
+        msgInboundRequests.innerHTML = "";
+    }
+
+    if (clientMe && (outbound.length || acceptedAsClient.length)) {
+        msgClientOutbound.hidden = false;
+        let parts = "";
+        if (outbound.length) {
+            parts +=
+                "<h3 class=\"msg-contact-gate__sub\">Vos demandes</h3>" +
+                outbound
+                    .map((r) => {
+                        const proName = displayNameForUid(r.proUid);
+                        const line =
+                            r.status === "pending"
+                                ? "En attente de réponse de " + proName + "."
+                                : "Refusée par " + proName + ".";
+                        return "<p class=\"msg-contact-line\">" + escapeHtml(line) + "</p>";
+                    })
+                    .join("");
+        }
+        if (acceptedAsClient.length) {
+            const names = acceptedAsClient.map((r) => displayNameForUid(r.proUid));
+            parts +=
+                "<h3 class=\"msg-contact-gate__sub\">Demandes acceptées</h3>" +
+                "<p class=\"msg-contact-line msg-contact-line--ok\">Vous pouvez échanger avec " +
+                escapeHtml(names.join(", ")) +
+                " — la conversation apparaît dans la liste à gauche.</p>";
+        }
+        msgClientOutbound.innerHTML = parts;
+    } else {
+        msgClientOutbound.hidden = true;
+        msgClientOutbound.innerHTML = "";
+    }
+}
+
+if (msgInboundRequests) {
+    msgInboundRequests.addEventListener("click", async (e) => {
+        const btn = e.target.closest("[data-action][data-req]");
+        if (!btn || !myUid) return;
+        const id = btn.getAttribute("data-req");
+        const action = btn.getAttribute("data-action");
+        if (!id || (action !== "accept" && action !== "reject")) return;
+        formError.hidden = true;
+        formOk.hidden = true;
+        btn.disabled = true;
+        try {
+            await respondContactRequest(id, myUid, action === "accept" ? "accepted" : "rejected");
+            formOk.textContent =
+                action === "accept"
+                    ? "Demande acceptée — la messagerie est ouverte avec ce client."
+                    : "Demande refusée — aucun échange de messages ne sera possible avec ce client.";
+            formOk.hidden = false;
+            await loadContactRequests();
+            await renderContactGate();
+            await refreshList();
+        } catch (err) {
+            formError.textContent = getFirebaseErrorMessage(err);
+            formError.hidden = false;
+        } finally {
+            btn.disabled = false;
+        }
+    });
+}
+
+function updateComposerForGate(peerUid) {
+    const ta = document.getElementById("msgText");
+    const send = document.getElementById("sendBtn");
+    if (!ta || !send) return;
+    if (!peerUid) {
+        send.disabled = false;
+        ta.disabled = false;
+        return;
+    }
+    canMessagePeer(peerUid).then((g) => {
+        if (activePeerUid !== peerUid) return;
+        send.disabled = !g.ok;
+        ta.disabled = !g.ok;
+        if (g.ok) {
+            formError.hidden = true;
+        } else {
+            formError.textContent = g.reason;
+            formError.hidden = false;
+        }
+    });
+}
 
 const CHAT_RICH_PREFIX = "HCMSG1::";
 
@@ -289,6 +521,7 @@ function renderActiveMessages() {
         chatMessages.appendChild(li);
         chatPeerName.textContent = "Sélectionnez une conversation";
         chatPeerMeta.textContent = "";
+        updateComposerForGate("");
         return;
     }
 
@@ -304,6 +537,7 @@ function renderActiveMessages() {
         li.className = "msg-chat__empty";
         li.textContent = "Écrivez le premier message.";
         chatMessages.appendChild(li);
+        updateComposerForGate(activePeerUid);
         return;
     }
 
@@ -338,10 +572,13 @@ function renderActiveMessages() {
         chatMessages.appendChild(li);
     }
     chatMessages.scrollTop = chatMessages.scrollHeight;
+    updateComposerForGate(activePeerUid);
 }
 
 async function refreshList() {
     if (!myUid) return;
+    await loadContactRequests();
+    await renderContactGate();
     const items = await listMessagesForUser(myUid);
     allMessages = items;
 
@@ -352,10 +589,26 @@ async function refreshList() {
         await ensureProfile(uid);
     }
 
-    if (!activePeerUid && preTo) activePeerUid = preTo;
-    if (!activePeerUid && peers.size) activePeerUid = Array.from(peers)[0];
+    if (!activePeerUid && preTo) {
+        const gPre = await canMessagePeer(preTo);
+        if (gPre.ok) activePeerUid = preTo;
+        else {
+            formError.textContent = gPre.reason;
+            formError.hidden = false;
+        }
+    }
+    if (!activePeerUid && peers.size) {
+        for (const p of peers) {
+            const g = await canMessagePeer(p);
+            if (g.ok) {
+                activePeerUid = p;
+                break;
+            }
+        }
+    }
     renderConversationList();
     renderActiveMessages();
+    updateComposerForGate(activePeerUid);
 }
 
 function escapeHtml(s) {
@@ -374,6 +627,12 @@ form.addEventListener("submit", async (e) => {
     const text = document.getElementById("msgText").value;
     const cleanText = text.trim();
     if (!myUid || !toUid || (!cleanText && !pendingPhotoDataUrl)) return;
+    const gate = await canMessagePeer(toUid);
+    if (!gate.ok) {
+        formError.textContent = gate.reason;
+        formError.hidden = false;
+        return;
+    }
     sendBtn.disabled = true;
     try {
         const payload = encodeChatPayload(cleanText, pendingPhotoDataUrl);
@@ -467,10 +726,17 @@ startChatBtn.addEventListener("click", async () => {
         formError.hidden = false;
         return;
     }
+    const gate = await canMessagePeer(uid);
+    if (!gate.ok) {
+        formError.textContent = gate.reason;
+        formError.hidden = false;
+        return;
+    }
     activePeerUid = uid;
     await ensureProfile(uid);
     renderConversationList();
     renderActiveMessages();
+    updateComposerForGate(activePeerUid);
     try {
         document.getElementById("msgText")?.focus();
     } catch {
@@ -499,6 +765,7 @@ conversationList.addEventListener("click", (e) => {
     }
     renderConversationList();
     renderActiveMessages();
+    updateComposerForGate(activePeerUid);
 });
 
 onAuthStateChanged(auth, async (user) => {
@@ -508,6 +775,9 @@ onAuthStateChanged(auth, async (user) => {
     }
     myUid = user.uid;
     try {
+        const me = await fetchUserProfile(myUid).catch(() => null);
+        myRoleStr = me?.role || "";
+        if (me) profileMap.set(myUid, me);
         if (!recipientsLoaded) {
             await loadRecipients();
         }

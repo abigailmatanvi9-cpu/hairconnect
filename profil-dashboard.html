@@ -71,25 +71,18 @@
                     <p class="field-hint">Les clients peuvent filtrer l’annuaire par quartier pour vous trouver.</p>
                 </div>
                 <div class="field-group">
-                    <label class="field-label" for="dpPhone">Téléphone (optionnel)</label>
-                    <div class="field-input-wrap">
-                        <input type="tel" id="dpPhone" name="phone" autocomplete="tel">
+                    <label class="field-label" for="dpPhoneNational">Téléphone (optionnel)</label>
+                    <div class="phone-input-row">
+                        <select id="dpPhoneCountry" class="phone-input-row__country" aria-label="Indicatif pays"></select>
+                        <div class="field-input-wrap phone-input-row__number-wrap">
+                            <input type="tel" id="dpPhoneNational" name="phoneNational" autocomplete="tel-national" placeholder="90 12 34 56">
+                        </div>
                     </div>
+                    <p class="field-hint" id="dpPhoneHint"></p>
                 </div>
                 <div class="field-group" id="dpWrapBio">
                     <label class="field-label" for="dpBio">Description</label>
                     <textarea id="dpBio" name="bio" class="field-textarea" rows="4" placeholder="Présentez-vous ou décrivez votre établissement…"></textarea>
-                </div>
-                <div class="field-group" id="dpWrapTarifMenuPhoto" hidden>
-                    <label class="field-label" for="dpTarifMenuPhoto">Photo du menu tarifs (optionnel)</label>
-                    <p class="field-hint">Une image de votre carte tarifs, visible par les clients sur votre fiche publique. PNG ou JPEG, max 2 Mo.</p>
-                    <div class="field-input-wrap">
-                        <input type="file" id="dpTarifMenuPhoto" accept="image/*">
-                    </div>
-                    <div id="dpTarifMenuPreviewWrap" class="profil-tarif-menu-preview" hidden>
-                        <img id="dpTarifMenuPreview" class="profil-tarif-menu-preview__img" alt="Aperçu du menu tarifs">
-                    </div>
-                    <button type="button" class="profil-tarif-menu-remove" id="dpTarifMenuRemove" hidden>Retirer la photo du menu</button>
                 </div>
                 <div class="field-group field-checkbox" id="dpWrapHomeVisit" hidden>
                     <label class="field-label-checkbox">
@@ -120,6 +113,11 @@ import {
     getFirebaseErrorMessage,
     HAIRCONNECT_METIERS
 } from "./firebase.js";
+import { initPhoneField, readPhoneFromField } from "./phone-utils.js";
+
+const dpPhoneCountry = document.getElementById("dpPhoneCountry");
+const dpPhoneNational = document.getElementById("dpPhoneNational");
+const dpPhoneHint = document.getElementById("dpPhoneHint");
 
 function buildMetierBoxes(container, inputName, idPrefix) {
     if (!container) return;
@@ -172,7 +170,6 @@ let profileUid = null;
 let profileCache = null;
 let roleDisplay = "";
 let photoUrl = "";
-let tarifMenuPhotoUrl = "";
 
 function normalizeRole(raw) {
     if (!raw || typeof raw !== "string") return "unknown";
@@ -225,53 +222,6 @@ function applyHubAvatar(name, url) {
     }
 }
 
-function applyTarifMenuPreview(url) {
-    const wrap = document.getElementById("dpTarifMenuPreviewWrap");
-    const img = document.getElementById("dpTarifMenuPreview");
-    const btn = document.getElementById("dpTarifMenuRemove");
-    const u = String(url || "").trim();
-    if (!wrap || !img) return;
-    if (u) {
-        img.src = u;
-        wrap.hidden = false;
-        if (btn) btn.hidden = false;
-    } else {
-        img.removeAttribute("src");
-        wrap.hidden = true;
-        if (btn) btn.hidden = true;
-    }
-}
-
-const dpTarifMenuPhotoInput = document.getElementById("dpTarifMenuPhoto");
-const dpTarifMenuRemoveBtn = document.getElementById("dpTarifMenuRemove");
-
-if (dpTarifMenuPhotoInput) {
-    dpTarifMenuPhotoInput.addEventListener("change", () => {
-        const f = dpTarifMenuPhotoInput.files?.[0];
-        if (!f) return;
-        if (f.size > 2 * 1024 * 1024) {
-            alert("La photo du menu est trop volumineuse (max 2 Mo).");
-            dpTarifMenuPhotoInput.value = "";
-            return;
-        }
-        const reader = new FileReader();
-        reader.onload = () => {
-            tarifMenuPhotoUrl = String(reader.result || "").trim();
-            applyTarifMenuPreview(tarifMenuPhotoUrl);
-        };
-        reader.onerror = () => alert("Impossible de lire cette image.");
-        reader.readAsDataURL(f);
-    });
-}
-
-if (dpTarifMenuRemoveBtn) {
-    dpTarifMenuRemoveBtn.addEventListener("click", () => {
-        tarifMenuPhotoUrl = "";
-        if (dpTarifMenuPhotoInput) dpTarifMenuPhotoInput.value = "";
-        applyTarifMenuPreview("");
-    });
-}
-
 function syncFormFromCache() {
     const user = auth.currentUser;
     const data = profileCache;
@@ -295,12 +245,10 @@ function syncFormFromCache() {
 
     const wrapSalon = document.getElementById("dpWrapSalonName");
     const wrapHome = document.getElementById("dpWrapHomeVisit");
-    const wrapTarifMenuPhoto = document.getElementById("dpWrapTarifMenuPhoto");
     const wrapProMetiers = document.getElementById("dpWrapProMetiers");
     const wrapBio = document.getElementById("dpWrapBio");
     if (wrapSalon) wrapSalon.hidden = roleDisplay !== "Salon";
     if (wrapHome) wrapHome.hidden = roleDisplay !== "Coiffeur";
-    if (wrapTarifMenuPhoto) wrapTarifMenuPhoto.hidden = roleDisplay !== "Coiffeur" && roleDisplay !== "Salon";
     if (wrapProMetiers) wrapProMetiers.hidden = roleDisplay !== "Coiffeur" && roleDisplay !== "Salon";
     if (wrapBio) wrapBio.hidden = roleDisplay === "Client";
 
@@ -314,18 +262,18 @@ function syncFormFromCache() {
     }
     const nm = document.getElementById("dpName");
     const city = document.getElementById("dpCity");
-    const phone = document.getElementById("dpPhone");
     const bio = document.getElementById("dpBio");
     if (nm) nm.value = data.name || "";
     if (city) city.value = data.city || "";
     const quart = document.getElementById("dpQuartier");
     if (quart) quart.value = data.quartier || "";
-    if (phone) phone.value = data.phone || "";
+    initPhoneField({
+        countrySelect: dpPhoneCountry,
+        nationalInput: dpPhoneNational,
+        hintEl: dpPhoneHint,
+        storedPhone: data.phone || ""
+    });
     if (bio) bio.value = roleDisplay === "Client" ? "" : data.bio || "";
-    tarifMenuPhotoUrl = String(data.tarifMenuPhotoUrl || "").trim();
-    applyTarifMenuPreview(tarifMenuPhotoUrl);
-    const tarifFile = document.getElementById("dpTarifMenuPhoto");
-    if (tarifFile) tarifFile.value = "";
     setMetierChecks("dpProMetiersList", parseMetiersFromProfile(data.proMetiers));
 }
 
@@ -374,11 +322,20 @@ document.getElementById("dpForm").addEventListener("submit", async (e) => {
         return;
     }
 
+    const phoneResult = readPhoneFromField(dpPhoneCountry, dpPhoneNational);
+    if (!phoneResult.ok) {
+        if (formError) {
+            formError.textContent = phoneResult.message;
+            formError.hidden = false;
+        }
+        return;
+    }
+
     const payload = {
         name: document.getElementById("dpName").value.trim(),
         city: document.getElementById("dpCity").value.trim(),
         quartier: document.getElementById("dpQuartier").value.trim() || null,
-        phone: document.getElementById("dpPhone").value.trim(),
+        phone: phoneResult.e164,
         photoUrl
     };
     payload.bio =
@@ -397,9 +354,6 @@ document.getElementById("dpForm").addEventListener("submit", async (e) => {
     }
     if (roleDisplay === "Coiffeur") {
         payload.homeVisit = document.getElementById("dpHomeVisit").checked;
-    }
-    if (roleDisplay === "Coiffeur" || roleDisplay === "Salon") {
-        payload.tarifMenuPhotoUrl = tarifMenuPhotoUrl.trim() || null;
     }
     if (roleDisplay === "Coiffeur" || roleDisplay === "Salon") {
         payload.proMetiers = readMetierChecks("dpProMetier");

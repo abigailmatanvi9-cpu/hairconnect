@@ -71,13 +71,29 @@
         </div>
 
         <div class="field-group">
+            <label class="field-label" for="regPhoneNational">Téléphone (optionnel)</label>
+            <div class="phone-input-row">
+                <select id="regPhoneCountry" class="phone-input-row__country" aria-label="Indicatif pays"></select>
+                <div class="field-input-wrap phone-input-row__number-wrap">
+                    <input type="tel" id="regPhoneNational" name="phoneNational" autocomplete="tel-national" placeholder="90 12 34 56">
+                </div>
+            </div>
+            <p class="field-hint" id="regPhoneHint"></p>
+        </div>
+
+        <div class="field-group">
             <label class="field-label" for="password">Mot de passe</label>
             <div class="field-input-wrap">
                 <span class="field-input-icon" aria-hidden="true">
                     <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M16.5 10.5V6.75a4.5 4.5 0 10-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 002.25-2.25v-6.75a2.25 2.25 0 00-2.25-2.25H6.75a2.25 2.25 0 00-2.25 2.25v6.75a2.25 2.25 0 002.25 2.25z"/></svg>
                 </span>
-                <input type="password" id="password" name="password" placeholder="••••••••" autocomplete="new-password">
+                <input type="password" id="password" name="password" placeholder="••••••••" autocomplete="new-password" minlength="8" required>
+                <button type="button" class="password-toggle" data-target="password" aria-label="Afficher le mot de passe" aria-pressed="false">
+                    <svg class="password-toggle__icon password-toggle__icon--show" xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.75" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M2.036 12.322a1.012 1.012 0 010-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178z"/><path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+                    <svg class="password-toggle__icon password-toggle__icon--hide" xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.75" viewBox="0 0 24 24" aria-hidden="true" hidden><path stroke-linecap="round" stroke-linejoin="round" d="M3.98 8.223A10.477 10.477 0 001.934 12C3.226 16.338 7.244 19.5 12 19.5c.993 0 1.953-.138 2.863-.395M6.228 6.228A10.45 10.45 0 0112 4.5c4.756 0 8.773 3.162 10.065 7.498a10.523 10.523 0 01-4.293 5.774M6.228 6.228L3 3m3.228 3.228l3.65 3.65m7.894 7.894L21 21m-3.228-3.228l-3.65-3.65m0 0a3 3 0 10-4.243-4.243m4.242 4.242L9.88 9.88"/></svg>
+                </button>
             </div>
+            <p class="field-hint">Minimum 8 caractères avec 1 majuscule, 1 minuscule, 1 chiffre et 1 caractère spécial.</p>
         </div>
 
         <button type="submit" class="register-submit" id="registerSubmit">Créer un Compte</button>
@@ -90,12 +106,48 @@
 
 <script type="module">
 import { registerUser, saveUserData, getFirebaseErrorMessage, HAIRCONNECT_METIERS } from "./firebase.js";
+import { initPhoneField, readPhoneFromField } from "./phone-utils.js";
+
+const regPhoneCountry = document.getElementById("regPhoneCountry");
+const regPhoneNational = document.getElementById("regPhoneNational");
+const regPhoneHint = document.getElementById("regPhoneHint");
+initPhoneField({
+    countrySelect: regPhoneCountry,
+    nationalInput: regPhoneNational,
+    hintEl: regPhoneHint,
+    storedPhone: ""
+});
 
 const form = document.getElementById("registerForm");
 const formError = document.getElementById("formError");
 const submitBtn = document.getElementById("registerSubmit");
 const registerWrapProMetiers = document.getElementById("registerWrapProMetiers");
 const registerProMetiersList = document.getElementById("registerProMetiersList");
+const PASSWORD_POLICY = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z\d]).{8,}$/;
+
+function setupPasswordToggle(btn) {
+    if (!btn) return;
+    const targetId = btn.getAttribute("data-target");
+    const input = targetId ? document.getElementById(targetId) : null;
+    if (!input) return;
+    const iconShow = btn.querySelector(".password-toggle__icon--show");
+    const iconHide = btn.querySelector(".password-toggle__icon--hide");
+    const setVisible = (visible) => {
+        const show = Boolean(visible);
+        input.setAttribute("type", show ? "text" : "password");
+        btn.setAttribute("aria-pressed", show ? "true" : "false");
+        btn.setAttribute("aria-label", show ? "Masquer le mot de passe" : "Afficher le mot de passe");
+        if (iconShow) iconShow.hidden = show;
+        if (iconHide) iconHide.hidden = !show;
+    };
+    const onToggle = (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        setVisible(input.getAttribute("type") === "password");
+    };
+    btn.addEventListener("click", onToggle);
+    btn.addEventListener("mousedown", (e) => e.preventDefault());
+}
 
 function buildMetierBoxes(container, inputName, idPrefix) {
     if (!container) return;
@@ -116,6 +168,7 @@ function buildMetierBoxes(container, inputName, idPrefix) {
 }
 
 buildMetierBoxes(registerProMetiersList, "proMetier", "pm");
+document.querySelectorAll(".password-toggle").forEach((btn) => setupPasswordToggle(btn));
 
 function checkedSlugs(name) {
     return [...form.querySelectorAll(`input[name="${name}"]:checked`)].map((c) => c.value);
@@ -145,8 +198,21 @@ form.addEventListener("submit", async (e) => {
         formError.hidden = false;
         return;
     }
+    if (!PASSWORD_POLICY.test(password)) {
+        formError.textContent = "Mot de passe trop faible : utilisez au moins 8 caractères, avec majuscule, minuscule, chiffre et caractère spécial.";
+        formError.hidden = false;
+        return;
+    }
+
+    const phoneResult = readPhoneFromField(regPhoneCountry, regPhoneNational);
+    if (!phoneResult.ok) {
+        formError.textContent = phoneResult.message;
+        formError.hidden = false;
+        return;
+    }
 
     const extra = {};
+    if (phoneResult.e164) extra.phone = phoneResult.e164;
     if (role === "Coiffeur" || role === "Salon") {
         const pm = checkedSlugs("proMetier");
         if (pm.length === 0) {

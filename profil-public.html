@@ -28,15 +28,14 @@
         <p class="public-meta" id="pubCity"></p>
         <p class="public-bio" id="pubBio"></p>
         <pre class="public-services" id="pubServices"></pre>
-        <section id="pubTarifMenuSection" class="public-tarif-menu-section" hidden aria-labelledby="pubTarifMenuTitle">
-            <h3 class="public-publications__title" id="pubTarifMenuTitle">Menu tarifs</h3>
-            <p class="public-tarif-menu-lead">Photo partagée par le professionnel.</p>
-            <a id="pubTarifMenuLink" class="public-tarif-menu-link" href="#" target="_blank" rel="noopener noreferrer">
-                <img id="pubTarifMenuImg" class="public-tarif-menu__img" alt="Menu tarifs du professionnel">
-            </a>
-        </section>
         <p id="pubHome" class="public-badge" hidden>Déplacements à domicile : oui</p>
         <div class="public-actions">
+            <div id="contactRequestPanel" class="public-contact-request" hidden>
+                <p id="contactRequestStatus" class="public-contact-request__status" aria-live="polite"></p>
+                <label class="field-label" for="contactRequestNote">Message au professionnel (optionnel)</label>
+                <textarea id="contactRequestNote" class="field-textarea public-contact-request__note" rows="2" maxlength="2000" placeholder="Bonjour, je souhaiterais…"></textarea>
+                <button type="button" class="register-submit public-btn" id="contactRequestBtn">Envoyer une demande de contact</button>
+            </div>
             <a class="register-submit public-btn" id="linkMsg" href="login.html">Message</a>
             <button class="register-submit public-btn public-btn--ghost" id="favBtn" hidden>Ajouter aux favoris</button>
         </div>
@@ -110,7 +109,9 @@ import {
     createPublication,
     isGuestDiscovery,
     clearGuestDiscovery,
-    getFirebaseErrorMessage
+    getFirebaseErrorMessage,
+    getContactRequestBetween,
+    createContactRequest
 } from "./firebase.js";
 
 const params = new URLSearchParams(location.search);
@@ -215,34 +216,102 @@ if (!uid) {
         document.getElementById("pubBio").textContent = d.bio || "";
         const pubServicesEl = document.getElementById("pubServices");
         const textTarifs = String(d.servicesTarifs || "").trim();
-        const menuUrl = String(d.tarifMenuPhotoUrl || "").trim();
         if (pubServicesEl) {
             if (textTarifs) {
                 pubServicesEl.textContent = textTarifs;
                 pubServicesEl.hidden = false;
-            } else if (menuUrl) {
-                pubServicesEl.hidden = true;
             } else {
                 pubServicesEl.textContent = "Services / tarifs non renseignés.";
                 pubServicesEl.hidden = false;
             }
         }
         if (d.homeVisit) document.getElementById("pubHome").hidden = false;
-        const menuSec = document.getElementById("pubTarifMenuSection");
-        const menuLink = document.getElementById("pubTarifMenuLink");
-        const menuImg = document.getElementById("pubTarifMenuImg");
-        if (menuSec && menuLink && menuImg) {
-            if (menuUrl) {
-                menuLink.href = menuUrl;
-                menuImg.src = menuUrl;
-                menuSec.hidden = false;
-            } else {
-                menuSec.hidden = true;
-                menuImg.removeAttribute("src");
-                menuLink.href = "#";
+    }
+
+    let pubContactPair = null;
+
+    async function syncContactRequestUi(clientUid, proUid) {
+        const contactRequestStatus = document.getElementById("contactRequestStatus");
+        const contactRequestBtn = document.getElementById("contactRequestBtn");
+        const contactRequestNote = document.getElementById("contactRequestNote");
+        const linkMsgEl = document.getElementById("linkMsg");
+        const contactRequestPanel = document.getElementById("contactRequestPanel");
+        if (!contactRequestPanel || !linkMsgEl) return;
+
+        let req = null;
+        try {
+            req = await getContactRequestBetween(clientUid, proUid);
+        } catch {
+            req = null;
+        }
+
+        linkMsgEl.href = "messagerie.html?to=" + encodeURIComponent(proUid);
+
+        if (req?.status === "accepted") {
+            contactRequestPanel.hidden = true;
+            linkMsgEl.hidden = false;
+            linkMsgEl.textContent = "Ouvrir la messagerie";
+            pubContactPair = null;
+            return;
+        }
+
+        contactRequestPanel.hidden = false;
+        linkMsgEl.hidden = true;
+        pubContactPair = { clientUid, proUid };
+
+        if (!req) {
+            if (contactRequestStatus) {
+                contactRequestStatus.textContent =
+                    "Envoyez une demande : le professionnel devra l’accepter avant que vous puissiez discuter par messagerie.";
             }
+            if (contactRequestBtn) {
+                contactRequestBtn.hidden = false;
+                contactRequestBtn.disabled = false;
+                contactRequestBtn.textContent = "Envoyer une demande de contact";
+            }
+            if (contactRequestNote) contactRequestNote.disabled = false;
+            return;
+        }
+
+        if (req.status === "pending") {
+            if (contactRequestStatus) {
+                contactRequestStatus.textContent =
+                    "Demande envoyée — en attente de réponse. Vous serez informé lorsque le professionnel aura accepté ou refusé (rechargez cette page ou ouvrez la messagerie).";
+            }
+            if (contactRequestBtn) contactRequestBtn.hidden = true;
+            if (contactRequestNote) contactRequestNote.disabled = true;
+            return;
+        }
+
+        if (req.status === "rejected") {
+            if (contactRequestStatus) {
+                contactRequestStatus.textContent =
+                    "Votre demande a été refusée. La messagerie avec ce professionnel reste fermée, sauf si vous envoyez une nouvelle demande.";
+            }
+            if (contactRequestBtn) {
+                contactRequestBtn.hidden = false;
+                contactRequestBtn.textContent = "Envoyer une nouvelle demande";
+            }
+            if (contactRequestNote) contactRequestNote.disabled = false;
         }
     }
+
+    document.getElementById("contactRequestBtn")?.addEventListener("click", async () => {
+        if (!pubContactPair) return;
+        const btn = document.getElementById("contactRequestBtn");
+        const note = document.getElementById("contactRequestNote");
+        try {
+            if (btn) btn.disabled = true;
+            errEl.hidden = true;
+            await createContactRequest(pubContactPair.clientUid, pubContactPair.proUid, note?.value || "");
+            await syncContactRequestUi(pubContactPair.clientUid, pubContactPair.proUid);
+        } catch (e) {
+            errEl.textContent = getFirebaseErrorMessage(e);
+            errEl.hidden = false;
+        } finally {
+            if (btn) btn.disabled = false;
+        }
+    });
 
     onAuthStateChanged(auth, async (user) => {
         if (user) {
@@ -275,6 +344,9 @@ if (!uid) {
         if (!user && isGuestDiscovery()) {
             document.getElementById("linkMsg").href = "login.html";
             document.getElementById("linkMsg").textContent = "Se connecter pour écrire";
+            document.getElementById("linkMsg").hidden = false;
+            const crpGuest = document.getElementById("contactRequestPanel");
+            if (crpGuest) crpGuest.hidden = true;
             favBtn.hidden = true;
             if (guestBar) guestBar.hidden = false;
             content.hidden = false;
@@ -286,8 +358,14 @@ if (!uid) {
             myProfile = await fetchUserProfile(user.uid).catch(() => null);
         }
 
-        document.getElementById("linkMsg").href = "messagerie.html?to=" + encodeURIComponent(uid);
-        document.getElementById("linkMsg").textContent = "Message";
+        const linkMsgEl = document.getElementById("linkMsg");
+        const contactRequestPanel = document.getElementById("contactRequestPanel");
+        const selfProfile = user.uid === uid;
+
+        linkMsgEl.href = "messagerie.html?to=" + encodeURIComponent(uid);
+        linkMsgEl.textContent = "Message";
+        linkMsgEl.hidden = false;
+        if (contactRequestPanel) contactRequestPanel.hidden = true;
         if (guestBar) guestBar.hidden = true;
         content.hidden = false;
 
@@ -300,6 +378,18 @@ if (!uid) {
             targetRole === "salon";
         const myRole = String(myProfile?.role || "").toLowerCase();
         const amClient = myRole === "client";
+
+        if (selfProfile) {
+            linkMsgEl.hidden = true;
+            if (contactRequestPanel) contactRequestPanel.hidden = true;
+            favBtn.hidden = true;
+        } else if (user.uid !== uid && isTargetPro && amClient) {
+            await syncContactRequestUi(user.uid, uid);
+        } else {
+            linkMsgEl.hidden = false;
+            if (contactRequestPanel) contactRequestPanel.hidden = true;
+        }
+
         if (pubAvisForm) {
             pubAvisForm.hidden = !(user.uid !== uid && isTargetPro && amClient);
         }

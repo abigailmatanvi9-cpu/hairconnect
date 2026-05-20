@@ -20,6 +20,11 @@
         Après validation du panier, chaque vendeur concerné reçoit un <strong>message dans la messagerie</strong> avec le détail de la commande.
         <span id="marketLeadRoleNote" hidden> La vente est réservée aux salons et coiffeurs ; les clients achètent uniquement.</span>
     </p>
+    <section id="marketRdvBanner" class="market-rdv-banner" hidden aria-live="polite">
+        <p class="market-rdv-banner__title">Sélection d’articles pour votre rendez-vous</p>
+        <p class="market-rdv-banner__text" id="marketRdvBannerText"></p>
+        <a id="marketRdvBackLink" class="market-rdv-banner__back" href="mes-rdv-client.html">← Retour à mes rendez-vous</a>
+    </section>
     <p id="marketErr" class="form-error" role="alert" hidden></p>
     <p id="marketOk" class="form-success" role="status" hidden></p>
 
@@ -33,7 +38,7 @@
 
         <section class="market-cart" id="marketCartSection" aria-label="Panier" hidden>
             <div class="market-cart__head">
-                <h2 class="market-cart__title">Panier</h2>
+                <h2 class="market-cart__title" id="marketCartTitle">Panier</h2>
                 <button type="button" class="jobs-card__delete" id="marketCartClear" hidden>Vider</button>
             </div>
             <ul id="marketCartLines" class="market-cart__lines"></ul>
@@ -51,13 +56,13 @@
         <section class="jobs-summary-card" aria-live="polite">
             <div class="jobs-summary-card__text">
                 <p id="marketCountText" class="jobs-summary-card__title">0 article</p>
-                <p class="jobs-summary-card__subtitle">Commande sur la plateforme</p>
+                <p class="jobs-summary-card__subtitle" id="marketSummarySubtitle">Commande sur la plateforme</p>
             </div>
         </section>
 
         <ul id="marketProductsList" class="jobs-list"></ul>
 
-        <section class="jobs-create market-orders">
+        <section class="jobs-create market-orders" id="marketBuyerOrdersSection">
             <h2 class="subpage-h2">Mes commandes</h2>
             <ul id="marketBuyerOrdersList" class="jobs-list"></ul>
         </section>
@@ -127,6 +132,8 @@ import {
     cancelMarketplaceOrder,
     listMarketplaceOrders,
     updateMarketplaceOrderStatus,
+    getRendezVousItemSelection,
+    saveRendezVousItemSelection,
     getFirebaseErrorMessage
 } from "./firebase.js";
 
@@ -154,9 +161,72 @@ const marketPhotoFileHint = document.getElementById("marketPhotoFileHint");
 const marketPhotoPreviewWrap = document.getElementById("marketPhotoPreviewWrap");
 const marketPhotoPreview = document.getElementById("marketPhotoPreview");
 const MARKET_PHOTO_MAX_BYTES = 2 * 1024 * 1024;
+const marketRdvBanner = document.getElementById("marketRdvBanner");
+const marketRdvBannerText = document.getElementById("marketRdvBannerText");
+const marketRdvBackLink = document.getElementById("marketRdvBackLink");
+const marketLead = document.getElementById("marketLead");
+const marketCartTitle = document.getElementById("marketCartTitle");
+const marketSummarySubtitle = document.getElementById("marketSummarySubtitle");
+const marketBuyerOrdersSection = document.getElementById("marketBuyerOrdersSection");
+const pageBackLink = document.querySelector(".login-back");
+
+const urlParams = new URLSearchParams(window.location.search);
+const rdvSelectionMode =
+    Boolean(String(urlParams.get("rdvId") || "").trim()) &&
+    Boolean(String(urlParams.get("sellerUid") || "").trim());
+const rdvId = String(urlParams.get("rdvId") || "").trim();
+const rdvSellerUid = String(urlParams.get("sellerUid") || "").trim();
+const rdvReturnUrl = String(urlParams.get("return") || "mes-rdv-client.html").trim() || "mes-rdv-client.html";
+let rdvProLabel = "votre professionnel";
 
 let canSellMarketplace = false;
 let marketTabsListenersBound = false;
+
+function applyRdvSelectionModeUi() {
+    if (!rdvSelectionMode) return;
+    document.title = "Articles pour votre rendez-vous — HairConnect";
+    const titleEl = document.querySelector(".login-title");
+    if (titleEl) titleEl.textContent = "Articles pour votre rendez-vous";
+    if (marketLead) marketLead.hidden = true;
+    if (marketRdvBanner) marketRdvBanner.hidden = false;
+    if (marketRdvBannerText) {
+        marketRdvBannerText.textContent =
+            `Parcourez le catalogue de ${rdvProLabel}, ajoutez les articles souhaités à votre sélection, puis enregistrez. ` +
+            "Il ne s’agit pas d’un achat immédiat : le professionnel verra votre choix et pourra inclure ces articles dans le montant total du rendez-vous.";
+    }
+    if (marketRdvBackLink) marketRdvBackLink.href = rdvReturnUrl;
+    if (pageBackLink) pageBackLink.href = rdvReturnUrl;
+    if (marketModeTabs) marketModeTabs.hidden = true;
+    if (marketPanelSell) marketPanelSell.hidden = true;
+    if (marketPanelBuy) marketPanelBuy.hidden = false;
+    if (marketBuyerOrdersSection) marketBuyerOrdersSection.hidden = true;
+    if (marketCartTitle) marketCartTitle.textContent = "Ma sélection pour le rendez-vous";
+    if (marketSummarySubtitle) marketSummarySubtitle.textContent = "Articles du professionnel de votre rendez-vous";
+    if (checkoutBtn) checkoutBtn.textContent = "Enregistrer pour mon rendez-vous";
+    if (cartClearBtn) cartClearBtn.textContent = "Vider la sélection";
+    document.body.classList.add("market-page--rdv-selection");
+}
+
+function cartItemsFromRdvSelection(selection) {
+    const lines = Array.isArray(selection?.lines) ? selection.lines : [];
+    return lines
+        .map((line) => ({
+            productId: String(line.productId || "").trim(),
+            quantity: Math.max(0, Math.floor(Number(line.quantity || 0)))
+        }))
+        .filter((row) => row.productId && row.quantity > 0);
+}
+
+async function loadRdvSelectionCart() {
+    if (!rdvSelectionMode || !me) return;
+    try {
+        const payload = await getRendezVousItemSelection(rdvId, me.uid);
+        const selection = payload?.selection || null;
+        cartItems = cartItemsFromRdvSelection(selection);
+    } catch {
+        cartItems = [];
+    }
+}
 
 function normalizeProfileRole(raw) {
     if (!raw || typeof raw !== "string") return "unknown";
@@ -331,6 +401,7 @@ function cartStorageKey() {
 }
 
 function readCartFromStorage() {
+    if (rdvSelectionMode) return cartItems.slice();
     const key = cartStorageKey();
     if (!key) return [];
     try {
@@ -343,6 +414,7 @@ function readCartFromStorage() {
 }
 
 function saveCartToStorage() {
+    if (rdvSelectionMode) return;
     const key = cartStorageKey();
     if (!key) return;
     localStorage.setItem(key, JSON.stringify(cartItems));
@@ -368,8 +440,12 @@ function setCartQty(productId, qty) {
 function addToCart(productId, delta) {
     const p = productById(productId);
     if (!p || !me) return;
-    if (String(p.sellerUid || "") === String(me.uid || "")) {
+    if (!rdvSelectionMode && String(p.sellerUid || "") === String(me.uid || "")) {
         showError("Vous ne pouvez pas ajouter vos propres articles au panier.");
+        return;
+    }
+    if (rdvSelectionMode && String(p.sellerUid || "") !== String(rdvSellerUid)) {
+        showError("Cet article n’appartient pas au professionnel de votre rendez-vous.");
         return;
     }
     const stock = Number(p.stock || 0);
@@ -385,7 +461,7 @@ function addToCart(productId, delta) {
     }
     setCartQty(productId, next);
     errEl.hidden = true;
-    showOk("Panier mis à jour.");
+    showOk(rdvSelectionMode ? "Sélection mise à jour." : "Panier mis à jour.");
 }
 
 function clearCart() {
@@ -397,7 +473,9 @@ function clearCart() {
 function renderCart() {
     if (!me || !cartSection) return;
     cartSection.hidden = false;
-    cartItems = readCartFromStorage();
+    if (!rdvSelectionMode) {
+        cartItems = readCartFromStorage();
+    }
     const valid = [];
     let subtotal = 0;
     cartLinesEl.innerHTML = "";
@@ -405,7 +483,8 @@ function renderCart() {
         const p = productById(row.productId);
         const qty = Math.max(1, Number(row.quantity || 1));
         if (!p) return;
-        if (String(p.sellerUid || "") === String(me.uid || "")) return;
+        if (!rdvSelectionMode && String(p.sellerUid || "") === String(me.uid || "")) return;
+        if (rdvSelectionMode && String(p.sellerUid || "") !== String(rdvSellerUid)) return;
         valid.push({ productId: p.id, quantity: qty });
         subtotal += Number(p.priceFcfa) * qty;
         const li = document.createElement("li");
@@ -420,15 +499,22 @@ function renderCart() {
             `</span>`;
         cartLinesEl.appendChild(li);
     });
-    if (JSON.stringify(valid) !== JSON.stringify(cartItems)) {
+    if (!rdvSelectionMode && JSON.stringify(valid) !== JSON.stringify(cartItems)) {
         cartItems = valid;
         saveCartToStorage();
+    } else if (rdvSelectionMode) {
+        cartItems = valid;
     }
     const has = valid.length > 0;
     cartFoot.hidden = !has;
     cartClearBtn.hidden = !has;
     if (has) {
-        cartTotalEl.textContent = `Sous-total : ${money(subtotal)} (commission 10 % déduite côté vendeur)`;
+        cartTotalEl.textContent = rdvSelectionMode
+            ? `Sous-total articles : ${money(subtotal)}`
+            : `Sous-total : ${money(subtotal)} (commission 10 % déduite côté vendeur)`;
+    } else if (rdvSelectionMode) {
+        cartFoot.hidden = false;
+        cartTotalEl.textContent = "Aucun article sélectionné pour le moment.";
     }
 }
 
@@ -444,9 +530,13 @@ function productPhotoHtml(photoUrl, title) {
 }
 
 function filteredProducts() {
+    let rows = products;
+    if (rdvSelectionMode) {
+        rows = rows.filter((p) => String(p.sellerUid || "") === String(rdvSellerUid));
+    }
     const q = searchTerm.trim().toLowerCase();
-    if (!q) return products;
-    return products.filter((p) =>
+    if (!q) return rows;
+    return rows.filter((p) =>
         `${p.title || ""} ${p.description || ""} ${p.category || ""} ${p.sellerName || ""}`.toLowerCase().includes(q)
     );
 }
@@ -458,15 +548,26 @@ function renderProducts() {
     if (!rows.length) {
         const li = document.createElement("li");
         li.className = "jobs-empty";
-        li.textContent = "Aucun article trouvé.";
+        li.textContent = rdvSelectionMode
+            ? "Aucun article disponible chez ce professionnel pour le moment."
+            : "Aucun article trouvé.";
         listEl.appendChild(li);
         return;
     }
     rows.forEach((p) => {
-        const mine = me && String(p.sellerUid || "") === String(me.uid || "");
+        const mine = !rdvSelectionMode && me && String(p.sellerUid || "") === String(me.uid || "");
         const stock = Number(p.stock || 0);
         const unavailable = String(p.status || "") !== "active" || stock <= 0;
         const inCart = cartQtyForProduct(p.id);
+        const addLabel = rdvSelectionMode
+            ? unavailable
+                ? "Indisponible"
+                : inCart
+                  ? "Ajouter encore"
+                  : "Ajouter à la sélection"
+            : unavailable
+              ? "Indisponible"
+              : "Ajouter au panier";
         const li = document.createElement("li");
         li.className = "jobs-item";
         li.innerHTML =
@@ -476,17 +577,19 @@ function renderProducts() {
             `<div class="jobs-card__head">` +
             `<h3 class="jobs-card__title">${escapeHtml(p.title || "Article")}</h3>` +
             `<p class="jobs-card__salon">Vendeur : ${escapeHtml(p.sellerName || "—")}</p>` +
-            `<p class="jobs-card__meta">${escapeHtml(p.category || "Catégorie libre")} · Stock: ${stock} · Vendus: ${Number(p.unitsSold || 0)}${inCart ? ` · Dans le panier : ${inCart}` : ""}</p>` +
+            `<p class="jobs-card__meta">${escapeHtml(p.category || "Catégorie libre")} · Stock: ${stock} · Vendus: ${Number(p.unitsSold || 0)}${inCart ? ` · ${rdvSelectionMode ? "Sélection" : "Dans le panier"} : ${inCart}` : ""}</p>` +
             `</div>` +
             `<span class="jobs-badge">${money(p.priceFcfa)}</span>` +
             `</div>` +
             `<p class="jobs-card__desc">${escapeHtml(p.description || "")}</p>` +
             `<div class="jobs-card__foot">` +
-            `<span class="jobs-card__date">Commission plateforme : 10 %</span>` +
+            (rdvSelectionMode
+                ? `<span class="jobs-card__date">Pour votre rendez-vous</span>`
+                : `<span class="jobs-card__date">Commission plateforme : 10 %</span>`) +
             `<div class="jobs-card__foot-actions">` +
             (mine
                 ? `<button type="button" class="jobs-card__delete" data-market-delete="${escapeHtml(p.id)}">Supprimer</button>`
-                : `<button type="button" class="jobs-card__apply ${unavailable ? "jobs-card__apply--disabled" : ""}" data-market-add="${escapeHtml(p.id)}" ${unavailable ? "disabled" : ""}>${unavailable ? "Indisponible" : "Ajouter au panier"}</button>`) +
+                : `<button type="button" class="jobs-card__apply ${unavailable ? "jobs-card__apply--disabled" : ""}" data-market-add="${escapeHtml(p.id)}" ${unavailable ? "disabled" : ""}>${addLabel}</button>`) +
             `</div></div></article>`;
         listEl.appendChild(li);
     });
@@ -542,8 +645,13 @@ function renderOrders(target, rows, type) {
 }
 
 async function loadProducts() {
-    const res = await listMarketplaceProducts();
+    const res = await listMarketplaceProducts(rdvSelectionMode ? { sellerUid: rdvSellerUid } : {});
     products = res.products || [];
+    if (rdvSelectionMode && products.length) {
+        const first = products[0];
+        rdvProLabel = String(first.sellerName || "").trim() || rdvProLabel;
+        applyRdvSelectionModeUi();
+    }
     renderProducts();
     renderCart();
 }
@@ -576,13 +684,23 @@ onAuthStateChanged(auth, async (user) => {
         return;
     }
     me = user;
-    cartItems = readCartFromStorage();
+    if (rdvSelectionMode) {
+        applyRdvSelectionModeUi();
+        cartItems = [];
+    } else {
+        cartItems = readCartFromStorage();
+    }
     try {
         profile = await fetchUserProfile(me.uid);
-        canSellMarketplace = computeCanSellMarketplace(profile);
+        canSellMarketplace = rdvSelectionMode ? false : computeCanSellMarketplace(profile);
         applyMarketplaceSellUiVisibility();
-        initMarketTabs();
-        await Promise.all([loadProducts(), loadOrders()]);
+        if (!rdvSelectionMode) {
+            initMarketTabs();
+        }
+        if (rdvSelectionMode) {
+            await loadRdvSelectionCart();
+        }
+        await Promise.all([loadProducts(), rdvSelectionMode ? Promise.resolve() : loadOrders()]);
         renderCart();
     } catch (e) {
         showError(getFirebaseErrorMessage(e));
@@ -642,23 +760,29 @@ cartLinesEl.addEventListener("click", (e) => {
 });
 
 cartClearBtn.addEventListener("click", () => {
-    if (!window.confirm("Vider tout le panier ?")) return;
+    if (!window.confirm(rdvSelectionMode ? "Vider toute la sélection ?" : "Vider tout le panier ?")) return;
     clearCart();
     renderProducts();
 });
 
 checkoutBtn.addEventListener("click", async () => {
     if (!me) return;
-    const lines = readCartFromStorage().filter((c) => Number(c.quantity || 0) > 0);
-    if (!lines.length) {
-        showError("Votre panier est vide.");
-        return;
-    }
+    const lines = cartItems.filter((c) => Number(c.quantity || 0) > 0);
     errEl.hidden = true;
     okEl.hidden = true;
     checkoutBtn.disabled = true;
     try {
-        const res = await createMarketplaceOrder(me.uid, lines);
+        if (rdvSelectionMode) {
+            await saveRendezVousItemSelection(rdvId, me.uid, lines);
+            window.location.href = rdvReturnUrl;
+            return;
+        }
+        const storedLines = readCartFromStorage().filter((c) => Number(c.quantity || 0) > 0);
+        if (!storedLines.length) {
+            showError("Votre panier est vide.");
+            return;
+        }
+        const res = await createMarketplaceOrder(me.uid, storedLines);
         const n = (res.orders || []).length;
         showOk(
             n > 1
@@ -761,6 +885,10 @@ document.getElementById("marketProductForm").addEventListener("submit", async (e
         btn.disabled = false;
     }
 });
+
+if (rdvSelectionMode) {
+    applyRdvSelectionModeUi();
+}
 </script>
 </body>
 </html>

@@ -44,6 +44,11 @@ model User {
   favoritesAsPro    Favorite[] @relation("ProFavorites")
   rendezVousAsPro    RendezVous[] @relation("ProRendezVous")
   rendezVousAsClient RendezVous[] @relation("ClientRendezVous")
+  /// Demandes « client → pro » avant d’ouvrir la messagerie.
+  contactRequestsAsClient ContactRequest[] @relation("ContactRequestClient")
+  contactRequestsAsPro    ContactRequest[] @relation("ContactRequestPro")
+  rdvMarketplaceSelectionsAsClient RdvMarketplaceSelection[] @relation("RdvMarketplaceSelectionClient")
+  rdvMarketplaceSelectionsAsPro    RdvMarketplaceSelection[] @relation("RdvMarketplaceSelectionPro")
 }
 
 model Message {
@@ -54,6 +59,22 @@ model Message {
   createdAt DateTime @default(now())
   fromUser  User     @relation("SentMessages", fields: [fromUid], references: [id], onDelete: Cascade)
   toUser    User     @relation("ReceivedMessages", fields: [toUid], references: [id], onDelete: Cascade)
+}
+
+/// Demande de contact client → pro. Messagerie autorisée seulement si status = accepted.
+model ContactRequest {
+  id        String   @id @default(uuid())
+  clientUid String
+  proUid    String
+  /// pending | accepted | rejected
+  status    String   @default("pending")
+  message   String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  client    User     @relation("ContactRequestClient", fields: [clientUid], references: [id], onDelete: Cascade)
+  pro       User     @relation("ContactRequestPro", fields: [proUid], references: [id], onDelete: Cascade)
+
+  @@unique([clientUid, proUid])
 }
 
 model Avis {
@@ -120,6 +141,8 @@ model RendezVous {
   reminder24hSentAt   DateTime?
   /// Prix en FCFA (fixé par le pro). Null = non défini, paiement en ligne indisponible.
   priceFcfa           Int?
+  /// Part prestation seule (hors articles marketplace). Null = non définie.
+  prestationPriceFcfa Int?
   /// unpaid | pending | paid | failed.
   paymentStatus       String    @default("unpaid")
   /// Identifiant de tentative de paiement côté opérateur (ou simulation).
@@ -138,6 +161,7 @@ model RendezVous {
   updatedAt             DateTime  @updatedAt
   pro          User     @relation("ProRendezVous", fields: [proUid], references: [id], onDelete: Cascade)
   client       User     @relation("ClientRendezVous", fields: [clientUid], references: [id], onDelete: Cascade)
+  marketplaceSelection RdvMarketplaceSelection?
 }
 
 model Product {
@@ -155,6 +179,34 @@ model Product {
   status      String   @default("active")
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
+}
+
+/// Sélection d’articles marketplace liée à un rendez-vous précis (hors commande).
+model RdvMarketplaceSelection {
+  id               String   @id @default(uuid())
+  rendezVousId     String   @unique
+  clientUid        String
+  proUid           String
+  itemsCount       Int      @default(0)
+  itemsSubtotalFcfa Int     @default(0)
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+  rendezVous       RendezVous @relation(fields: [rendezVousId], references: [id], onDelete: Cascade)
+  client           User       @relation("RdvMarketplaceSelectionClient", fields: [clientUid], references: [id], onDelete: Cascade)
+  pro              User       @relation("RdvMarketplaceSelectionPro", fields: [proUid], references: [id], onDelete: Cascade)
+  lines            RdvMarketplaceSelectionLine[]
+}
+
+model RdvMarketplaceSelectionLine {
+  id               String   @id @default(uuid())
+  selectionId      String
+  productId        String
+  productTitle     String
+  unitPriceFcfa    Int
+  quantity         Int
+  lineTotalFcfa    Int
+  createdAt        DateTime @default(now())
+  selection        RdvMarketplaceSelection @relation(fields: [selectionId], references: [id], onDelete: Cascade)
 }
 
 model MarketOrder {

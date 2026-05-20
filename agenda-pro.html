@@ -20,7 +20,7 @@
 
     <section id="agendaSection" class="agenda-pro" hidden>
         <h2 class="subpage-h2">Nouveau rendez-vous</h2>
-        <p class="agenda-pro__hint">Choisissez un client dans la liste, puis indiquez la date, l’heure et la prestation prévue. Indiquez un prix (FCFA) pour permettre le paiement en ligne côté client (Flooz / Mix by Yas, simulation). Un message de rappel est envoyé automatiquement dans la messagerie vers environ 24 h avant le RDV (tant que le serveur tourne).</p>
+        <p class="agenda-pro__hint">Choisissez un client dans la liste, puis indiquez la date, l’heure et la prestation prévue. Le prix (FCFA) sert de référence pour le client. Un message de rappel est envoyé automatiquement dans la messagerie vers environ 24 h avant le RDV (tant que le serveur tourne).</p>
         <form id="newRdVForm" class="register-form agenda-pro__form">
             <p id="formErr" class="form-error" role="alert" hidden></p>
             <p id="formOk" class="form-success" role="status" hidden></p>
@@ -45,10 +45,11 @@
                 <textarea id="prestation" class="field-textarea" rows="3" required placeholder="Ex. Coupe + brushing — 45 min"></textarea>
             </div>
             <div class="field-group">
-                <label class="field-label" for="priceFcfa">Prix (FCFA)</label>
+                <label class="field-label" for="priceFcfa">Prix prestation (FCFA)</label>
                 <div class="field-input-wrap">
                     <input type="number" id="priceFcfa" min="0" step="1" placeholder="Ex. 15000 (optionnel)">
                 </div>
+                <p class="field-hint">Les articles choisis par le client s’ajouteront automatiquement à ce montant.</p>
             </div>
             <button type="submit" class="register-submit" id="createBtn">Ajouter au planning</button>
         </form>
@@ -67,11 +68,13 @@ import {
     fetchUserProfile,
     listUsers,
     listRendezVousForPro,
+    getRendezVousItemSelection,
     createRendezVous,
     updateRendezVous,
     sendRendezVousReminderNow,
     getFirebaseErrorMessage
 } from "./firebase.js";
+import { formatPhoneDisplay } from "./phone-utils.js";
 
 const STATUS_LABELS = {
     planned: "À venir",
@@ -79,6 +82,7 @@ const STATUS_LABELS = {
     cancelled: "Annulé",
     noshow: "Absent"
 };
+const fmt = new Intl.NumberFormat("fr-FR", { maximumFractionDigits: 0 });
 
 function escapeHtml(s) {
     return String(s)
@@ -172,6 +176,60 @@ function toDatetimeLocalValue(iso) {
 }
 
 let myUid = null;
+let refreshPricingTimer = null;
+
+function derivePrestationPrice(r, itemsSubtotal) {
+    if (r.prestationPriceFcfa != null) return Number(r.prestationPriceFcfa);
+    const total = r.priceFcfa != null ? Number(r.priceFcfa) : null;
+    if (total == null) return "";
+    const derived = total - Number(itemsSubtotal || 0);
+    return derived > 0 ? derived : total;
+}
+
+function updateCardPricing(li) {
+    const itemsSubtotal = Number(li.dataset.itemsSubtotal || 0);
+    const prestInput = li.querySelector("[data-prestation-price]");
+    const itemsEl = li.querySelector("[data-items-subtotal]");
+    const totalEl = li.querySelector("[data-rdv-total]");
+    if (itemsEl) itemsEl.textContent = fmt.format(itemsSubtotal) + " FCFA";
+    const pv = String(prestInput?.value || "").trim();
+    const prestVal = pv === "" ? 0 : parseInt(pv, 10);
+    const safePrest = Number.isFinite(prestVal) && prestVal >= 0 ? prestVal : 0;
+    const total = (pv === "" ? 0 : safePrest) + itemsSubtotal;
+    if (totalEl) totalEl.textContent = fmt.format(total) + " FCFA";
+}
+
+function bindCardPricing(li) {
+    const prestInput = li.querySelector("[data-prestation-price]");
+    if (prestInput) prestInput.addEventListener("input", () => updateCardPricing(li));
+}
+
+async function refreshCardPricingFromServer() {
+    if (!myUid) return;
+    try {
+        const rows = await listRendezVousForPro(myUid);
+        const listEl = document.getElementById("rdvList");
+        if (!listEl) return;
+        for (const r of rows) {
+            const li = listEl.querySelector('[data-rdv-id="' + String(r.id).replace(/"/g, "") + '"]');
+            if (!li) continue;
+            const summary = r.itemSelectionSummary || { itemsCount: 0, itemsSubtotalFcfa: 0 };
+            li.dataset.itemsSubtotal = String(Number(summary.itemsSubtotalFcfa || 0));
+            li.dataset.itemsCount = String(Number(summary.itemsCount || 0));
+            const summaryText = li.querySelector("[data-market-summary-text]");
+            if (summaryText) {
+                summaryText.innerHTML =
+                    escapeHtml(String(summary.itemsCount || 0)) +
+                    " article(s) · Sous-total <strong>" +
+                    escapeHtml(fmt.format(Number(summary.itemsSubtotalFcfa || 0))) +
+                    " FCFA</strong>";
+            }
+            updateCardPricing(li);
+        }
+    } catch {
+        /* ignore background refresh errors */
+    }
+}
 
 function setClientPreview(user) {
     const el = document.getElementById("clientPreview");
@@ -200,7 +258,7 @@ function setClientPreview(user) {
         el.hidden = false;
         const name = escapeHtml(user.name || "Sans nom");
         const mail = escapeHtml(user.email || "");
-        const phone = escapeHtml(user.phone || "—");
+        const phone = escapeHtml(formatPhoneDisplay(user.phone));
         const city = escapeHtml(user.city || "—");
         el.innerHTML =
             "<strong>Client :</strong> " +
@@ -254,14 +312,19 @@ function renderCard(r) {
     const status = String(r.status || "planned").toLowerCase();
     const statusLabel = STATUS_LABELS[status] || status;
     const rating = r.proRating != null ? Number(r.proRating) : null;
+    const selectionSummary = r.itemSelectionSummary || { itemsCount: 0, itemsSubtotalFcfa: 0 };
+    const itemsSubtotal = Number(selectionSummary.itemsSubtotalFcfa || 0);
+    const prestationPrice = derivePrestationPrice(r, itemsSubtotal);
 
     const li = document.createElement("li");
     li.className = "agenda-pro__card";
     li.dataset.rdvId = r.id;
+    li.dataset.itemsSubtotal = String(itemsSubtotal);
+    li.dataset.itemsCount = String(Number(selectionSummary.itemsCount || 0));
 
     const clientName = escapeHtml(c.name || "Client");
     const clientMail = escapeHtml(c.email || "—");
-    const clientPhone = escapeHtml(c.phone || "—");
+    const clientPhone = escapeHtml(formatPhoneDisplay(c.phone));
     const clientCity = escapeHtml(c.city || "—");
     const prestEsc = escapeHtml(r.prestation || "");
 
@@ -292,6 +355,33 @@ function renderCard(r) {
         '<div class="agenda-pro__prestation"><span class="agenda-pro__k">Prestation</span><p>' +
         prestEsc +
         "</p></div>" +
+        '<div class="agenda-pro__market-summary">' +
+        '<p data-market-summary-text><span class="agenda-pro__k">Sélection marketplace cliente</span><br>' +
+        escapeHtml(String(selectionSummary.itemsCount || 0)) +
+        " article(s) · Sous-total <strong>" +
+        escapeHtml(fmt.format(itemsSubtotal)) +
+        ' FCFA</strong></p>' +
+        '<button type="button" class="agenda-pro__market-btn" data-open-market-selection="' +
+        id +
+        '">Voir le détail des articles</button>' +
+        '<div class="agenda-pro__market-panel" data-market-panel="' +
+        id +
+        '" hidden></div>' +
+        "</div>" +
+        '<div class="agenda-pro__pricing">' +
+        '<label class="agenda-pro__k agenda-pro__lbl" for="prest-price-' +
+        id +
+        '">Prix prestation (FCFA)</label>' +
+        '<input type="number" class="agenda-pro__input agenda-pro__input--price" id="prest-price-' +
+        id +
+        '" data-prestation-price min="0" step="1" placeholder="Ex. 15000">' +
+        '<p class="agenda-pro__pricing-row"><span class="agenda-pro__k">Sous-total articles</span> · <strong data-items-subtotal>' +
+        escapeHtml(fmt.format(itemsSubtotal)) +
+        ' FCFA</strong></p>' +
+        '<p class="agenda-pro__pricing-row agenda-pro__pricing-total"><span class="agenda-pro__k">Total rendez-vous</span> · <strong data-rdv-total>' +
+        escapeHtml(fmt.format((prestationPrice === "" ? 0 : Number(prestationPrice)) + itemsSubtotal)) +
+        " FCFA</strong></p>" +
+        "</div>" +
         '<label class="agenda-pro__k agenda-pro__lbl" for="sched-' +
         id +
         '">Modifier date &amp; heure</label>' +
@@ -306,12 +396,6 @@ function renderCard(r) {
         '<textarea class="field-textarea agenda-pro__textarea" id="prest-' +
         id +
         '" rows="2"></textarea>' +
-        '<label class="agenda-pro__k agenda-pro__lbl" for="price-' +
-        id +
-        '">Prix (FCFA)</label>' +
-        '<input type="number" class="agenda-pro__input agenda-pro__input--price" id="price-' +
-        id +
-        '" min="0" step="1" placeholder="Optionnel">' +
         '<label class="agenda-pro__k agenda-pro__lbl" for="stat-' +
         id +
         '">Statut</label>' +
@@ -379,8 +463,12 @@ function renderCard(r) {
 
     const taPrest = li.querySelector("#prest-" + r.id);
     if (taPrest) taPrest.value = r.prestation || "";
-    const inpPrice = li.querySelector("#price-" + r.id);
-    if (inpPrice) inpPrice.value = r.priceFcfa != null ? String(r.priceFcfa) : "";
+    const inpPrestPrice = li.querySelector("[data-prestation-price]");
+    if (inpPrestPrice) {
+        inpPrestPrice.value = prestationPrice === "" ? "" : String(prestationPrice);
+    }
+    bindCardPricing(li);
+    updateCardPricing(li);
     const taCom = li.querySelector("#com-" + r.id);
     if (taCom) taCom.value = r.proComment || "";
 
@@ -412,19 +500,26 @@ function renderCard(r) {
                 const statEl = li.querySelector("#stat-" + r.id);
                 const comEl = li.querySelector("#com-" + r.id);
                 const ratEl = li.querySelector("#rating-" + r.id);
-                const priceEl = li.querySelector("#price-" + r.id);
+                const prestPriceEl = li.querySelector("[data-prestation-price]");
+                const itemsSubtotal = Number(li.dataset.itemsSubtotal || 0);
                 const partial = {
                     scheduledAt: schedEl ? schedEl.value : undefined,
                     prestation: prestEl ? prestEl.value.trim() : "",
                     status: statEl ? statEl.value : undefined,
                     proComment: comEl ? comEl.value.trim() : ""
                 };
-                if (priceEl) {
-                    const pv = String(priceEl.value || "").trim();
-                    if (pv === "") partial.priceFcfa = null;
-                    else {
+                if (prestPriceEl) {
+                    const pv = String(prestPriceEl.value || "").trim();
+                    let prestationPriceFcfa = null;
+                    if (pv !== "") {
                         const n = parseInt(pv, 10);
-                        partial.priceFcfa = Number.isFinite(n) && n >= 0 ? n : null;
+                        prestationPriceFcfa = Number.isFinite(n) && n >= 0 ? n : null;
+                    }
+                    partial.prestationPriceFcfa = prestationPriceFcfa;
+                    if (prestationPriceFcfa != null || itemsSubtotal > 0) {
+                        partial.priceFcfa = (prestationPriceFcfa || 0) + itemsSubtotal;
+                    } else {
+                        partial.priceFcfa = null;
                     }
                 }
                 if (ratEl && ratEl.value) partial.proRating = Number(ratEl.value);
@@ -452,6 +547,49 @@ function renderCard(r) {
                 alert(getFirebaseErrorMessage(e));
             } finally {
                 remindBtn.disabled = false;
+            }
+        });
+    }
+
+    const marketBtn = li.querySelector("[data-open-market-selection]");
+    if (marketBtn && myUid) {
+        marketBtn.addEventListener("click", async () => {
+            const panel = li.querySelector("[data-market-panel]");
+            if (!panel) return;
+            panel.hidden = false;
+            panel.innerHTML = "<p class=\"agenda-pro__market-loading\">Chargement...</p>";
+            marketBtn.disabled = true;
+            try {
+                const payload = await getRendezVousItemSelection(r.id, myUid);
+                const selection = payload?.selection || { lines: [], itemsSubtotalFcfa: 0, itemsCount: 0 };
+                const lines = Array.isArray(selection.lines) ? selection.lines : [];
+                const linesHtml = lines.length
+                    ? lines
+                          .map(
+                              (line) =>
+                                  "<li>" +
+                                  escapeHtml(String(line.productTitle || "Article")) +
+                                  " × " +
+                                  escapeHtml(String(Number(line.quantity || 0))) +
+                                  " — " +
+                                  escapeHtml(fmt.format(Number(line.lineTotalFcfa || 0))) +
+                                  " FCFA</li>"
+                          )
+                          .join("")
+                    : "<li>Aucun article sélectionné.</li>";
+                panel.innerHTML =
+                    "<p class=\"agenda-pro__market-note\">Sous-total articles : <strong data-items-subtotal>" +
+                    escapeHtml(fmt.format(Number(selection.itemsSubtotalFcfa || 0))) +
+                    " FCFA</strong></p>" +
+                    "<ul class=\"agenda-pro__market-lines\">" +
+                    linesHtml +
+                    "</ul>";
+                li.dataset.itemsSubtotal = String(Number(selection.itemsSubtotalFcfa || 0));
+                updateCardPricing(li);
+            } catch (e) {
+                panel.innerHTML = "<p class=\"form-error\">Erreur: " + escapeHtml(getFirebaseErrorMessage(e)) + "</p>";
+            } finally {
+                marketBtn.disabled = false;
             }
         });
     }
@@ -501,12 +639,12 @@ document.getElementById("newRdVForm").addEventListener("submit", async (e) => {
     const priceRaw = document.getElementById("priceFcfa")
         ? String(document.getElementById("priceFcfa").value || "").trim()
         : "";
-    let priceFcfa;
+    let prestationPriceFcfa;
     if (priceRaw === "") {
-        priceFcfa = undefined;
+        prestationPriceFcfa = undefined;
     } else {
         const n = parseInt(priceRaw, 10);
-        priceFcfa = Number.isFinite(n) && n >= 0 ? n : undefined;
+        prestationPriceFcfa = Number.isFinite(n) && n >= 0 ? n : undefined;
     }
     const btn = document.getElementById("createBtn");
     if (btn) btn.disabled = true;
@@ -516,7 +654,7 @@ document.getElementById("newRdVForm").addEventListener("submit", async (e) => {
             clientUid,
             scheduledAt,
             prestation,
-            priceFcfa
+            prestationPriceFcfa
         });
         const selReset = document.getElementById("clientSelect");
         if (selReset) selReset.value = "";
@@ -561,6 +699,14 @@ onAuthStateChanged(auth, async (user) => {
     if (section) section.hidden = false;
     await loadClientOptions();
     await loadList();
+    if (refreshPricingTimer) clearInterval(refreshPricingTimer);
+    refreshPricingTimer = setInterval(() => {
+        refreshCardPricingFromServer().catch(() => {});
+    }, 8000);
+});
+
+window.addEventListener("beforeunload", () => {
+    if (refreshPricingTimer) clearInterval(refreshPricingTimer);
 });
 </script>
 

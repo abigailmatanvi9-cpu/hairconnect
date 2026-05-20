@@ -7,6 +7,7 @@ import fs from "node:fs/promises";
 import { readFileSync } from "node:fs";
 import path from "node:path";
 import { randomUUID } from "node:crypto";
+import { parseStoredPhone, validatePhoneNational } from "./phone-utils.js";
 
 const app = express();
 const prisma = new PrismaClient();
@@ -482,6 +483,26 @@ app.put("/api/users/:id", async (req, res) => {
       }
     }
 
+    delete data.phoneCountry;
+    delete data.phoneNational;
+    if (Object.prototype.hasOwnProperty.call(req.body, "phone")) {
+      const rawPhone = req.body.phone;
+      if (rawPhone === null || rawPhone === undefined || String(rawPhone).trim() === "") {
+        data.phone = null;
+      } else {
+        let phoneCheck = parseStoredPhone(String(rawPhone).trim());
+        if (!phoneCheck.ok && req.body.phoneCountry && req.body.phoneNational !== undefined) {
+          phoneCheck = validatePhoneNational(req.body.phoneCountry, req.body.phoneNational);
+        }
+        if (!phoneCheck.ok) {
+          return res.status(400).json({
+            message: phoneCheck.message || "Numéro de téléphone invalide pour le pays choisi."
+          });
+        }
+        data.phone = phoneCheck.e164;
+      }
+    }
+
     if (Object.prototype.hasOwnProperty.call(data, "tarifMenuPhotoUrl")) {
       const raw = data.tarifMenuPhotoUrl;
       if (raw === null || raw === undefined || String(raw).trim() === "") {
@@ -579,6 +600,147 @@ function isClientRole(role) {
     .toLowerCase() === "client";
 }
 
+function isProMessagingRole(role) {
+  const r = String(role || "")
+    .trim()
+    .toLowerCase();
+  return (
+    r === "salon" ||
+    r === "coiffeur" ||
+    r === "coiffeuse" ||
+    r === "coiffeur indépendant" ||
+    r === "coiffeuse indépendante"
+  );
+}
+
+/** Paire client + pro : la messagerie nécessite une demande acceptée. */
+function messagingPairNeedsContactGate(roleA, roleB) {
+  return (
+    (isClientRole(roleA) && isProMessagingRole(roleB)) || (isProMessagingRole(roleA) && isClientRole(roleB))
+  );
+}
+
+function contactClientProPair(fromUid, toUid, roleById) {
+  const rFrom = roleById.get(fromUid);
+  const rTo = roleById.get(toUid);
+  if (messagingPairNeedsContactGate(rFrom, rTo)) {
+    if (isClientRole(rFrom) && isProMessagingRole(rTo)) return { clientUid: fromUid, proUid: toUid };
+    if (isProMessagingRole(rFrom) && isClientRole(rTo)) return { clientUid: toUid, proUid: fromUid };
+  }
+  return null;
+}
+
+async function buildRoleMapForIds(ids) {
+  const uniq = [...new Set(ids.map((id) => String(id || "").trim()).filter(Boolean))];
+  if (!uniq.length) return new Map();
+  const users = await prisma.user.findMany({
+    where: { id: { in: uniq } },
+    select: { id: true, role: true }
+  });
+  return new Map(users.map((u) => [u.id, u.role]));
+}
+
+async function filterMessagesByContactGate(viewerUid, messages) {
+  if (!messages.length) return messages;
+  const ids = new Set([viewerUid]);
+  for (const m of messages) {
+    ids.add(m.fromUid);
+    ids.add(m.toUid);
+  }
+  const roleMap = await buildRoleMapForIds([...ids]);
+  const accepted = await prisma.contactRequest.findMany({
+    where: { status: "accepted", OR: [{ clientUid: viewerUid }, { proUid: viewerUid }] },
+    select: { clientUid: true, proUid: true }
+  });
+  const okPairs = new Set(accepted.map((r) => `${r.clientUid}\t${r.proUid}`));
+  return messages.filter((m) => {
+    const pair = contactClientProPair(m.fromUid, m.toUid, roleMap);
+    if (!pair) return true;
+    return okPairs.has(`${pair.clientUid}\t${pair.proUid}`);
+  });
+}
+
+async function assertMessageContactAllowed(fromUid, toUid) {
+  const roleMap = await buildRoleMapForIds([fromUid, toUid]);
+  const pair = contactClientProPair(fromUid, toUid, roleMap);
+  if (!pair) return;
+  const row = await prisma.contactRequest.findUnique({
+    where: { clientUid_proUid: { clientUid: pair.clientUid, proUid: pair.proUid } }
+  });
+  if (!row || row.status !== "accepted") {
+    const err = new Error(
+      "Messagerie indisponible : le professionnel doit d’abord accepter votre demande de contact."
+    );
+    err.code = "contact/not-accepted";
+    err.status = 403;
+    throw err;
+  }
+}
+
+async function computeRdvSelectionSummaryMap(rendezVousIds) {
+  const ids = [...new Set((rendezVousIds || []).map((id) => String(id || "").trim()).filter(Boolean))];
+  const out = new Map();
+  if (!ids.length) return out;
+  const rows = await prisma.rdvMarketplaceSelection.findMany({
+    where: { rendezVousId: { in: ids } },
+    select: { rendezVousId: true, itemsCount: true, itemsSubtotalFcfa: true, updatedAt: true }
+  });
+  for (const row of rows) {
+    out.set(String(row.rendezVousId), {
+      itemsCount: Number(row.itemsCount || 0),
+      itemsSubtotalFcfa: Number(row.itemsSubtotalFcfa || 0),
+      updatedAt: row.updatedAt
+    });
+  }
+  return out;
+}
+
+function withRdvSelectionSummary(rows, summaryMap) {
+  return (rows || []).map((r) => {
+    const s = summaryMap.get(String(r.id));
+    return {
+      ...r,
+      itemSelectionSummary: s || { itemsCount: 0, itemsSubtotalFcfa: 0, updatedAt: null }
+    };
+  });
+}
+
+function normalizeRdvSelectionLines(raw) {
+  if (!Array.isArray(raw)) return [];
+  const map = new Map();
+  for (const row of raw) {
+    const productId = String(row?.productId || "").trim();
+    const q = parsePositiveInt(row?.quantity, 1) || 0;
+    if (!productId || q <= 0) continue;
+    map.set(productId, (map.get(productId) || 0) + q);
+  }
+  return [...map.entries()].map(([productId, quantity]) => ({ productId, quantity }));
+}
+
+function computeRdvTotalPriceFcfa(prestationPriceFcfa, itemsSubtotalFcfa) {
+  const items = Number(itemsSubtotalFcfa || 0);
+  if (prestationPriceFcfa == null || prestationPriceFcfa === "") {
+    return items > 0 ? items : null;
+  }
+  const prest = Number(prestationPriceFcfa);
+  if (!Number.isFinite(prest) || prest < 0) return items > 0 ? items : null;
+  return prest + items;
+}
+
+async function getRdvItemsSubtotalFcfa(rendezVousId) {
+  const row = await prisma.rdvMarketplaceSelection.findUnique({
+    where: { rendezVousId: String(rendezVousId) },
+    select: { itemsSubtotalFcfa: true }
+  });
+  return row ? Number(row.itemsSubtotalFcfa || 0) : 0;
+}
+
+function parsePrestationPriceFcfaInput(raw) {
+  if (raw === null || raw === undefined || raw === "") return null;
+  const parsed = parsePriceFcfaInput(raw);
+  return parsed === undefined ? undefined : parsed;
+}
+
 app.get("/api/rendez-vous", async (req, res) => {
   try {
     const proUid = String(req.query.proUid || "").trim();
@@ -602,7 +764,8 @@ app.get("/api/rendez-vous", async (req, res) => {
       },
       orderBy: { scheduledAt: "asc" }
     });
-    return res.json({ rendezVous: rows });
+    const summaryMap = await computeRdvSelectionSummaryMap(rows.map((r) => r.id));
+    return res.json({ rendezVous: withRdvSelectionSummary(rows, summaryMap) });
   } catch (error) {
     return res.status(500).json({ code: "internal/error", message: error.message });
   }
@@ -629,7 +792,8 @@ app.get("/api/rendez-vous/client", async (req, res) => {
       },
       orderBy: { scheduledAt: "desc" }
     });
-    return res.json({ rendezVous: rows });
+    const summaryMap = await computeRdvSelectionSummaryMap(rows.map((r) => r.id));
+    return res.json({ rendezVous: withRdvSelectionSummary(rows, summaryMap) });
   } catch (error) {
     return res.status(500).json({ code: "internal/error", message: error.message });
   }
@@ -659,11 +823,15 @@ app.post("/api/rendez-vous", async (req, res) => {
     if (!pro) {
       return res.status(400).json({ message: "Professionnel introuvable." });
     }
-    let priceFcfa = null;
-    if (req.body.priceFcfa !== undefined && req.body.priceFcfa !== null && req.body.priceFcfa !== "") {
+    let prestationPriceFcfa = null;
+    if (req.body.prestationPriceFcfa !== undefined && req.body.prestationPriceFcfa !== null && req.body.prestationPriceFcfa !== "") {
+      const parsed = parsePrestationPriceFcfaInput(req.body.prestationPriceFcfa);
+      if (parsed !== undefined) prestationPriceFcfa = parsed;
+    } else if (req.body.priceFcfa !== undefined && req.body.priceFcfa !== null && req.body.priceFcfa !== "") {
       const parsed = parsePriceFcfaInput(req.body.priceFcfa);
-      if (parsed !== undefined) priceFcfa = parsed;
+      if (parsed !== undefined) prestationPriceFcfa = parsed;
     }
+    const priceFcfa = computeRdvTotalPriceFcfa(prestationPriceFcfa, 0);
     const row = await prisma.rendezVous.create({
       data: {
         proUid,
@@ -671,6 +839,7 @@ app.post("/api/rendez-vous", async (req, res) => {
         scheduledAt,
         prestation,
         status: "planned",
+        prestationPriceFcfa,
         priceFcfa
       },
       include: {
@@ -737,17 +906,42 @@ app.patch("/api/rendez-vous/:id", async (req, res) => {
         if (Number.isInteger(n) && n >= 1 && n <= 5) data.proRating = n;
       }
     }
-    if (req.body.priceFcfa !== undefined) {
-      if (["paid", "pending"].includes(String(existing.paymentStatus || "unpaid"))) {
-        return res.status(400).json({
-          message: "Impossible de modifier le prix d’un rendez-vous deja en cours de paiement ou deja paye."
-        });
-      }
-      if (req.body.priceFcfa === null || req.body.priceFcfa === "") {
-        data.priceFcfa = null;
+    if (req.body.prestationPriceFcfa !== undefined) {
+      let nextPrestation = existing.prestationPriceFcfa == null ? null : Number(existing.prestationPriceFcfa);
+      if (req.body.prestationPriceFcfa === null || req.body.prestationPriceFcfa === "") {
+        nextPrestation = null;
       } else {
-        const parsed = parsePriceFcfaInput(req.body.priceFcfa);
-        if (parsed !== undefined) data.priceFcfa = parsed;
+        const parsed = parsePrestationPriceFcfaInput(req.body.prestationPriceFcfa);
+        if (parsed !== undefined) nextPrestation = parsed;
+      }
+      const currentPrestation =
+        existing.prestationPriceFcfa == null ? null : Number(existing.prestationPriceFcfa);
+      if (currentPrestation !== nextPrestation) {
+        data.prestationPriceFcfa = nextPrestation;
+      }
+    }
+    if (data.prestationPriceFcfa !== undefined || req.body.priceFcfa !== undefined) {
+      const itemsSubtotal = await getRdvItemsSubtotalFcfa(id);
+      let nextPrice;
+      if (data.prestationPriceFcfa !== undefined) {
+        nextPrice = computeRdvTotalPriceFcfa(data.prestationPriceFcfa, itemsSubtotal);
+      } else {
+        nextPrice = existing.priceFcfa == null ? null : Number(existing.priceFcfa);
+        if (req.body.priceFcfa === null || req.body.priceFcfa === "") {
+          nextPrice = null;
+        } else {
+          const parsed = parsePriceFcfaInput(req.body.priceFcfa);
+          if (parsed !== undefined) nextPrice = parsed;
+        }
+      }
+      const currentPrice = existing.priceFcfa == null ? null : Number(existing.priceFcfa);
+      if (currentPrice !== nextPrice) {
+        if (["paid", "pending"].includes(String(existing.paymentStatus || "unpaid"))) {
+          return res.status(400).json({
+            message: "Impossible de modifier le prix d’un rendez-vous deja en cours de paiement ou deja paye."
+          });
+        }
+        data.priceFcfa = nextPrice;
       }
     }
     const row = await prisma.rendezVous.update({
@@ -768,6 +962,194 @@ app.patch("/api/rendez-vous/:id", async (req, res) => {
       }
     });
     return res.json({ rendezVous: row });
+  } catch (error) {
+    return res.status(500).json({ code: "internal/error", message: error.message });
+  }
+});
+
+app.get("/api/rendez-vous/:id/item-selection", async (req, res) => {
+  try {
+    const id = String(req.params.id || "").trim();
+    const uid = String(req.query.uid || "").trim();
+    if (!id || !uid) {
+      return res.status(400).json({ message: "id et uid requis." });
+    }
+    const rdv = await prisma.rendezVous.findUnique({
+      where: { id },
+      select: { id: true, clientUid: true, proUid: true, status: true, priceFcfa: true }
+    });
+    if (!rdv) {
+      return res.status(404).json({ message: "Rendez-vous introuvable." });
+    }
+    if (uid !== String(rdv.clientUid) && uid !== String(rdv.proUid)) {
+      return res.status(403).json({ message: "Accès non autorisé à cette sélection." });
+    }
+    const selection = await prisma.rdvMarketplaceSelection.findUnique({
+      where: { rendezVousId: id },
+      include: {
+        lines: { orderBy: [{ productTitle: "asc" }, { createdAt: "asc" }] }
+      }
+    });
+    return res.json({
+      rendezVous: rdv,
+      selection: selection
+        ? {
+            id: selection.id,
+            rendezVousId: selection.rendezVousId,
+            clientUid: selection.clientUid,
+            proUid: selection.proUid,
+            itemsCount: Number(selection.itemsCount || 0),
+            itemsSubtotalFcfa: Number(selection.itemsSubtotalFcfa || 0),
+            updatedAt: selection.updatedAt,
+            lines: selection.lines || []
+          }
+        : {
+            id: null,
+            rendezVousId: rdv.id,
+            clientUid: rdv.clientUid,
+            proUid: rdv.proUid,
+            itemsCount: 0,
+            itemsSubtotalFcfa: 0,
+            updatedAt: null,
+            lines: []
+          }
+    });
+  } catch (error) {
+    return res.status(500).json({ code: "internal/error", message: error.message });
+  }
+});
+
+app.put("/api/rendez-vous/:id/item-selection", async (req, res) => {
+  try {
+    const id = String(req.params.id || "").trim();
+    const clientUid = String(req.body?.clientUid || "").trim();
+    if (!id || !clientUid) {
+      return res.status(400).json({ message: "id et clientUid requis." });
+    }
+    const rdv = await prisma.rendezVous.findUnique({
+      where: { id },
+      select: { id: true, clientUid: true, proUid: true }
+    });
+    if (!rdv) {
+      return res.status(404).json({ message: "Rendez-vous introuvable." });
+    }
+    if (String(rdv.clientUid) !== clientUid) {
+      return res.status(403).json({ message: "Seule la cliente du rendez-vous peut modifier cette sélection." });
+    }
+    const normalized = normalizeRdvSelectionLines(req.body?.lines);
+    if (normalized.length > 80) {
+      return res.status(400).json({ message: "Trop d’articles sélectionnés (80 max)." });
+    }
+
+    const productIds = [...new Set(normalized.map((x) => x.productId))];
+    const products = productIds.length
+      ? await prisma.product.findMany({
+          where: { id: { in: productIds } }
+        })
+      : [];
+    const byId = new Map(products.map((p) => [String(p.id), p]));
+
+    const nextLines = [];
+    for (const line of normalized) {
+      const p = byId.get(String(line.productId));
+      if (!p) {
+        return res.status(400).json({ message: `Article introuvable : ${line.productId}.` });
+      }
+      if (String(p.sellerUid) !== String(rdv.proUid)) {
+        return res.status(400).json({ message: "Les articles doivent appartenir au professionnel du rendez-vous." });
+      }
+      if (String(p.status || "").toLowerCase() !== "active") {
+        return res.status(400).json({ message: `Article indisponible : ${p.title || p.id}.` });
+      }
+      const qty = Number(line.quantity || 0);
+      if (!Number.isInteger(qty) || qty <= 0) {
+        return res.status(400).json({ message: "Quantité invalide." });
+      }
+      const unit = Number(p.priceFcfa || 0);
+      nextLines.push({
+        productId: String(p.id),
+        productTitle: String(p.title || "Article"),
+        unitPriceFcfa: unit,
+        quantity: qty,
+        lineTotalFcfa: unit * qty
+      });
+    }
+
+    const itemsCount = nextLines.reduce((acc, row) => acc + Number(row.quantity || 0), 0);
+    const itemsSubtotalFcfa = nextLines.reduce((acc, row) => acc + Number(row.lineTotalFcfa || 0), 0);
+
+    const selection = await prisma.$transaction(async (tx) => {
+      let base = await tx.rdvMarketplaceSelection.findUnique({
+        where: { rendezVousId: id },
+        select: { id: true }
+      });
+      if (!base) {
+        base = await tx.rdvMarketplaceSelection.create({
+          data: {
+            rendezVousId: id,
+            clientUid,
+            proUid: String(rdv.proUid),
+            itemsCount,
+            itemsSubtotalFcfa
+          },
+          select: { id: true }
+        });
+      } else {
+        await tx.rdvMarketplaceSelection.update({
+          where: { id: base.id },
+          data: {
+            clientUid,
+            proUid: String(rdv.proUid),
+            itemsCount,
+            itemsSubtotalFcfa
+          }
+        });
+      }
+      await tx.rdvMarketplaceSelectionLine.deleteMany({ where: { selectionId: base.id } });
+      if (nextLines.length) {
+        await tx.rdvMarketplaceSelectionLine.createMany({
+          data: nextLines.map((row) => ({ selectionId: base.id, ...row }))
+        });
+      }
+      return tx.rdvMarketplaceSelection.findUnique({
+        where: { id: base.id },
+        include: { lines: { orderBy: [{ productTitle: "asc" }, { createdAt: "asc" }] } }
+      });
+    });
+
+    const rdvPricing = await prisma.rendezVous.findUnique({
+      where: { id },
+      select: { prestationPriceFcfa: true, paymentStatus: true, priceFcfa: true }
+    });
+    if (
+      rdvPricing &&
+      rdvPricing.prestationPriceFcfa != null &&
+      !["paid", "pending"].includes(String(rdvPricing.paymentStatus || "unpaid"))
+    ) {
+      const nextTotal = computeRdvTotalPriceFcfa(rdvPricing.prestationPriceFcfa, itemsSubtotalFcfa);
+      const currentPrice = rdvPricing.priceFcfa == null ? null : Number(rdvPricing.priceFcfa);
+      if (currentPrice !== nextTotal) {
+        await prisma.rendezVous.update({
+          where: { id },
+          data: { priceFcfa: nextTotal }
+        });
+      }
+    } else if (
+      rdvPricing &&
+      rdvPricing.prestationPriceFcfa == null &&
+      itemsSubtotalFcfa > 0 &&
+      !["paid", "pending"].includes(String(rdvPricing.paymentStatus || "unpaid"))
+    ) {
+      const currentPrice = rdvPricing.priceFcfa == null ? null : Number(rdvPricing.priceFcfa);
+      if (currentPrice !== itemsSubtotalFcfa) {
+        await prisma.rendezVous.update({
+          where: { id },
+          data: { priceFcfa: itemsSubtotalFcfa }
+        });
+      }
+    }
+
+    return res.json({ selection });
   } catch (error) {
     return res.status(500).json({ code: "internal/error", message: error.message });
   }
@@ -805,90 +1187,10 @@ app.post("/api/rendez-vous/:id/send-reminder", async (req, res) => {
 });
 
 app.post("/api/rendez-vous/:id/pay", async (req, res) => {
-  try {
-    const id = String(req.params.id || "").trim();
-    const clientUid = String(req.body.clientUid || "").trim();
-    const provider = normalizePaymentProvider(req.body.provider);
-    if (!id || !clientUid) {
-      return res.status(400).json({ message: "id et clientUid requis." });
-    }
-    if (!provider) {
-      return res.status(400).json({
-        message: "Moyen de paiement invalide : « flooz » ou « mix_by_yas »."
-      });
-    }
-    const rdv = await prisma.rendezVous.findUnique({ where: { id } });
-    if (!rdv) {
-      return res.status(404).json({ message: "Rendez-vous introuvable." });
-    }
-    if (String(rdv.clientUid) !== clientUid) {
-      return res.status(403).json({ message: "Paiement non autorisé." });
-    }
-    const currentStatus = String(rdv.paymentStatus || "unpaid");
-    if (currentStatus === "paid") {
-      return res.status(400).json({ message: "Ce rendez-vous est déjà payé." });
-    }
-    if (currentStatus === "pending") {
-      return res.status(400).json({ message: "Un paiement est deja en cours pour ce rendez-vous." });
-    }
-    const price = rdv.priceFcfa != null ? Number(rdv.priceFcfa) : 0;
-    if (!Number.isFinite(price) || price <= 0) {
-      return res.status(400).json({
-        message: "Le professionnel n’a pas encore indiqué de prix (FCFA) pour ce rendez-vous."
-      });
-    }
-    const user = await prisma.user.findUnique({ where: { id: clientUid } });
-    if (!user || !isClientRole(user.role)) {
-      return res.status(400).json({ message: "Compte client invalide." });
-    }
-    const attemptId = `pay_${randomUUID()}`;
-    await prisma.rendezVous.update({
-      where: { id },
-      data: {
-        paymentStatus: "pending",
-        paymentProvider: provider,
-        paymentAttemptId: attemptId,
-        paymentRequestedAt: new Date(),
-        paymentFailureReason: null,
-        paymentFailedAt: null,
-        paymentOperatorTxnId: null,
-        paidAt: null
-      }
-    });
-    const updated = await prisma.rendezVous.findUnique({
-      where: { id },
-      include: {
-        pro: {
-          select: {
-            id: true,
-            name: true,
-            salonName: true,
-            email: true,
-            city: true
-          }
-        }
-      }
-    });
-    const u2 = await prisma.user.findUnique({ where: { id: clientUid } });
-    return res.status(200).json({
-      ok: true,
-      message: "Paiement initialise. En attente de confirmation operateur (webhook).",
-      rendezVous: updated,
-      payment: {
-        status: "pending",
-        provider,
-        attemptId,
-        webhookUrl: "/api/payments/webhook",
-        checkoutUrl: `https://sandbox.${provider}.example/checkout?attemptId=${encodeURIComponent(attemptId)}`
-      },
-      balances: {
-        balanceFloozFcfa: u2 ? Number(u2.balanceFloozFcfa) || 0 : 0,
-        balanceMixFcfa: u2 ? Number(u2.balanceMixFcfa) || 0 : 0
-      }
-    });
-  } catch (error) {
-    return res.status(500).json({ code: "internal/error", message: error.message });
-  }
+  return res.status(410).json({
+    code: "payment/disabled",
+    message: "Le paiement mobile en ligne est actuellement désactivé."
+  });
 });
 
 app.post("/api/payments/webhook", async (req, res) => {
@@ -977,9 +1279,157 @@ app.post("/api/payments/webhook", async (req, res) => {
   }
 });
 
+app.get("/api/contact-requests", async (req, res) => {
+  try {
+    const uid = String(req.query.uid || "").trim();
+    if (!uid) {
+      return res.status(400).json({ message: "uid requis." });
+    }
+    const rows = await prisma.contactRequest.findMany({
+      where: { OR: [{ clientUid: uid }, { proUid: uid }] },
+      orderBy: { updatedAt: "desc" }
+    });
+    return res.json({ requests: rows });
+  } catch (error) {
+    const msg = String(error?.message || "");
+    if (msg.includes("ContactRequest") || msg.includes("does not exist")) {
+      return res.status(503).json({
+        code: "schema/missing-table",
+        message:
+          "Table ContactRequest absente : exécutez « npx prisma migrate deploy » (ou « prisma db push ») sur le serveur."
+      });
+    }
+    return res.status(500).json({ code: "internal/error", message: error.message });
+  }
+});
+
+app.get("/api/contact-requests/between", async (req, res) => {
+  try {
+    const clientUid = String(req.query.clientUid || "").trim();
+    const proUid = String(req.query.proUid || "").trim();
+    if (!clientUid || !proUid) {
+      return res.status(400).json({ message: "clientUid et proUid requis." });
+    }
+    const row = await prisma.contactRequest.findUnique({
+      where: { clientUid_proUid: { clientUid, proUid } }
+    });
+    return res.json({ request: row || null });
+  } catch (error) {
+    return res.status(500).json({ code: "internal/error", message: error.message });
+  }
+});
+
+app.post("/api/contact-requests", async (req, res) => {
+  try {
+    const clientUid = String(req.body?.clientUid || "").trim();
+    const proUid = String(req.body?.proUid || "").trim();
+    const message = req.body?.message != null ? String(req.body.message).trim().slice(0, 2000) : "";
+    if (!clientUid || !proUid || clientUid === proUid) {
+      return res.status(400).json({ message: "clientUid et proUid valides requis." });
+    }
+    const client = await prisma.user.findUnique({ where: { id: clientUid }, select: { id: true, role: true } });
+    const pro = await prisma.user.findUnique({ where: { id: proUid }, select: { id: true, role: true } });
+    if (!client || !isClientRole(client.role)) {
+      return res.status(400).json({ message: "Le demandeur doit être un compte client." });
+    }
+    if (!pro || !isProMessagingRole(pro.role)) {
+      return res.status(400).json({ message: "Le destinataire doit être un professionnel." });
+    }
+
+    const existing = await prisma.contactRequest.findUnique({
+      where: { clientUid_proUid: { clientUid, proUid } }
+    });
+    if (existing) {
+      if (existing.status === "accepted") {
+        return res.status(409).json({ code: "contact/already-accepted", message: "Vous êtes déjà en contact avec ce professionnel." });
+      }
+      if (existing.status === "pending") {
+        return res.json({ request: existing });
+      }
+      const updated = await prisma.contactRequest.update({
+        where: { id: existing.id },
+        data: {
+          status: "pending",
+          message: message || existing.message || null
+        }
+      });
+      return res.json({ request: updated });
+    }
+
+    const created = await prisma.contactRequest.create({
+      data: {
+        clientUid,
+        proUid,
+        status: "pending",
+        message: message || null
+      }
+    });
+    return res.status(201).json({ request: created });
+  } catch (error) {
+    const msg = String(error?.message || "");
+    if (msg.includes("ContactRequest") || msg.includes("does not exist")) {
+      return res.status(503).json({
+        code: "schema/missing-table",
+        message:
+          "Table ContactRequest absente : exécutez « npx prisma migrate deploy » sur le serveur."
+      });
+    }
+    return res.status(500).json({ code: "internal/error", message: error.message });
+  }
+});
+
+app.patch("/api/contact-requests/:id", async (req, res) => {
+  try {
+    const id = String(req.params.id || "").trim();
+    const proUid = String(req.body?.proUid || "").trim();
+    const status = String(req.body?.status || "")
+      .trim()
+      .toLowerCase();
+    if (!id || !proUid) {
+      return res.status(400).json({ message: "id et proUid requis." });
+    }
+    if (status !== "accepted" && status !== "rejected") {
+      return res.status(400).json({ message: "status doit être accepted ou rejected." });
+    }
+    const row = await prisma.contactRequest.findUnique({ where: { id } });
+    if (!row) {
+      return res.status(404).json({ message: "Demande introuvable." });
+    }
+    if (row.proUid !== proUid) {
+      return res.status(403).json({ message: "Seul le professionnel concerné peut répondre à cette demande." });
+    }
+    if (row.status !== "pending") {
+      return res.status(409).json({ message: "Cette demande a déjà été traitée." });
+    }
+    const updated = await prisma.contactRequest.update({
+      where: { id },
+      data: { status }
+    });
+    return res.json({ request: updated });
+  } catch (error) {
+    return res.status(500).json({ code: "internal/error", message: error.message });
+  }
+});
+
 app.post("/api/messages", async (req, res) => {
   try {
-    const row = await prisma.message.create({ data: req.body });
+    const fromUid = String(req.body?.fromUid || "").trim();
+    const toUid = String(req.body?.toUid || "").trim();
+    const text = req.body?.text != null ? String(req.body.text) : "";
+    if (!fromUid || !toUid) {
+      return res.status(400).json({ message: "fromUid et toUid requis." });
+    }
+    try {
+      await assertMessageContactAllowed(fromUid, toUid);
+    } catch (e) {
+      if (e.status === 403) {
+        return res.status(403).json({ code: e.code || "contact/not-accepted", message: e.message });
+      }
+      throw e;
+    }
+    const row = await prisma.message.create({
+      data: { fromUid, toUid, text }
+    });
     return res.status(201).json({ message: row });
   } catch (error) {
     return res.status(500).json({ code: "internal/error", message: error.message });
@@ -993,7 +1443,8 @@ app.get("/api/messages", async (req, res) => {
       where: { OR: [{ toUid: uid }, { fromUid: uid }] },
       orderBy: { createdAt: "desc" }
     });
-    return res.json({ messages: rows });
+    const filtered = await filterMessagesByContactGate(uid, rows);
+    return res.json({ messages: filtered });
   } catch (error) {
     return res.status(500).json({ code: "internal/error", message: error.message });
   }

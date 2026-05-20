@@ -189,7 +189,7 @@ function render() {
         const isFavorite = favorites.some(f => f.proId === p.id);
         const favText = isFavorite ? "Retirer des favoris" : "Ajouter aux favoris";
         const msgHref = currentUser
-            ? "messagerie.html?to=" + encodeURIComponent(p.id)
+            ? "profil-public.html?uid=" + encodeURIComponent(p.id)
             : "login.html";
         const avisHref = currentUser
             ? "avis.html?pro=" + encodeURIComponent(p.id)
@@ -224,7 +224,7 @@ function render() {
             "\">Voir la fiche</a> · " +
             "<a href=\"" +
             msgHref +
-            "\">Message</a> · " +
+            "\">Contacter</a> · " +
             "<a href=\"" +
             avisHref +
             "\">Laisser un avis</a>" +
