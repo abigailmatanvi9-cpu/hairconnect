@@ -402,6 +402,7 @@ import {
     publicationStyleTypeLabel
 } from "./firebase.js";
 import { compressImageFile } from "./image-utils.js";
+import { normalizeRole as normalizeRoleShared, resolveUserRole, authUserId } from "./role-utils.js";
 
 const panels = ["panel-client", "panel-coiffeur", "panel-salon", "panel-unknown"];
 
@@ -425,13 +426,11 @@ let clientNearLoading = false;
 let dashboardClientUid = null;
 let dashOwnPublicationsSelectedId = "";
 
-function normalizeRole(raw) {
-    if (!raw || typeof raw !== "string") return "unknown";
-    const r = raw.trim().toLowerCase();
-    if (r === "client") return "client";
-    if (r === "coiffeur" || r === "coiffeuse" || r === "coiffeur indépendant" || r === "coiffeuse indépendante") return "coiffeur";
-    if (r === "salon") return "salon";
-    return "unknown";
+function normalizeRole(raw, profile) {
+    if (profile && typeof profile === "object") {
+        return resolveUserRole({ ...profile, role: raw ?? profile.role });
+    }
+    return normalizeRoleShared(raw);
 }
 
 function applyDashboardPanelsVisibility() {
@@ -1947,7 +1946,7 @@ onAuthStateChanged(auth, async (user) => {
         if (data.role) roleRaw = data.role;
     }
 
-    const roleKey = normalizeRole(roleRaw);
+    const roleKey = resolveUserRole(data || { role: roleRaw });
 
     fillDashSidebarUser(user, data);
     document.getElementById("dashWelcome").textContent = "Bonjour, " + name;
@@ -2057,7 +2056,7 @@ function refreshDashHeroesFromProfileCache() {
     const heroCity = data.city;
     const heroQuartier = data.quartier;
     const heroPhoto = data.photoUrl;
-    const rk = normalizeRole(data.role);
+    const rk = resolveUserRole(data);
     document.getElementById("dashWelcome").textContent = "Bonjour, " + displayPerson;
     if (rk === "client") {
         applyClientHomeUI({ name: displayPerson, city: heroCity, quartier: heroQuartier, photoUrl: heroPhoto });
