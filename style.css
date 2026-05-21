@@ -3329,6 +3329,61 @@ button.dash-home-cat {
     color: #9f968c;
 }
 
+.dash-pro-feed__filters {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem;
+    margin: 0 0 0.9rem;
+}
+
+.dash-pro-feed__filter {
+    padding: 0.35rem 0.65rem;
+    border-radius: 999px;
+    border: 1px solid #3a3632;
+    background: #1a1815;
+    color: #c4bdb4;
+    font-size: 0.72rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+}
+
+.dash-pro-feed__filter:hover {
+    border-color: #5a534a;
+    color: #f0ebe4;
+}
+
+.dash-pro-feed__filter.is-active {
+    background: #3d2f24;
+    border-color: #c9a227;
+    color: #f5e6c8;
+}
+
+.dash-pro-feed__style {
+    display: block;
+    margin: 0.2rem auto 0;
+    padding: 0.12rem 0.45rem;
+    border-radius: 6px;
+    font-size: 0.68rem;
+    font-weight: 700;
+    color: #e8c547;
+    background: rgba(201, 162, 39, 0.12);
+    text-align: center;
+    max-width: calc(100% - 1rem);
+    line-height: 1.25;
+}
+
+.dash-published-photos__style {
+    grid-column: 1 / -1;
+}
+
+.dash-published-photos__style-tag {
+    margin: 0.2rem 0 0;
+    font-size: 0.72rem;
+    font-weight: 600;
+    color: #e8c547;
+}
+
 .dash-pro-feed__list {
     list-style: none;
     margin: 0;

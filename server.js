@@ -2165,18 +2165,43 @@ app.get("/api/favorites", async (req, res) => {
   }
 });
 
+const PUBLICATION_STYLE_TYPE_SLUGS = new Set([
+  "tresses",
+  "coupe",
+  "coloration",
+  "extensions",
+  "barbier",
+  "afro",
+  "soins",
+  "autre"
+]);
+
+function normalizePublicationStyleType(raw) {
+  const slug = String(raw || "")
+    .trim()
+    .toLowerCase();
+  return PUBLICATION_STYLE_TYPE_SLUGS.has(slug) ? slug : null;
+}
+
 app.post("/api/publications", async (req, res) => {
   try {
     const authorUid = String(req.body.authorUid || "").trim();
     const photoUrl = String(req.body.photoUrl || "").trim();
     const caption = String(req.body.caption || "").trim();
     const kind = String(req.body.kind || "").trim();
+    const styleType = normalizePublicationStyleType(req.body.styleType);
     let targetProUid = String(req.body.targetProUid || "").trim();
     if (!authorUid || !photoUrl) {
       return res.status(400).json({ message: "authorUid et photoUrl requis." });
     }
     if (kind !== "pro" && kind !== "client_after_service") {
       return res.status(400).json({ message: "kind invalide." });
+    }
+    if (!styleType) {
+      return res.status(400).json({
+        message:
+          "styleType requis (tresses, coupe, coloration, extensions, barbier, afro, soins, autre)."
+      });
     }
     if (kind === "pro") targetProUid = authorUid;
     if (!targetProUid) {
@@ -2191,6 +2216,7 @@ app.post("/api/publications", async (req, res) => {
       photoUrl,
       caption,
       kind,
+      styleType,
       createdAt: new Date().toISOString()
     };
     rows.push(row);
@@ -2206,6 +2232,7 @@ app.get("/api/publications", async (req, res) => {
     const targetProUid = req.query.targetProUid ? String(req.query.targetProUid) : "";
     const authorUid = req.query.authorUid ? String(req.query.authorUid) : "";
     const kind = req.query.kind ? String(req.query.kind) : "";
+    const styleTypeFilter = normalizePublicationStyleType(req.query.styleType);
     const withAuthorNames =
       String(req.query.withAuthorNames || "") === "1" ||
       String(req.query.withAuthorNames || "").toLowerCase() === "true";
@@ -2218,6 +2245,9 @@ app.get("/api/publications", async (req, res) => {
       .filter((p) => (targetProUid ? String(p.targetProUid) === targetProUid : true))
       .filter((p) => (authorUid ? String(p.authorUid) === authorUid : true))
       .filter((p) => (kind ? String(p.kind) === kind : true))
+      .filter((p) =>
+        styleTypeFilter ? String(p.styleType || "").toLowerCase() === styleTypeFilter : true
+      )
       .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
 
     if (withAuthorNames && filtered.length) {

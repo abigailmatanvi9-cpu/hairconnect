@@ -282,6 +282,9 @@
                 <p id="dashEmbedOwnPublicationsOk" class="form-success" role="status" hidden></p>
                 <div class="dash-published-photos__actions">
                     <input type="file" id="dashEmbedOwnPublicationsPhoto" accept="image/*">
+                    <select id="dashEmbedOwnPublicationsStyle" class="field-select dash-published-photos__style" aria-label="Type de photo" required>
+                        <option value="">Type de photo…</option>
+                    </select>
                     <input type="text" id="dashEmbedOwnPublicationsCaption" placeholder="Légende (optionnel)">
                     <button type="button" class="dash-published-photos__btn" id="dashEmbedOwnPublicationsAddBtn">Ajouter</button>
                     <button type="button" class="dash-published-photos__btn dash-published-photos__btn--danger" id="dashEmbedOwnPublicationsDeleteBtn" disabled>Supprimer</button>
@@ -290,7 +293,8 @@
                 <ul id="dashEmbedOwnPublicationsList" class="dash-published-photos__list"></ul>
             </div>
             <div id="dashPageEmbedProFeed" class="dash-pro-feed" hidden>
-                <p class="dash-pro-feed__intro">Inspirez-vous des realisations des salons et coiffeurs, ainsi que des photos publiees par les clients apres prestation. Touchez une carte pour ouvrir le profil.</p>
+                <p class="dash-pro-feed__intro">Choisissez un style pour ne voir que ce type de réalisations (tresses, coupe, coloration…). Touchez une carte pour ouvrir le profil du professionnel.</p>
+                <div id="dashEmbedProFeedFilters" class="dash-pro-feed__filters" role="tablist" aria-label="Filtrer par type de photo"></div>
                 <p id="dashEmbedProFeedError" class="form-error" role="alert" hidden></p>
                 <p id="dashEmbedProFeedLoading" class="dash-published-photos__state">Chargement…</p>
                 <ul id="dashEmbedProFeedList" class="dash-pro-feed__list"></ul>
@@ -371,7 +375,9 @@ import {
     createPublication,
     listPublications,
     deletePublication,
-    getFirebaseErrorMessage
+    getFirebaseErrorMessage,
+    PUBLICATION_STYLE_TYPES,
+    publicationStyleTypeLabel
 } from "./firebase.js";
 
 const panels = ["panel-client", "panel-coiffeur", "panel-salon", "panel-unknown"];
@@ -387,6 +393,7 @@ const DASH_EMBED_NEARBY = "__nearby__";
 const DASH_EMBED_OWN_PUBLICATIONS = "__own_publications__";
 const DASH_EMBED_INSPIRE = "__inspire__";
 const DASH_EMBED_PROFIL = "profil-dashboard.html";
+let dashInspireStyleFilter = "";
 
 let clientDashCity = "";
 let clientDashQuartier = "";
@@ -573,6 +580,7 @@ function openDashEmbed(url, titleText) {
         if (ownPublicationsWrap) ownPublicationsWrap.hidden = false;
         if (proFeedWrap) proFeedWrap.hidden = true;
         if (newTab) newTab.hidden = true;
+        fillOwnPublicationStyleSelect();
         loadEmbedOwnPublications();
     } else if (url === DASH_EMBED_INSPIRE) {
         if (frame) {
@@ -586,6 +594,7 @@ function openDashEmbed(url, titleText) {
         if (ownPublicationsWrap) ownPublicationsWrap.hidden = true;
         if (proFeedWrap) proFeedWrap.hidden = false;
         if (newTab) newTab.hidden = true;
+        mountInspireStyleFilters();
         loadEmbedProFeed();
     } else {
         if (frame) {
@@ -1076,6 +1085,11 @@ function renderOwnPublications(listEl, loadEl, publications) {
             "</p>" +
             (p.caption
                 ? '<p class="dash-published-photos__caption">' + escapeHtml(p.caption) + "</p>"
+                : "") +
+            (p.styleType
+                ? '<p class="dash-published-photos__style-tag">' +
+                  escapeHtml(publicationStyleTypeLabel(p.styleType) || p.styleType) +
+                  "</p>"
                 : "");
         listEl.appendChild(li);
     }
@@ -1162,11 +1176,60 @@ async function enrichPublicationAuthorLabels(publications) {
     });
 }
 
+function mountInspireStyleFilters() {
+    const wrap = document.getElementById("dashEmbedProFeedFilters");
+    if (!wrap || wrap.dataset.mounted === "1") return;
+    wrap.dataset.mounted = "1";
+    wrap.innerHTML = "";
+    const allBtn = document.createElement("button");
+    allBtn.type = "button";
+    allBtn.className = "dash-pro-feed__filter is-active";
+    allBtn.setAttribute("role", "tab");
+    allBtn.setAttribute("aria-selected", "true");
+    allBtn.dataset.style = "";
+    allBtn.textContent = "Tous";
+    wrap.appendChild(allBtn);
+    for (const t of PUBLICATION_STYLE_TYPES) {
+        const btn = document.createElement("button");
+        btn.type = "button";
+        btn.className = "dash-pro-feed__filter";
+        btn.setAttribute("role", "tab");
+        btn.setAttribute("aria-selected", "false");
+        btn.dataset.style = t.slug;
+        btn.textContent = t.label;
+        wrap.appendChild(btn);
+    }
+    wrap.addEventListener("click", (e) => {
+        const btn = e.target.closest(".dash-pro-feed__filter");
+        if (!btn) return;
+        dashInspireStyleFilter = String(btn.dataset.style || "").trim();
+        for (const b of wrap.querySelectorAll(".dash-pro-feed__filter")) {
+            const on = b === btn;
+            b.classList.toggle("is-active", on);
+            b.setAttribute("aria-selected", on ? "true" : "false");
+        }
+        loadEmbedProFeed();
+    });
+}
+
+function fillOwnPublicationStyleSelect() {
+    const sel = document.getElementById("dashEmbedOwnPublicationsStyle");
+    if (!sel || sel.dataset.filled === "1") return;
+    sel.dataset.filled = "1";
+    for (const t of PUBLICATION_STYLE_TYPES) {
+        const opt = document.createElement("option");
+        opt.value = t.slug;
+        opt.textContent = t.label;
+        sel.appendChild(opt);
+    }
+}
+
 async function loadEmbedProFeed() {
     const listEl = document.getElementById("dashEmbedProFeedList");
     const loadEl = document.getElementById("dashEmbedProFeedLoading");
     const errEl = document.getElementById("dashEmbedProFeedError");
     if (!listEl) return;
+    mountInspireStyleFilters();
     listEl.innerHTML = "";
     if (errEl) {
         errEl.hidden = true;
@@ -1176,10 +1239,11 @@ async function loadEmbedProFeed() {
         loadEl.hidden = false;
         loadEl.textContent = "Chargement…";
     }
+    const styleQ = dashInspireStyleFilter ? { styleType: dashInspireStyleFilter } : {};
     try {
         const [proPublications, clientPublications] = await Promise.all([
-            listPublications({ kind: "pro", withAuthorNames: true }),
-            listPublications({ kind: "client_after_service", withAuthorNames: true })
+            listPublications({ kind: "pro", withAuthorNames: true, ...styleQ }),
+            listPublications({ kind: "client_after_service", withAuthorNames: true, ...styleQ })
         ]);
         let publications = [...proPublications, ...clientPublications];
         publications.sort((a, b) => {
@@ -1192,7 +1256,9 @@ async function loadEmbedProFeed() {
         if (!publications.length) {
             const li = document.createElement("li");
             li.className = "dash-pro-feed__empty";
-            li.textContent = "Aucune photo publiée pour le moment.";
+            li.textContent = dashInspireStyleFilter
+                ? "Aucune photo pour ce style pour le moment."
+                : "Aucune photo publiée pour le moment.";
             listEl.appendChild(li);
             return;
         }
@@ -1218,11 +1284,18 @@ async function loadEmbedProFeed() {
                 "dash-pro-feed__badge " +
                 (type === "client_after_service" ? "dash-pro-feed__badge--client" : "dash-pro-feed__badge--pro");
             badge.textContent = type === "client_after_service" ? "Photo client" : "Photo pro";
+            const styleLabel = publicationStyleTypeLabel(p.styleType);
             const span = document.createElement("span");
             span.className = "dash-pro-feed__name";
             span.textContent = name;
             a.appendChild(img);
             a.appendChild(badge);
+            if (styleLabel) {
+                const styleBadge = document.createElement("span");
+                styleBadge.className = "dash-pro-feed__style";
+                styleBadge.textContent = styleLabel;
+                a.appendChild(styleBadge);
+            }
             a.appendChild(span);
             li.appendChild(a);
             listEl.appendChild(li);
@@ -1286,15 +1359,22 @@ if (dashEmbedOwnPublicationsAddBtn) {
             }
             const photoUrl = await fileToDataUrlDp(file);
             const caption = String(dashEmbedOwnPublicationsCaptionInput?.value || "").trim();
+            const styleSel = document.getElementById("dashEmbedOwnPublicationsStyle");
+            const styleType = String(styleSel?.value || "").trim();
+            if (!styleType) {
+                throw new Error("Choisissez le type de photo (tresses, coupe, etc.).");
+            }
             await createPublication({
                 authorUid: dashProfileUid,
                 targetProUid: dashProfileUid,
                 photoUrl,
                 caption,
-                kind: "pro"
+                kind: "pro",
+                styleType
             });
             dashOwnPublicationsSelectedId = "";
             if (dashEmbedOwnPublicationsPhotoInput) dashEmbedOwnPublicationsPhotoInput.value = "";
+            if (styleSel) styleSel.value = "";
             if (dashEmbedOwnPublicationsCaptionInput) dashEmbedOwnPublicationsCaptionInput.value = "";
             if (dashEmbedOwnPublicationsOk) {
                 dashEmbedOwnPublicationsOk.textContent = "Photo ajoutée.";

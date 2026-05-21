@@ -82,6 +82,15 @@
                     </div>
                 </div>
                 <div class="field-group">
+                    <label class="field-label" for="pubClientStyle">Type de réalisation</label>
+                    <div class="field-input-wrap">
+                        <select id="pubClientStyle" class="field-select" required>
+                            <option value="">Choisir…</option>
+                        </select>
+                    </div>
+                    <p class="field-hint">Permet aux autres clients de filtrer par style dans « S'inspirer ».</p>
+                </div>
+                <div class="field-group">
                     <label class="field-label" for="pubClientCaption">Légende (optionnel)</label>
                     <textarea id="pubClientCaption" class="field-textarea" rows="3" placeholder="Ex. Merci pour cette coupe !"></textarea>
                 </div>
@@ -111,8 +120,19 @@ import {
     clearGuestDiscovery,
     getFirebaseErrorMessage,
     getContactRequestBetween,
-    createContactRequest
+    createContactRequest,
+    PUBLICATION_STYLE_TYPES
 } from "./firebase.js";
+
+const pubClientStyleSelect = document.getElementById("pubClientStyle");
+if (pubClientStyleSelect) {
+    for (const t of PUBLICATION_STYLE_TYPES) {
+        const opt = document.createElement("option");
+        opt.value = t.slug;
+        opt.textContent = t.label;
+        pubClientStyleSelect.appendChild(opt);
+    }
+}
 
 const params = new URLSearchParams(location.search);
 const uid = params.get("uid");
@@ -450,14 +470,20 @@ if (pubClientForm) {
                 reader.onerror = () => reject(new Error("Impossible de lire la photo."));
                 reader.readAsDataURL(file);
             });
+            const styleType = String(pubClientStyleSelect?.value || "").trim();
+            if (!styleType) {
+                throw new Error("Choisissez le type de réalisation (tresses, coupe, etc.).");
+            }
             await createPublication({
                 authorUid: user.uid,
                 targetProUid: uid,
                 photoUrl,
                 caption: String(pubClientCaption?.value || "").trim(),
-                kind: "client_after_service"
+                kind: "client_after_service",
+                styleType
             });
             if (pubClientPhoto) pubClientPhoto.value = "";
+            if (pubClientStyleSelect) pubClientStyleSelect.value = "";
             if (pubClientCaption) pubClientCaption.value = "";
             if (pubPostOk) {
                 pubPostOk.textContent = "Photo partagée.";

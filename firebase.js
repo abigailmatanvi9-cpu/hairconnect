@@ -38,6 +38,29 @@ export const HAIRCONNECT_METIERS = [
     { slug: "autre", label: "Autre / polyvalent" }
 ];
 
+/** Types de photo pour la galerie « S'inspirer » (slug + libellé). */
+export const PUBLICATION_STYLE_TYPES = [
+    { slug: "tresses", label: "Tresses / nattes" },
+    { slug: "coupe", label: "Coupe & brushing" },
+    { slug: "coloration", label: "Coloration" },
+    { slug: "extensions", label: "Extensions & pose" },
+    { slug: "barbier", label: "Barbier" },
+    { slug: "afro", label: "Coiffure afro / twist" },
+    { slug: "soins", label: "Soins capillaires" },
+    { slug: "autre", label: "Autre style" }
+];
+
+const STYLE_TYPE_BY_SLUG = new Map(PUBLICATION_STYLE_TYPES.map((t) => [t.slug, t]));
+
+export function isAllowedPublicationStyleType(slug) {
+    return STYLE_TYPE_BY_SLUG.has(String(slug || "").trim().toLowerCase());
+}
+
+export function publicationStyleTypeLabel(slug) {
+    const key = String(slug || "").trim().toLowerCase();
+    return STYLE_TYPE_BY_SLUG.get(key)?.label || "";
+}
+
 /** Parcours de l’annuaire sans compte (session onglet). */
 export function isGuestDiscovery() {
     try {
@@ -604,7 +627,7 @@ export async function listFavorites(clientId) {
     return (payload.favorites || []).map((f) => ({ ...f, createdAt: { toMillis: () => new Date(f.createdAt).getTime() } }));
 }
 
-export async function createPublication({ authorUid, targetProUid, photoUrl, caption, kind }) {
+export async function createPublication({ authorUid, targetProUid, photoUrl, caption, kind, styleType }) {
     await apiFetch("/publications", {
         method: "POST",
         body: JSON.stringify({
@@ -612,16 +635,18 @@ export async function createPublication({ authorUid, targetProUid, photoUrl, cap
             targetProUid,
             photoUrl: String(photoUrl || "").trim(),
             caption: String(caption || "").trim(),
-            kind: String(kind || "").trim()
+            kind: String(kind || "").trim(),
+            styleType: String(styleType || "").trim().toLowerCase()
         })
     });
 }
 
-export async function listPublications({ targetProUid, authorUid, kind, withAuthorNames } = {}) {
+export async function listPublications({ targetProUid, authorUid, kind, styleType, withAuthorNames } = {}) {
     const params = new URLSearchParams();
     if (targetProUid) params.set("targetProUid", targetProUid);
     if (authorUid) params.set("authorUid", authorUid);
     if (kind) params.set("kind", kind);
+    if (styleType) params.set("styleType", String(styleType).trim().toLowerCase());
     if (withAuthorNames) params.set("withAuthorNames", "1");
     const qs = params.toString();
     const payload = await apiFetch(`/publications${qs ? "?" + qs : ""}`);
