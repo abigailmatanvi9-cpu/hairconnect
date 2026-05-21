@@ -4,11 +4,11 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "start": "node server.js",
+    "start": "node scripts/render-start.mjs",
     "dev": "node server.js",
     "prisma:generate": "prisma generate",
     "prisma:sync": "prisma db push && prisma generate",
-    "build:render": "prisma generate && prisma db push --skip-generate",
+    "build:render": "prisma generate",
     "prisma:migrate": "prisma migrate dev --name init",
     "db:seed": "prisma db seed"
   },
@@ -21,9 +21,7 @@
     "cors": "^2.8.5",
     "dotenv": "^16.4.5",
     "express": "^4.19.2",
+    "prisma": "^6.6.0",
     "uuid": "^11.0.3"
-  },
-  "devDependencies": {
-    "prisma": "^6.6.0"
   }
 }

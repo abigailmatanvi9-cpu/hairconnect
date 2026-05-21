@@ -1,6 +1,5 @@
 #!/usr/bin/env bash
-# Build Render : évite migrate deploy si la base a déjà des colonnes (erreur P3018 / 42701).
+# Build Render : génère le client Prisma uniquement (db push au démarrage via render-start.mjs).
 set -euo pipefail
 npm install
-npx prisma generate
-npx prisma db push --skip-generate
+npm run build:render
