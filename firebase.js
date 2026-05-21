@@ -312,7 +312,10 @@ export async function saveRendezVousItemSelection(rendezVousId, clientUid, lines
             lines: Array.isArray(lines)
                 ? lines.map((row) => ({
                       productId: String(row?.productId || "").trim(),
-                      quantity: Number(row?.quantity || 0)
+                      quantity: Number(row?.quantity || 0),
+                      ...(row?.color != null && String(row.color).trim()
+                          ? { color: String(row.color).trim() }
+                          : {})
                   }))
                 : []
         })
@@ -519,6 +522,7 @@ export async function createMarketplaceProduct(sellerUid, sellerName, input) {
             priceFcfa: Number(input?.priceFcfa),
             stock: Number(input?.stock || 1),
             category: String(input?.category || "").trim(),
+            colors: String(input?.colors || "").trim(),
             photoUrl: String(input?.photoUrl || "").trim()
         })
     });
@@ -540,7 +544,10 @@ export async function createMarketplaceOrder(buyerUid, items) {
             buyerUid,
             items: (items || []).map((row) => ({
                 productId: String(row.productId || "").trim(),
-                quantity: Number(row.quantity || 1)
+                quantity: Number(row.quantity || 1),
+                ...(row?.color != null && String(row.color).trim()
+                    ? { color: String(row.color).trim() }
+                    : {})
             }))
         })
     });

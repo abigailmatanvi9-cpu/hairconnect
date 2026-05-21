@@ -8,7 +8,7 @@ import { readFileSync } from "node:fs";
 import path from "node:path";
 import { randomUUID } from "node:crypto";
 import { parseStoredPhone, validatePhoneNational } from "./phone-utils.js";
-import { isCoiffeurRole } from "./role-utils.js";
+import { isCoiffeurRole, resolveUserRole } from "./role-utils.js";
 
 const app = express();
 const prisma = new PrismaClient();
@@ -706,16 +706,62 @@ function withRdvSelectionSummary(rows, summaryMap) {
   });
 }
 
+function parseProductColorsField(raw) {
+  if (raw == null || raw === "") return [];
+  if (Array.isArray(raw)) {
+    return raw.map((c) => String(c || "").trim()).filter(Boolean).slice(0, 24);
+  }
+  const s = String(raw).trim();
+  if (!s) return [];
+  try {
+    const parsed = JSON.parse(s);
+    if (Array.isArray(parsed)) {
+      return parsed.map((c) => String(c || "").trim()).filter(Boolean).slice(0, 24);
+    }
+  } catch {
+    /* texte libre */
+  }
+  return s
+    .split(/[,;|]/)
+    .map((c) => c.trim())
+    .filter(Boolean)
+    .slice(0, 24);
+}
+
+function serializeProductColorsField(raw) {
+  const arr = parseProductColorsField(raw);
+  return arr.length ? JSON.stringify(arr) : null;
+}
+
+function resolveLineColorChoice(rawColor, allowedColors) {
+  const allowed = parseProductColorsField(allowedColors);
+  if (!allowed.length) return null;
+  const c = String(rawColor || "").trim();
+  if (!c) return null;
+  const hit = allowed.find((a) => a.toLowerCase() === c.toLowerCase());
+  return hit || null;
+}
+
+function cartLineKey(productId, color) {
+  return `${String(productId || "").trim()}\0${String(color || "").trim()}`;
+}
+
 function normalizeRdvSelectionLines(raw) {
   if (!Array.isArray(raw)) return [];
   const map = new Map();
   for (const row of raw) {
     const productId = String(row?.productId || "").trim();
+    const color = row?.color != null ? String(row.color).trim() : "";
     const q = parsePositiveInt(row?.quantity, 1) || 0;
     if (!productId || q <= 0) continue;
-    map.set(productId, (map.get(productId) || 0) + q);
+    const key = cartLineKey(productId, color);
+    map.set(key, {
+      productId,
+      quantity: (map.get(key)?.quantity || 0) + q,
+      color: color || null
+    });
   }
-  return [...map.entries()].map(([productId, quantity]) => ({ productId, quantity }));
+  return [...map.values()];
 }
 
 function computeRdvTotalPriceFcfa(prestationPriceFcfa, itemsSubtotalFcfa) {
@@ -1066,12 +1112,20 @@ app.put("/api/rendez-vous/:id/item-selection", async (req, res) => {
       if (!Number.isInteger(qty) || qty <= 0) {
         return res.status(400).json({ message: "Quantité invalide." });
       }
+      const allowedColors = parseProductColorsField(p.colors);
+      const color = resolveLineColorChoice(line.color, allowedColors);
+      if (allowedColors.length && !color) {
+        return res.status(400).json({
+          message: `Choisissez une couleur pour « ${p.title || "cet article"} ».`
+        });
+      }
       const unit = Number(p.priceFcfa || 0);
       nextLines.push({
         productId: String(p.id),
         productTitle: String(p.title || "Article"),
         unitPriceFcfa: unit,
         quantity: qty,
+        color,
         lineTotalFcfa: unit * qty
       });
     }
@@ -1280,17 +1334,53 @@ app.post("/api/payments/webhook", async (req, res) => {
   }
 });
 
+async function enrichContactRequestsWithClient(rows) {
+  if (!rows.length) return rows;
+  const clientIds = [...new Set(rows.map((r) => String(r.clientUid || "").trim()).filter(Boolean))];
+  const clients = clientIds.length
+    ? await prisma.user.findMany({
+        where: { id: { in: clientIds } },
+        select: { id: true, name: true, email: true, city: true, quartier: true, phone: true, photoUrl: true }
+      })
+    : [];
+  const byId = Object.fromEntries(clients.map((u) => [u.id, u]));
+  return rows.map((r) => ({
+    ...r,
+    client: byId[r.clientUid] || null
+  }));
+}
+
 app.get("/api/contact-requests", async (req, res) => {
   try {
     const uid = String(req.query.uid || "").trim();
     if (!uid) {
       return res.status(400).json({ message: "uid requis." });
     }
+    const viewer = await prisma.user.findUnique({
+      where: { id: uid },
+      select: { id: true, role: true, salonName: true }
+    });
+    if (!viewer) {
+      return res.status(404).json({ message: "Compte introuvable." });
+    }
+    const roleKey = resolveUserRole(viewer);
+    let where;
+    if (roleKey === "salon" || roleKey === "coiffeur") {
+      where = { proUid: uid };
+    } else if (roleKey === "client") {
+      where = { clientUid: uid };
+    } else {
+      where = { OR: [{ clientUid: uid }, { proUid: uid }] };
+    }
     const rows = await prisma.contactRequest.findMany({
-      where: { OR: [{ clientUid: uid }, { proUid: uid }] },
+      where,
       orderBy: { updatedAt: "desc" }
     });
-    return res.json({ requests: rows });
+    const enriched =
+      roleKey === "salon" || roleKey === "coiffeur"
+        ? await enrichContactRequestsWithClient(rows)
+        : rows;
+    return res.json({ requests: enriched, roleKey });
   } catch (error) {
     const msg = String(error?.message || "");
     if (msg.includes("ContactRequest") || msg.includes("does not exist")) {
@@ -1710,6 +1800,7 @@ app.post("/api/marketplace/products", async (req, res) => {
         message: "Photo : fournissez une URL https ou une image (PNG, JPEG, WebP, GIF) importée depuis votre appareil."
       });
     }
+    const colors = serializeProductColorsField(req.body?.colors);
     const row = await prisma.product.create({
       data: {
         sellerUid,
@@ -1717,6 +1808,7 @@ app.post("/api/marketplace/products", async (req, res) => {
         title,
         description,
         category,
+        colors,
         photoUrl,
         priceFcfa,
         stock
@@ -1746,6 +1838,7 @@ app.patch("/api/marketplace/products/:id", async (req, res) => {
     if (req.body.description !== undefined)
       data.description = String(req.body.description || "").trim() || existing.description;
     if (req.body.category !== undefined) data.category = String(req.body.category || "").trim() || null;
+    if (req.body.colors !== undefined) data.colors = serializeProductColorsField(req.body.colors);
     if (req.body.photoUrl !== undefined) {
       const nextPhoto = String(req.body.photoUrl || "").trim() || null;
       if (nextPhoto && nextPhoto.length > MARKETPLACE_PHOTO_URL_MAX_LEN) {
@@ -1813,15 +1906,23 @@ function normalizeMarketplaceCartItems(body) {
     const map = new Map();
     for (const row of raw) {
       const productId = String(row?.productId || "").trim();
+      const color = row?.color != null ? String(row.color).trim() : "";
       const q = parsePositiveInt(row?.quantity, 1) || 1;
       if (!productId) continue;
-      map.set(productId, (map.get(productId) || 0) + q);
+      const key = cartLineKey(productId, color);
+      const prev = map.get(key);
+      map.set(key, {
+        productId,
+        quantity: (prev?.quantity || 0) + q,
+        color: color || null
+      });
     }
-    return [...map.entries()].map(([productId, quantity]) => ({ productId, quantity }));
+    return [...map.values()];
   }
   const singleId = String(body?.productId || "").trim();
   const singleQty = parsePositiveInt(body?.quantity, 1) || 1;
-  if (singleId) return [{ productId: singleId, quantity: singleQty }];
+  const singleColor = body?.color != null ? String(body.color).trim() : null;
+  if (singleId) return [{ productId: singleId, quantity: singleQty, color: singleColor || null }];
   return [];
 }
 
@@ -1830,10 +1931,10 @@ function marketplaceOrderSellerNoticeText(order, buyerName) {
   const name = String(buyerName || "Acheteur").trim() || "Acheteur";
   const items = Array.isArray(order.items) ? order.items : [];
   const lines = items
-    .map(
-      (it) =>
-        `- ${String(it.productTitle || "Article").trim()} × ${Number(it.quantity || 0)} (${Number(it.lineTotalFcfa || 0)} FCFA)`
-    )
+    .map((it) => {
+      const colorBit = it.color ? `, couleur ${String(it.color).trim()}` : "";
+      return `- ${String(it.productTitle || "Article").trim()} × ${Number(it.quantity || 0)}${colorBit} (${Number(it.lineTotalFcfa || 0)} FCFA)`;
+    })
     .join("\n");
   const sub = Number(order.subtotalFcfa || 0);
   const net = Number(order.sellerNetFcfa || 0);
@@ -1856,7 +1957,7 @@ app.post("/api/marketplace/orders", async (req, res) => {
     const products = await prisma.product.findMany({ where: { id: { in: ids } } });
     const byId = Object.fromEntries(products.map((p) => [p.id, p]));
 
-    for (const { productId, quantity } of merged) {
+    for (const { productId, quantity, color } of merged) {
       const p = byId[productId];
       if (!p || String(p.status || "") === "deleted") {
         return res.status(404).json({ message: `Article introuvable (${productId}).` });
@@ -1864,18 +1965,26 @@ app.post("/api/marketplace/orders", async (req, res) => {
       if (buyerUid === String(p.sellerUid || "")) {
         return res.status(400).json({ message: "Vous ne pouvez pas acheter votre propre article." });
       }
+      const allowedColors = parseProductColorsField(p.colors);
+      const resolvedColor = resolveLineColorChoice(color, allowedColors);
+      if (allowedColors.length && !resolvedColor) {
+        return res.status(400).json({
+          message: `Choisissez une couleur pour « ${p.title || "cet article"} ».`
+        });
+      }
       if (String(p.status || "") !== "active" || Number(p.stock || 0) < quantity) {
         return res.status(400).json({ message: `Stock insuffisant ou indisponible : ${p.title || productId}.` });
       }
     }
 
-    /** @type {Map<string, Array<{ product: typeof products[0]; quantity: number }>>} */
+    /** @type {Map<string, Array<{ product: typeof products[0]; quantity: number; color: string|null }>>} */
     const groups = new Map();
-    for (const { productId, quantity } of merged) {
+    for (const { productId, quantity, color } of merged) {
       const p = byId[productId];
       const sid = String(p.sellerUid || "");
+      const resolvedColor = resolveLineColorChoice(color, parseProductColorsField(p.colors));
       if (!groups.has(sid)) groups.set(sid, []);
-      groups.get(sid).push({ product: p, quantity });
+      groups.get(sid).push({ product: p, quantity, color: resolvedColor });
     }
 
     const buyer = await prisma.user.findUnique({ where: { id: buyerUid } });
@@ -1920,7 +2029,7 @@ app.post("/api/marketplace/orders", async (req, res) => {
             platformFeeRateBp: MARKETPLACE_FEE_RATE_BP
           }
         });
-        for (const { product, quantity } of lines) {
+        for (const { product, quantity, color } of lines) {
           const lineTotal = Number(product.priceFcfa) * quantity;
           await tx.marketOrderItem.create({
             data: {
@@ -1931,6 +2040,7 @@ app.post("/api/marketplace/orders", async (req, res) => {
               productTitle: product.title,
               unitPriceFcfa: product.priceFcfa,
               quantity,
+              color: color || null,
               lineTotalFcfa: lineTotal
             }
           });

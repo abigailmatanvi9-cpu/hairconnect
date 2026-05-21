@@ -4224,6 +4224,52 @@ button.dash-home-cat {
     opacity: 0.45;
 }
 
+.market-card__buy {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-end;
+    gap: 0.75rem 1rem;
+    margin: 0.65rem 0 0.25rem;
+    padding: 0.75rem 0.85rem;
+    border-radius: 12px;
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.hc-theme-pro .market-card__buy {
+    background: #f8fafc;
+    border-color: #e2e8f0;
+}
+
+.market-card__field {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+    font-size: 0.78rem;
+    font-weight: 600;
+    color: var(--hc-pro-muted, #7d6a62);
+    min-width: 5.5rem;
+}
+
+.market-card__qty {
+    width: 4.5rem;
+    min-width: 0;
+}
+
+.market-card__line-total {
+    margin: 0;
+    font-size: 0.92rem;
+    font-weight: 700;
+    color: var(--hc-pro-purple, #c18c77);
+    flex: 1 1 100%;
+}
+
+.market-cart__line-total {
+    font-weight: 600;
+    color: var(--hc-pro-purple, #c18c77);
+    font-size: 0.88rem;
+}
+
 .market-mode-tabs--buy-only {
     grid-template-columns: 1fr;
     max-width: 14rem;

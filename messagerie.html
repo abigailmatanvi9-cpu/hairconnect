@@ -33,8 +33,8 @@
                     <option value="">Choisir un destinataire…</option>
                 </select>
                 <button type="button" class="register-submit msg-chat__new-btn" id="startChatBtn">Ouvrir la conversation</button>
-                <p class="field-hint msg-chat__new-hint">
-                    Les clients doivent d’abord envoyer une demande depuis la fiche du professionnel ; une fois acceptée, ouvrez la conversation ici pour échanger.
+                <p class="field-hint msg-chat__new-hint" id="msgChatHint">
+                    Les clients envoient une demande depuis votre fiche publique. Utilisez « Ouvrir la messagerie » sur chaque demande pour répondre.
                 </p>
             </div>
             <ul id="conversationList" class="msg-chat__conversations"></ul>
@@ -78,6 +78,7 @@ import {
     respondContactRequest
 } from "./firebase.js";
 import { onAuthStateChanged } from "./firebase.js";
+import { authUserId, resolveUserRole, isProRole } from "./role-utils.js";
 
 const params = new URLSearchParams(location.search);
 const preTo = params.get("to");
@@ -111,28 +112,16 @@ const msgClientOutbound = document.getElementById("msgClientOutbound");
 
 let contactRequests = [];
 let myRoleStr = "";
+let myRoleKey = "unknown";
 
 function isProMessagingRoleLocal(role) {
-    const r = String(role || "")
-        .trim()
-        .toLowerCase();
-    return (
-        r === "salon" ||
-        r === "coiffeur" ||
-        r === "coiffeuse" ||
-        r === "coiffeur indépendant" ||
-        r === "coiffeuse indépendante"
-    );
+    return isProRole({ role });
 }
 
 function pairNeedsContactGate(roleA, roleB) {
-    const a = String(roleA || "")
-        .trim()
-        .toLowerCase();
-    const b = String(roleB || "")
-        .trim()
-        .toLowerCase();
-    return (a === "client" && isProMessagingRoleLocal(b)) || (isProMessagingRoleLocal(a) && b === "client");
+    const a = resolveUserRole({ role: roleA });
+    const b = resolveUserRole({ role: roleB });
+    return (a === "client" && (b === "salon" || b === "coiffeur")) || ((a === "salon" || a === "coiffeur") && b === "client");
 }
 
 async function loadContactRequests() {
@@ -162,10 +151,12 @@ async function canMessagePeer(peerUid) {
     if (!pairNeedsContactGate(rMe, rPeer)) return { ok: true };
     let clientUid;
     let proUid;
-    if (String(rMe).toLowerCase() === "client" && isProMessagingRoleLocal(rPeer)) {
+    const rkMe = resolveUserRole({ role: rMe });
+    const rkPeer = resolveUserRole({ role: rPeer });
+    if (rkMe === "client" && (rkPeer === "salon" || rkPeer === "coiffeur")) {
         clientUid = myUid;
         proUid = peerUid;
-    } else if (isProMessagingRoleLocal(rMe) && String(rPeer).toLowerCase() === "client") {
+    } else if ((rkMe === "salon" || rkMe === "coiffeur") && rkPeer === "client") {
         clientUid = peerUid;
         proUid = myUid;
     } else {
@@ -179,19 +170,66 @@ async function canMessagePeer(peerUid) {
     };
 }
 
+function clientDisplayName(r) {
+    const c = r.client;
+    if (c) return c.name || c.email || `Client (${String(r.clientUid || "").slice(0, 8)}…)`;
+    return displayNameForUid(r.clientUid);
+}
+
+async function openMessagingWithClient(clientUid, reqRow) {
+    if (!clientUid || !myUid) return;
+    formError.hidden = true;
+    formOk.hidden = true;
+    try {
+        if (reqRow && reqRow.status === "pending") {
+            await respondContactRequest(reqRow.id, myUid, "accepted");
+            formOk.textContent = "Demande acceptée — ouverture de la conversation.";
+            formOk.hidden = false;
+            await loadContactRequests();
+            await renderContactGate();
+        } else if (reqRow && reqRow.status === "rejected") {
+            formError.textContent = "Cette demande a été refusée.";
+            formError.hidden = false;
+            return;
+        }
+        activePeerUid = clientUid;
+        const sel = document.getElementById("toUid");
+        if (sel) {
+            const hasOpt = [...sel.options].some((o) => o.value === clientUid);
+            if (!hasOpt) {
+                await ensureProfile(clientUid);
+                const opt = document.createElement("option");
+                opt.value = clientUid;
+                opt.textContent = displayNameForUid(clientUid);
+                sel.appendChild(opt);
+            }
+            sel.value = clientUid;
+        }
+        await refreshList();
+        renderConversationList();
+        renderActiveMessages();
+        updateComposerForGate(activePeerUid);
+        document.querySelector(".msg-chat__main")?.scrollIntoView({ behavior: "smooth", block: "nearest" });
+    } catch (err) {
+        formError.textContent = getFirebaseErrorMessage(err);
+        formError.hidden = false;
+    }
+}
+
 async function renderContactGate() {
     if (!msgContactGateSection || !msgInboundRequests || !msgClientOutbound) return;
-    const proMe = isProMessagingRoleLocal(myRoleStr);
-    const clientMe =
-        String(myRoleStr || "")
-            .trim()
-            .toLowerCase() === "client";
+    const proMe = myRoleKey === "salon" || myRoleKey === "coiffeur";
+    const clientMe = myRoleKey === "client";
 
-    const inbound = contactRequests.filter((r) => r.proUid === myUid && r.status === "pending");
-    const outbound = contactRequests.filter(
-        (r) => r.clientUid === myUid && (r.status === "pending" || r.status === "rejected")
+    const inbound = contactRequests.filter(
+        (r) => String(r.proUid || "") === String(myUid) && (r.status === "pending" || r.status === "accepted")
     );
-    const acceptedAsClient = contactRequests.filter((r) => r.clientUid === myUid && r.status === "accepted");
+    const outbound = contactRequests.filter(
+        (r) => String(r.clientUid || "") === String(myUid) && (r.status === "pending" || r.status === "rejected")
+    );
+    const acceptedAsClient = contactRequests.filter(
+        (r) => String(r.clientUid || "") === String(myUid) && r.status === "accepted"
+    );
 
     for (const r of inbound) {
         await ensureProfile(r.clientUid);
@@ -215,32 +253,62 @@ async function renderContactGate() {
     if (!show) return;
 
     if (proMe && inbound.length) {
+        const pending = inbound.filter((r) => r.status === "pending");
+        const accepted = inbound.filter((r) => r.status === "accepted");
         msgInboundRequests.hidden = false;
-        msgInboundRequests.innerHTML =
-            "<h3 class=\"msg-contact-gate__sub\">À traiter</h3>" +
-            inbound
-                .map((r) => {
-                    const name = escapeHtml(displayNameForUid(r.clientUid));
-                    const msg = escapeHtml(String(r.message || "").slice(0, 160));
-                    return (
-                        "<div class=\"msg-contact-card\" data-req-id=\"" +
-                        escapeHtml(r.id) +
-                        "\">" +
-                        "<p class=\"msg-contact-card__who\"><strong>" +
-                        name +
-                        "</strong> souhaite vous contacter.</p>" +
-                        (msg ? "<p class=\"msg-contact-card__msg\">" + msg + "</p>" : "") +
-                        "<div class=\"msg-contact-card__actions\">" +
-                        "<button type=\"button\" class=\"register-submit msg-contact-card__btn\" data-action=\"accept\" data-req=\"" +
-                        escapeHtml(r.id) +
-                        "\">Accepter</button>" +
-                        "<button type=\"button\" class=\"register-submit msg-contact-card__btn msg-contact-card__btn--ghost\" data-action=\"reject\" data-req=\"" +
-                        escapeHtml(r.id) +
-                        "\">Refuser</button>" +
-                        "</div></div>"
-                    );
-                })
-                .join("");
+        let html = "";
+        if (pending.length) {
+            html +=
+                "<h3 class=\"msg-contact-gate__sub\">Demandes à traiter</h3>" +
+                pending
+                    .map((r) => {
+                        const name = escapeHtml(clientDisplayName(r));
+                        const msg = escapeHtml(String(r.message || ""));
+                        return (
+                            "<div class=\"msg-contact-card\" data-req-id=\"" +
+                            escapeHtml(r.id) +
+                            "\">" +
+                            "<p class=\"msg-contact-card__who\"><strong>" +
+                            name +
+                            "</strong> souhaite vous contacter.</p>" +
+                            (msg ? "<p class=\"msg-contact-card__msg\">" + msg + "</p>" : "") +
+                            "<div class=\"msg-contact-card__actions\">" +
+                            "<button type=\"button\" class=\"register-submit msg-contact-card__btn\" data-action=\"open-chat\" data-client=\"" +
+                            escapeHtml(r.clientUid) +
+                            "\" data-req=\"" +
+                            escapeHtml(r.id) +
+                            "\" data-status=\"pending\">Ouvrir la messagerie</button>" +
+                            "<button type=\"button\" class=\"register-submit msg-contact-card__btn msg-contact-card__btn--ghost\" data-action=\"reject\" data-req=\"" +
+                            escapeHtml(r.id) +
+                            "\">Refuser</button>" +
+                            "</div></div>"
+                        );
+                    })
+                    .join("");
+        }
+        if (accepted.length) {
+            html +=
+                "<h3 class=\"msg-contact-gate__sub\">Clients en contact</h3>" +
+                accepted
+                    .map((r) => {
+                        const name = escapeHtml(clientDisplayName(r));
+                        return (
+                            "<div class=\"msg-contact-card\">" +
+                            "<p class=\"msg-contact-card__who\"><strong>" +
+                            name +
+                            "</strong> — demande acceptée.</p>" +
+                            "<div class=\"msg-contact-card__actions\">" +
+                            "<button type=\"button\" class=\"register-submit msg-contact-card__btn\" data-action=\"open-chat\" data-client=\"" +
+                            escapeHtml(r.clientUid) +
+                            "\" data-req=\"" +
+                            escapeHtml(r.id) +
+                            "\" data-status=\"accepted\">Ouvrir la messagerie</button>" +
+                            "</div></div>"
+                        );
+                    })
+                    .join("");
+        }
+        msgInboundRequests.innerHTML = html;
     } else {
         msgInboundRequests.hidden = true;
         msgInboundRequests.innerHTML = "";
@@ -280,20 +348,34 @@ async function renderContactGate() {
 
 if (msgInboundRequests) {
     msgInboundRequests.addEventListener("click", async (e) => {
-        const btn = e.target.closest("[data-action][data-req]");
+        const btn = e.target.closest("[data-action]");
         if (!btn || !myUid) return;
-        const id = btn.getAttribute("data-req");
         const action = btn.getAttribute("data-action");
-        if (!id || (action !== "accept" && action !== "reject")) return;
+        const id = btn.getAttribute("data-req");
+        const clientUid = btn.getAttribute("data-client");
+        if (action === "open-chat" && clientUid) {
+            btn.disabled = true;
+            const reqRow =
+                id && contactRequests.find((r) => r.id === id)
+                    ? contactRequests.find((r) => r.id === id)
+                    : contactRequests.find(
+                          (r) => r.clientUid === clientUid && String(r.proUid) === String(myUid)
+                      );
+            try {
+                await openMessagingWithClient(clientUid, reqRow || null);
+            } finally {
+                btn.disabled = false;
+            }
+            return;
+        }
+        if (!id || action !== "reject") return;
         formError.hidden = true;
         formOk.hidden = true;
         btn.disabled = true;
         try {
-            await respondContactRequest(id, myUid, action === "accept" ? "accepted" : "rejected");
+            await respondContactRequest(id, myUid, "rejected");
             formOk.textContent =
-                action === "accept"
-                    ? "Demande acceptée — la messagerie est ouverte avec ce client."
-                    : "Demande refusée — aucun échange de messages ne sera possible avec ce client.";
+                "Demande refusée — aucun échange de messages ne sera possible avec ce client.";
             formOk.hidden = false;
             await loadContactRequests();
             await renderContactGate();
@@ -773,10 +855,21 @@ onAuthStateChanged(auth, async (user) => {
         window.location.href = "login.html";
         return;
     }
-    myUid = user.uid;
+    myUid = authUserId(user);
     try {
         const me = await fetchUserProfile(myUid).catch(() => null);
         myRoleStr = me?.role || "";
+        myRoleKey = resolveUserRole(me || {});
+        const hintEl = document.getElementById("msgChatHint");
+        if (hintEl) {
+            if (myRoleKey === "client") {
+                hintEl.textContent =
+                    "Envoyez une demande depuis la fiche d’un professionnel ; une fois acceptée, la conversation apparaît ici.";
+            } else if (myRoleKey === "salon" || myRoleKey === "coiffeur") {
+                hintEl.textContent =
+                    "Vous ne voyez que les demandes qui vous sont adressées. Cliquez « Ouvrir la messagerie » pour répondre au client.";
+            }
+        }
         if (me) profileMap.set(myUid, me);
         if (!recipientsLoaded) {
             await loadRecipients();

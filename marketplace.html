@@ -91,6 +91,11 @@
                     <div class="field-input-wrap"><input id="marketStock" type="number" min="1" step="1" value="1" required></div>
                 </div>
                 <div class="field-group">
+                    <label class="field-label" for="marketColors">Couleurs proposées (optionnel)</label>
+                    <div class="field-input-wrap"><input id="marketColors" type="text" placeholder="Ex. Noir, Châtain, Blond — séparées par des virgules"></div>
+                    <p class="field-hint">Si vous renseignez des couleurs, l’acheteur devra en choisir une avant d’ajouter l’article.</p>
+                </div>
+                <div class="field-group">
                     <label class="field-label" for="marketPhotoFile">Photo de l’article (recommandé)</label>
                     <div class="field-input-wrap">
                         <input type="file" id="marketPhotoFile" accept="image/png,image/jpeg,image/webp,image/gif">
@@ -212,9 +217,37 @@ function cartItemsFromRdvSelection(selection) {
     return lines
         .map((line) => ({
             productId: String(line.productId || "").trim(),
-            quantity: Math.max(0, Math.floor(Number(line.quantity || 0)))
+            quantity: Math.max(0, Math.floor(Number(line.quantity || 0))),
+            color: line.color != null ? String(line.color).trim() : ""
         }))
         .filter((row) => row.productId && row.quantity > 0);
+}
+
+function parseProductColors(p) {
+    const raw = p?.colors;
+    if (!raw) return [];
+    if (Array.isArray(raw)) return raw.map((c) => String(c || "").trim()).filter(Boolean);
+    const s = String(raw).trim();
+    if (!s) return [];
+    try {
+        const j = JSON.parse(s);
+        if (Array.isArray(j)) return j.map((c) => String(c || "").trim()).filter(Boolean);
+    } catch {
+        /* ignore */
+    }
+    return s
+        .split(/[,;|]/)
+        .map((c) => c.trim())
+        .filter(Boolean);
+}
+
+function cartLineKey(productId, color) {
+    return `${String(productId)}::${String(color || "").trim()}`;
+}
+
+function findCartLine(productId, color) {
+    const key = cartLineKey(productId, color);
+    return cartItems.find((c) => cartLineKey(c.productId, c.color) === key) || null;
 }
 
 async function loadRdvSelectionCart() {
@@ -424,22 +457,90 @@ function productById(id) {
     return products.find((p) => String(p.id) === String(id)) || null;
 }
 
-function cartQtyForProduct(productId) {
-    const row = cartItems.find((c) => String(c.productId) === String(productId));
+function cartQtyForProduct(productId, color = "") {
+    const row = findCartLine(productId, color);
     return row ? Number(row.quantity || 0) : 0;
 }
 
-function setCartQty(productId, qty) {
+function setCartQty(productId, qty, color = "") {
     const q = Math.max(0, Math.floor(Number(qty) || 0));
-    cartItems = cartItems.filter((c) => String(c.productId) !== String(productId));
-    if (q > 0) cartItems.push({ productId, quantity: q });
+    const c = color != null ? String(color).trim() : "";
+    const key = cartLineKey(productId, c);
+    cartItems = cartItems.filter((row) => cartLineKey(row.productId, row.color) !== key);
+    if (q > 0) cartItems.push({ productId, quantity: q, color: c });
     saveCartToStorage();
     renderCart();
 }
 
-function addToCart(productId, delta) {
+function readCardAddOptions(productId) {
+    const p = productById(productId);
+    if (!p) return null;
+    const qtyEl = listEl.querySelector(`[data-market-qty="${CSS.escape(productId)}"]`);
+    const colorEl = listEl.querySelector(`[data-market-color="${CSS.escape(productId)}"]`);
+    const colors = parseProductColors(p);
+    let qty = Math.max(1, Math.floor(Number(qtyEl?.value) || 1));
+    const stock = Number(p.stock || 0);
+    if (qty > stock) qty = stock;
+    let color = "";
+    if (colors.length) {
+        color = String(colorEl?.value || "").trim();
+        if (!color) {
+            showError("Choisissez une couleur pour cet article.");
+            return null;
+        }
+        if (!colors.some((x) => x.toLowerCase() === color.toLowerCase())) {
+            showError("Couleur invalide pour cet article.");
+            return null;
+        }
+        const hit = colors.find((x) => x.toLowerCase() === color.toLowerCase());
+        color = hit || color;
+    }
+    return { qty, color, stock };
+}
+
+function updateCardLineTotal(productId) {
+    const p = productById(productId);
+    const totalEl = listEl.querySelector(`[data-market-total="${CSS.escape(productId)}"]`);
+    if (!p || !totalEl) return;
+    const qtyEl = listEl.querySelector(`[data-market-qty="${CSS.escape(productId)}"]`);
+    const qty = Math.max(1, Math.floor(Number(qtyEl?.value) || 1));
+    const unit = Number(p.priceFcfa || 0);
+    totalEl.textContent = `Total : ${money(unit * qty)}`;
+}
+
+function addToCartFromCard(productId) {
     const p = productById(productId);
     if (!p || !me) return;
+    const opts = readCardAddOptions(productId);
+    if (!opts) return;
+    if (!rdvSelectionMode && String(p.sellerUid || "") === String(me.uid || "")) {
+        showError("Vous ne pouvez pas ajouter vos propres articles au panier.");
+        return;
+    }
+    if (rdvSelectionMode && String(p.sellerUid || "") !== String(rdvSellerUid)) {
+        showError("Cet article n’appartient pas au professionnel de votre rendez-vous.");
+        return;
+    }
+    const cur = cartQtyForProduct(productId, opts.color);
+    const next = cur + opts.qty;
+    if (next > opts.stock) {
+        showError("Quantité supérieure au stock disponible.");
+        return;
+    }
+    setCartQty(productId, next, opts.color);
+    errEl.hidden = true;
+    showOk(rdvSelectionMode ? "Sélection mise à jour." : "Panier mis à jour.");
+}
+
+function addToCart(productId, delta, color = "") {
+    const p = productById(productId);
+    if (!p || !me) return;
+    const c = color != null ? String(color).trim() : "";
+    const colors = parseProductColors(p);
+    if (colors.length && !c) {
+        showError("Couleur manquante pour cet article.");
+        return;
+    }
     if (!rdvSelectionMode && String(p.sellerUid || "") === String(me.uid || "")) {
         showError("Vous ne pouvez pas ajouter vos propres articles au panier.");
         return;
@@ -449,17 +550,17 @@ function addToCart(productId, delta) {
         return;
     }
     const stock = Number(p.stock || 0);
-    const cur = cartQtyForProduct(productId);
+    const cur = cartQtyForProduct(productId, c);
     const next = cur + delta;
     if (next > stock) {
         showError("Quantité supérieure au stock disponible.");
         return;
     }
     if (next < 1) {
-        setCartQty(productId, 0);
+        setCartQty(productId, 0, c);
         return;
     }
-    setCartQty(productId, next);
+    setCartQty(productId, next, c);
     errEl.hidden = true;
     showOk(rdvSelectionMode ? "Sélection mise à jour." : "Panier mis à jour.");
 }
@@ -482,20 +583,23 @@ function renderCart() {
     cartItems.forEach((row) => {
         const p = productById(row.productId);
         const qty = Math.max(1, Number(row.quantity || 1));
+        const color = row.color != null ? String(row.color).trim() : "";
         if (!p) return;
         if (!rdvSelectionMode && String(p.sellerUid || "") === String(me.uid || "")) return;
         if (rdvSelectionMode && String(p.sellerUid || "") !== String(rdvSellerUid)) return;
-        valid.push({ productId: p.id, quantity: qty });
+        valid.push({ productId: p.id, quantity: qty, color });
         subtotal += Number(p.priceFcfa) * qty;
+        const colorLabel = color ? ` · ${escapeHtml(color)}` : "";
         const li = document.createElement("li");
         li.className = "market-cart__line";
         li.innerHTML =
-            `<span><strong>${escapeHtml(p.title)}</strong> × ${qty} · ${money(p.priceFcfa)}</span>` +
+            `<span><strong>${escapeHtml(p.title)}</strong>${colorLabel} × ${qty} · ${money(p.priceFcfa)} / u.</span>` +
+            `<span class="market-cart__line-total">${money(Number(p.priceFcfa) * qty)}</span>` +
             `<span class="market-cart__qty">` +
-            `<button type="button" data-cart-dec="${escapeHtml(p.id)}" aria-label="Diminuer">−</button>` +
+            `<button type="button" data-cart-dec="${escapeHtml(p.id)}" data-cart-color="${escapeHtml(color)}" aria-label="Diminuer">−</button>` +
             `<span>${qty}</span>` +
-            `<button type="button" data-cart-inc="${escapeHtml(p.id)}" aria-label="Augmenter">+</button>` +
-            `<button type="button" class="market-cart__remove" data-cart-remove="${escapeHtml(p.id)}">Retirer</button>` +
+            `<button type="button" data-cart-inc="${escapeHtml(p.id)}" data-cart-color="${escapeHtml(color)}" aria-label="Augmenter">+</button>` +
+            `<button type="button" class="market-cart__remove" data-cart-remove="${escapeHtml(p.id)}" data-cart-color="${escapeHtml(color)}">Retirer</button>` +
             `</span>`;
         cartLinesEl.appendChild(li);
     });
@@ -558,16 +662,24 @@ function renderProducts() {
         const mine = !rdvSelectionMode && me && String(p.sellerUid || "") === String(me.uid || "");
         const stock = Number(p.stock || 0);
         const unavailable = String(p.status || "") !== "active" || stock <= 0;
-        const inCart = cartQtyForProduct(p.id);
+        const colors = parseProductColors(p);
+        const inCartTotal = cartItems
+            .filter((c) => String(c.productId) === String(p.id))
+            .reduce((acc, c) => acc + Number(c.quantity || 0), 0);
         const addLabel = rdvSelectionMode
             ? unavailable
                 ? "Indisponible"
-                : inCart
-                  ? "Ajouter encore"
-                  : "Ajouter à la sélection"
+                : "Ajouter à la sélection"
             : unavailable
               ? "Indisponible"
               : "Ajouter au panier";
+        const colorSelect = colors.length
+            ? `<label class="market-card__field">Couleur
+            <select class="field-select" data-market-color="${escapeHtml(p.id)}" ${unavailable ? "disabled" : ""}>
+            <option value="">Choisir…</option>
+            ${colors.map((c) => `<option value="${escapeHtml(c)}">${escapeHtml(c)}</option>`).join("")}
+            </select></label>`
+            : "";
         const li = document.createElement("li");
         li.className = "jobs-item";
         li.innerHTML =
@@ -577,11 +689,20 @@ function renderProducts() {
             `<div class="jobs-card__head">` +
             `<h3 class="jobs-card__title">${escapeHtml(p.title || "Article")}</h3>` +
             `<p class="jobs-card__salon">Vendeur : ${escapeHtml(p.sellerName || "—")}</p>` +
-            `<p class="jobs-card__meta">${escapeHtml(p.category || "Catégorie libre")} · Stock: ${stock} · Vendus: ${Number(p.unitsSold || 0)}${inCart ? ` · ${rdvSelectionMode ? "Sélection" : "Dans le panier"} : ${inCart}` : ""}</p>` +
+            `<p class="jobs-card__meta">${escapeHtml(p.category || "Catégorie libre")} · ${money(p.priceFcfa)} / u. · Stock: ${stock}${inCartTotal ? ` · ${rdvSelectionMode ? "Sélection" : "Panier"} : ${inCartTotal}` : ""}</p>` +
             `</div>` +
             `<span class="jobs-badge">${money(p.priceFcfa)}</span>` +
             `</div>` +
             `<p class="jobs-card__desc">${escapeHtml(p.description || "")}</p>` +
+            (mine
+                ? ""
+                : `<div class="market-card__buy">` +
+                  `<label class="market-card__field">Quantité
+                  <input type="number" class="field-input market-card__qty" min="1" max="${stock}" step="1" value="1" data-market-qty="${escapeHtml(p.id)}" ${unavailable ? "disabled" : ""}>
+                  </label>` +
+                  colorSelect +
+                  `<p class="market-card__line-total" data-market-total="${escapeHtml(p.id)}">Total : ${money(p.priceFcfa)}</p>` +
+                  `</div>`) +
             `<div class="jobs-card__foot">` +
             (rdvSelectionMode
                 ? `<span class="jobs-card__date">Pour votre rendez-vous</span>`
@@ -600,8 +721,10 @@ function orderLinesHtml(o) {
     if (!items.length) return "";
     const lis = items
         .map(
-            (it) =>
-                `<li>${escapeHtml(it.productTitle || "")} × ${Number(it.quantity || 0)} — ${money(it.lineTotalFcfa)}</li>`
+            (it) => {
+                const col = it.color ? `, ${escapeHtml(it.color)}` : "";
+                return `<li>${escapeHtml(it.productTitle || "")}${col} × ${Number(it.quantity || 0)} — ${money(it.lineTotalFcfa)}</li>`;
+            }
         )
         .join("");
     return `<ul class="market-order-lines">${lis}</ul>`;
@@ -712,6 +835,16 @@ searchEl.addEventListener("input", () => {
     renderProducts();
 });
 
+listEl.addEventListener("input", (e) => {
+    const qty = e.target.closest("[data-market-qty]");
+    if (qty) updateCardLineTotal(qty.getAttribute("data-market-qty"));
+});
+
+listEl.addEventListener("change", (e) => {
+    const qty = e.target.closest("[data-market-qty]");
+    if (qty) updateCardLineTotal(qty.getAttribute("data-market-qty"));
+});
+
 listEl.addEventListener("click", async (e) => {
     const addBtn = e.target.closest("[data-market-add]");
     const delBtn = e.target.closest("[data-market-delete]");
@@ -721,7 +854,7 @@ listEl.addEventListener("click", async (e) => {
         if (addBtn) {
             const id = addBtn.getAttribute("data-market-add");
             if (!id || !me) return;
-            addToCart(id, 1);
+            addToCartFromCard(id);
             renderProducts();
             return;
         }
@@ -748,13 +881,13 @@ cartLinesEl.addEventListener("click", (e) => {
     errEl.hidden = true;
     okEl.hidden = true;
     if (inc) {
-        addToCart(inc.getAttribute("data-cart-inc"), 1);
+        addToCart(inc.getAttribute("data-cart-inc"), 1, inc.getAttribute("data-cart-color") || "");
         renderProducts();
     } else if (dec) {
-        addToCart(dec.getAttribute("data-cart-dec"), -1);
+        addToCart(dec.getAttribute("data-cart-dec"), -1, dec.getAttribute("data-cart-color") || "");
         renderProducts();
     } else if (rem) {
-        setCartQty(rem.getAttribute("data-cart-remove"), 0);
+        setCartQty(rem.getAttribute("data-cart-remove"), 0, rem.getAttribute("data-cart-color") || "");
         renderProducts();
     }
 });
@@ -867,6 +1000,7 @@ document.getElementById("marketProductForm").addEventListener("submit", async (e
             category: document.getElementById("marketCategory").value,
             priceFcfa: document.getElementById("marketPrice").value,
             stock: document.getElementById("marketStock").value,
+            colors: document.getElementById("marketColors").value,
             photoUrl,
             description: document.getElementById("marketDescription").value
         });

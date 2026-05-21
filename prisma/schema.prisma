@@ -185,6 +185,8 @@ model Product {
   /// Unités vendues (cumul, hors annulations ultérieures gérées au remboursement stock).
   unitsSold   Int      @default(0)
   category    String?
+  /// Couleurs proposées (JSON : ["Noir","Blond",…]).
+  colors      String?
   photoUrl    String?
   status      String   @default("active")
   createdAt   DateTime @default(now())
@@ -214,6 +216,8 @@ model RdvMarketplaceSelectionLine {
   productTitle     String
   unitPriceFcfa    Int
   quantity         Int
+  /// Couleur choisie par le client (si l’article en propose).
+  color            String?
   lineTotalFcfa    Int
   createdAt        DateTime @default(now())
   selection        RdvMarketplaceSelection @relation(fields: [selectionId], references: [id], onDelete: Cascade)
@@ -244,6 +248,7 @@ model MarketOrderItem {
   productTitle String
   unitPriceFcfa Int
   quantity     Int
+  color        String?
   lineTotalFcfa Int
   createdAt    DateTime @default(now())
   order        MarketOrder @relation(fields: [orderId], references: [id], onDelete: Cascade)
