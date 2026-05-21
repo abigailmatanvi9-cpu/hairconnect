@@ -7287,6 +7287,101 @@ body.hc-theme-pro .form-info {
     color: var(--hc-pro-ink);
 }
 
+/* Photos publiées (panneau intégré) — lisibilité thème clair pro */
+.hc-dash-pro .dash-published-photos {
+    border-top-color: var(--hc-pro-line);
+}
+
+.hc-dash-pro .dash-published-photos__form .field-label {
+    color: var(--hc-pro-ink);
+    font-weight: 600;
+}
+
+.hc-dash-pro .dash-published-photos__form .field-hint,
+.hc-dash-pro .dash-published-photos__state,
+.hc-dash-pro .dash-published-photos__empty {
+    color: var(--hc-pro-muted);
+}
+
+.hc-dash-pro .dash-published-photos__file {
+    color: var(--hc-pro-ink);
+    font-size: 0.86rem;
+}
+
+.hc-dash-pro .dash-published-photos__form .field-input,
+.hc-dash-pro .dash-published-photos__form .field-select {
+    background: #fff;
+    border: 1px solid var(--hc-pro-line);
+    color: var(--hc-pro-ink);
+    box-shadow: 0 1px 2px rgba(44, 36, 32, 0.04);
+}
+
+.hc-dash-pro .dash-published-photos__form .field-input::placeholder {
+    color: #64748b;
+    opacity: 1;
+}
+
+.hc-dash-pro .dash-published-photos__form .field-select {
+    color: var(--hc-pro-ink);
+}
+
+.hc-dash-pro .dash-published-photos__form .field-select option {
+    color: var(--hc-pro-ink);
+    background: #fff;
+}
+
+.hc-dash-pro .dash-published-photos__form .field-input:focus,
+.hc-dash-pro .dash-published-photos__form .field-select:focus {
+    outline: none;
+    border-color: var(--hc-pro-focus);
+    box-shadow: 0 0 0 3px var(--hc-pro-focus-ring);
+}
+
+.hc-dash-pro .dash-published-photos__title {
+    color: var(--hc-pro-ink);
+}
+
+.hc-dash-pro .dash-published-photos__caption {
+    color: var(--hc-pro-muted);
+}
+
+.hc-dash-pro .dash-published-photos__meta {
+    color: var(--hc-pro-muted);
+}
+
+.hc-dash-pro .dash-published-photos__style-tag {
+    color: var(--hc-pro-purple-deep);
+}
+
+.hc-dash-pro .dash-published-photos__btn {
+    background: linear-gradient(180deg, #d4a090 0%, var(--hc-pro-purple) 48%, var(--hc-pro-purple-deep) 100%);
+    border-color: var(--hc-pro-purple-deep);
+    color: #fff;
+}
+
+.hc-dash-pro .dash-published-photos__btn--danger {
+    background: #fff;
+    border: 1px solid #cbd5e1;
+    color: #64748b;
+}
+
+.hc-dash-pro .dash-published-photos__item {
+    border-color: var(--hc-pro-line);
+    background: var(--hc-pro-card);
+}
+
+.hc-dash-pro .form-error {
+    background: #fef2f2;
+    border-color: #fecaca;
+    color: #991b1b;
+}
+
+.hc-dash-pro .form-success {
+    background: #f0fdf4;
+    border-color: #bbf7d0;
+    color: #166534;
+}
+
 .hc-dash-pro .dash-pro-feed__empty {
     color: var(--hc-pro-muted);
 }
