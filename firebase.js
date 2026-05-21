@@ -711,7 +711,7 @@ export function getFirebaseErrorMessage(error) {
         return "Impossible de joindre le serveur. Vérifiez votre connexion, attendez quelques secondes (démarrage Render) et réessayez.";
     }
     if (msg.includes("column") && msg.includes("does not exist")) {
-        return "Base de données non à jour sur le serveur. Relancez le déploiement avec « npx prisma migrate deploy ».";
+        return "Base de données en cours de mise à jour sur le serveur. Attendez 1 à 2 minutes, rechargez la page (Ctrl+F5). Si le message persiste : sur Render, vérifiez que la commande de démarrage est « npm start », puis faites un Manual Deploy.";
     }
     if (error?.status === 404 || /Cannot POST|Cannot GET/i.test(msg)) {
         return "Le serveur n’a pas trouvé cette action (404). Lancez « npm run dev » dans le dossier HairConnect, ouvrez l’agenda via le même hôte que l’API (ex. http://127.0.0.1:3000/agenda-pro.html si vous utilisez 127.0.0.1), puis rechargez la page.";
