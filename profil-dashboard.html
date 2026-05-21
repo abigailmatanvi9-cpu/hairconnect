@@ -60,15 +60,27 @@
                 <div class="field-group">
                     <label class="field-label" for="dpCity">Ville</label>
                     <div class="field-input-wrap">
-                        <input type="text" id="dpCity" name="city" placeholder="Ex. Lomé" autocomplete="address-level2">
+                        <select id="dpCity" name="city" class="field-select" required aria-describedby="dpLocationHint"></select>
+                    </div>
+                </div>
+                <div class="field-group" id="dpCityOtherWrap" hidden>
+                    <label class="field-label" for="dpCityOther">Autre ville</label>
+                    <div class="field-input-wrap">
+                        <input type="text" id="dpCityOther" name="cityOther" placeholder="Nom de la ville" autocomplete="address-level2">
                     </div>
                 </div>
                 <div class="field-group">
                     <label class="field-label" for="dpQuartier">Quartier ou zone</label>
                     <div class="field-input-wrap">
-                        <input type="text" id="dpQuartier" name="quartier" placeholder="Ex. Tokoin, Bè, Ablogamé…" autocomplete="address-line2">
+                        <select id="dpQuartier" name="quartier" class="field-select" required disabled></select>
                     </div>
-                    <p class="field-hint">Les clients peuvent filtrer l’annuaire par quartier pour vous trouver.</p>
+                    <p class="field-hint" id="dpLocationHint">Choisissez d’abord la ville, puis le quartier. Les clients filtrent l’annuaire avec ces informations.</p>
+                </div>
+                <div class="field-group" id="dpQuartierOtherWrap" hidden>
+                    <label class="field-label" for="dpQuartierOther">Autre quartier</label>
+                    <div class="field-input-wrap">
+                        <input type="text" id="dpQuartierOther" name="quartierOther" placeholder="Ex. Tokoin, Bè…" autocomplete="address-line2">
+                    </div>
                 </div>
                 <div class="field-group">
                     <label class="field-label" for="dpPhoneNational">Téléphone (optionnel)</label>
@@ -114,6 +126,7 @@ import {
     HAIRCONNECT_METIERS
 } from "./firebase.js";
 import { initPhoneField, readPhoneFromField } from "./phone-utils.js";
+import { initLocationFields, readLocationFromFields } from "./location-utils.js";
 
 const dpPhoneCountry = document.getElementById("dpPhoneCountry");
 const dpPhoneNational = document.getElementById("dpPhoneNational");
@@ -261,12 +274,18 @@ function syncFormFromCache() {
         if (hv) hv.checked = Boolean(data.homeVisit);
     }
     const nm = document.getElementById("dpName");
-    const city = document.getElementById("dpCity");
     const bio = document.getElementById("dpBio");
     if (nm) nm.value = data.name || "";
-    if (city) city.value = data.city || "";
-    const quart = document.getElementById("dpQuartier");
-    if (quart) quart.value = data.quartier || "";
+    initLocationFields({
+        citySelect: document.getElementById("dpCity"),
+        quartierSelect: document.getElementById("dpQuartier"),
+        cityOtherWrap: document.getElementById("dpCityOtherWrap"),
+        cityOtherInput: document.getElementById("dpCityOther"),
+        quartierOtherWrap: document.getElementById("dpQuartierOtherWrap"),
+        quartierOtherInput: document.getElementById("dpQuartierOther"),
+        storedCity: data.city || "",
+        storedQuartier: data.quartier || ""
+    });
     initPhoneField({
         countrySelect: dpPhoneCountry,
         nationalInput: dpPhoneNational,
@@ -331,10 +350,24 @@ document.getElementById("dpForm").addEventListener("submit", async (e) => {
         return;
     }
 
+    const locResult = readLocationFromFields({
+        citySelect: document.getElementById("dpCity"),
+        quartierSelect: document.getElementById("dpQuartier"),
+        cityOtherInput: document.getElementById("dpCityOther"),
+        quartierOtherInput: document.getElementById("dpQuartierOther")
+    });
+    if (!locResult.ok) {
+        if (formError) {
+            formError.textContent = locResult.message;
+            formError.hidden = false;
+        }
+        return;
+    }
+
     const payload = {
         name: document.getElementById("dpName").value.trim(),
-        city: document.getElementById("dpCity").value.trim(),
-        quartier: document.getElementById("dpQuartier").value.trim() || null,
+        city: locResult.city,
+        quartier: locResult.quartier,
         phone: phoneResult.e164,
         photoUrl
     };

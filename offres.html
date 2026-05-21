@@ -55,15 +55,28 @@
                 </div>
             </div>
             <div class="field-group">
-                <label class="field-label" for="city">Ville</label>
+                <label class="field-label" for="offreCity">Ville</label>
                 <div class="field-input-wrap">
-                    <input type="text" id="city" required placeholder="Ex. Lomé, Kara…">
+                    <select id="offreCity" class="field-select" required aria-describedby="offreLocationHint"></select>
+                </div>
+            </div>
+            <div class="field-group" id="offreCityOtherWrap" hidden>
+                <label class="field-label" for="offreCityOther">Autre ville</label>
+                <div class="field-input-wrap">
+                    <input type="text" id="offreCityOther" placeholder="Nom de la ville">
                 </div>
             </div>
             <div class="field-group">
-                <label class="field-label" for="quartier">Quartier</label>
+                <label class="field-label" for="offreQuartier">Quartier</label>
                 <div class="field-input-wrap">
-                    <input type="text" id="quartier" required placeholder="Ex. Tokoin, Bè, Adidogomé…">
+                    <select id="offreQuartier" class="field-select" required disabled></select>
+                </div>
+                <p class="field-hint" id="offreLocationHint">Même sélection que dans Mon profil : ville puis quartier.</p>
+            </div>
+            <div class="field-group" id="offreQuartierOtherWrap" hidden>
+                <label class="field-label" for="offreQuartierOther">Autre quartier</label>
+                <div class="field-input-wrap">
+                    <input type="text" id="offreQuartierOther" placeholder="Ex. Tokoin, Bè…">
                 </div>
             </div>
             <div class="field-group">
@@ -116,6 +129,7 @@ import {
     getFirebaseErrorMessage
 } from "./firebase.js";
 import { onAuthStateChanged } from "./firebase.js";
+import { initLocationFields, readLocationFromFields } from "./location-utils.js";
 
 const listEl = document.getElementById("offresList");
 const errEl = document.getElementById("err");
@@ -345,6 +359,16 @@ onAuthStateChanged(auth, async (user) => {
     isSalon = isSalonRole(role);
     if (isSalon) {
         salonSection.hidden = false;
+        initLocationFields({
+            citySelect: document.getElementById("offreCity"),
+            quartierSelect: document.getElementById("offreQuartier"),
+            cityOtherWrap: document.getElementById("offreCityOtherWrap"),
+            cityOtherInput: document.getElementById("offreCityOther"),
+            quartierOtherWrap: document.getElementById("offreQuartierOtherWrap"),
+            quartierOtherInput: document.getElementById("offreQuartierOther"),
+            storedCity: prof?.city || "",
+            storedQuartier: prof?.quartier || ""
+        });
         const paySel = document.getElementById("remunerationType");
         if (paySel) {
             paySel.addEventListener("change", syncRemunerationFields);
@@ -453,6 +477,17 @@ document.getElementById("offreForm").addEventListener("submit", async (e) => {
             return;
         }
     }
+    const loc = readLocationFromFields({
+        citySelect: document.getElementById("offreCity"),
+        quartierSelect: document.getElementById("offreQuartier"),
+        cityOtherInput: document.getElementById("offreCityOther"),
+        quartierOtherInput: document.getElementById("offreQuartierOther")
+    });
+    if (!loc.ok) {
+        fe.textContent = loc.message;
+        fe.hidden = false;
+        return;
+    }
     const btn = document.getElementById("pubBtn");
     btn.disabled = true;
     try {
@@ -461,10 +496,10 @@ document.getElementById("offreForm").addEventListener("submit", async (e) => {
             myName,
             document.getElementById("title").value,
             document.getElementById("desc").value,
-            document.getElementById("city").value,
+            loc.city,
             document.getElementById("contractType").value,
             {
-                quartier: document.getElementById("quartier").value,
+                quartier: loc.quartier,
                 remunerationType: payType,
                 salaryFcfa:
                     payType === "monthly" ? document.getElementById("salaryFcfa").value : null,
@@ -475,6 +510,17 @@ document.getElementById("offreForm").addEventListener("submit", async (e) => {
         fo.hidden = false;
         document.getElementById("offreForm").reset();
         syncRemunerationFields();
+        const profAfter = await fetchUserProfile(myUid);
+        initLocationFields({
+            citySelect: document.getElementById("offreCity"),
+            quartierSelect: document.getElementById("offreQuartier"),
+            cityOtherWrap: document.getElementById("offreCityOtherWrap"),
+            cityOtherInput: document.getElementById("offreCityOther"),
+            quartierOtherWrap: document.getElementById("offreQuartierOtherWrap"),
+            quartierOtherInput: document.getElementById("offreQuartierOther"),
+            storedCity: profAfter?.city || "",
+            storedQuartier: profAfter?.quartier || ""
+        });
         await loadList();
     } catch (x) {
         fe.textContent = getFirebaseErrorMessage(x);
