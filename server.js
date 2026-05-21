@@ -1130,9 +1130,40 @@ app.put("/api/rendez-vous/:id/item-selection", async (req, res) => {
       });
     }
 
+    const existingRdvOrder = await prisma.marketOrder.findUnique({
+      where: { rendezVousId: id },
+      include: { items: true }
+    });
+    const reservedByProduct = new Map();
+    if (existingRdvOrder && String(existingRdvOrder.status || "").toLowerCase() !== "cancelled") {
+      for (const it of existingRdvOrder.items || []) {
+        const pid = String(it.productId || "");
+        reservedByProduct.set(pid, (reservedByProduct.get(pid) || 0) + Number(it.quantity || 0));
+      }
+    }
+    for (const line of nextLines) {
+      const p = byId.get(String(line.productId));
+      const reserved = reservedByProduct.get(String(line.productId)) || 0;
+      const available = Number(p?.stock || 0) + reserved;
+      if (available < Number(line.quantity || 0)) {
+        return res.status(400).json({
+          message: `Stock insuffisant pour « ${p?.title || line.productId} » (disponible : ${available}).`
+        });
+      }
+    }
+
     const itemsCount = nextLines.reduce((acc, row) => acc + Number(row.quantity || 0), 0);
     const itemsSubtotalFcfa = nextLines.reduce((acc, row) => acc + Number(row.lineTotalFcfa || 0), 0);
 
+    const buyer = await prisma.user.findUnique({ where: { id: clientUid } });
+    const proSeller = await prisma.user.findUnique({ where: { id: String(rdv.proUid) } });
+    const buyerName = buyer ? publicationAuthorLabelFromUser(buyer) : "Client";
+    const sellerProduct = products.find((p) => String(p.sellerUid) === String(rdv.proUid));
+    const sellerName =
+      (sellerProduct ? String(sellerProduct.sellerName || "").trim() : "") ||
+      (proSeller ? publicationAuthorLabelFromUser(proSeller) : "Vendeur");
+
+    let rdvMarketOrder = null;
     const selection = await prisma.$transaction(async (tx) => {
       let base = await tx.rdvMarketplaceSelection.findUnique({
         where: { rendezVousId: id },
@@ -1166,11 +1197,44 @@ app.put("/api/rendez-vous/:id/item-selection", async (req, res) => {
           data: nextLines.map((row) => ({ selectionId: base.id, ...row }))
         });
       }
-      return tx.rdvMarketplaceSelection.findUnique({
+      const sel = await tx.rdvMarketplaceSelection.findUnique({
         where: { id: base.id },
         include: { lines: { orderBy: [{ productTitle: "asc" }, { createdAt: "asc" }] } }
       });
+      rdvMarketOrder = await syncRdvLinkedMarketOrder(tx, {
+        rendezVousId: id,
+        buyerUid: clientUid,
+        sellerUid: String(rdv.proUid),
+        sellerName,
+        buyerName,
+        nextLines
+      });
+      return sel;
     });
+
+    const prevOrderSubtotal =
+      existingRdvOrder && String(existingRdvOrder.status || "").toLowerCase() !== "cancelled"
+        ? Number(existingRdvOrder.subtotalFcfa || 0)
+        : null;
+    const newOrderSubtotal = rdvMarketOrder ? Number(rdvMarketOrder.subtotalFcfa || 0) : null;
+    const shouldNotifySeller =
+      rdvMarketOrder &&
+      rdvMarketOrder.sellerUid &&
+      (prevOrderSubtotal === null || prevOrderSubtotal !== newOrderSubtotal);
+    if (shouldNotifySeller) {
+      try {
+        const text = marketplaceOrderSellerNoticeText(rdvMarketOrder, buyerName);
+        await prisma.message.create({
+          data: {
+            fromUid: clientUid,
+            toUid: String(rdvMarketOrder.sellerUid),
+            text
+          }
+        });
+      } catch (notifyErr) {
+        console.error("[marketplace-rdv] message vendeur:", notifyErr);
+      }
+    }
 
     const rdvPricing = await prisma.rendezVous.findUnique({
       where: { id },
@@ -1204,8 +1268,12 @@ app.put("/api/rendez-vous/:id/item-selection", async (req, res) => {
       }
     }
 
-    return res.json({ selection });
+    return res.json({ selection, order: rdvMarketOrder });
   } catch (error) {
+    const msg = String(error?.message || "");
+    if (msg.includes("Stock insuffisant")) {
+      return res.status(400).json({ message: "Stock insuffisant pour un ou plusieurs articles." });
+    }
     return res.status(500).json({ code: "internal/error", message: error.message });
   }
 });
@@ -1926,6 +1994,132 @@ function normalizeMarketplaceCartItems(body) {
   return [];
 }
 
+/** Rétablit le stock après annulation ou remplacement d’une commande. */
+async function restoreMarketOrderItemsStock(tx, items) {
+  for (const it of items || []) {
+    const p = await tx.product.findUnique({ where: { id: it.productId } });
+    if (!p) continue;
+    const nextStock = Number(p.stock || 0) + Number(it.quantity || 0);
+    const prevSold = Number(p.unitsSold || 0);
+    const dec = Number(it.quantity || 0);
+    let nextStatus = String(p.status || "active");
+    if (nextStock > 0 && nextStatus === "soldout") nextStatus = "active";
+    await tx.product.update({
+      where: { id: it.productId },
+      data: {
+        stock: nextStock,
+        status: nextStatus,
+        unitsSold: Math.max(0, prevSold - dec)
+      }
+    });
+  }
+}
+
+async function decrementProductStockForOrder(tx, productId, quantity) {
+  const current = await tx.product.findUnique({ where: { id: productId } });
+  if (!current || Number(current.stock || 0) < quantity || String(current.status || "") !== "active") {
+    throw new Error("Stock insuffisant ou article indisponible (conflit).");
+  }
+  const nextStock = Number(current.stock || 0) - quantity;
+  await tx.product.update({
+    where: { id: productId },
+    data: {
+      stock: nextStock,
+      status: nextStock === 0 ? "soldout" : String(current.status || "active"),
+      unitsSold: { increment: quantity }
+    }
+  });
+}
+
+/**
+ * Crée ou met à jour la commande marketplace liée à un RDV :
+ * rétablit l’ancien stock, applique la nouvelle sélection, décrémente le stock.
+ */
+async function syncRdvLinkedMarketOrder(tx, params) {
+  const { rendezVousId, buyerUid, sellerUid, sellerName, buyerName, nextLines } = params;
+  let order = await tx.marketOrder.findUnique({
+    where: { rendezVousId },
+    include: { items: true }
+  });
+
+  if (order && String(order.status || "").toLowerCase() !== "cancelled") {
+    await restoreMarketOrderItemsStock(tx, order.items);
+    await tx.marketOrderItem.deleteMany({ where: { orderId: order.id } });
+  }
+
+  if (!nextLines.length) {
+    if (order) {
+      await tx.marketOrder.update({
+        where: { id: order.id },
+        data: {
+          status: "cancelled",
+          subtotalFcfa: 0,
+          platformFeeFcfa: 0,
+          sellerNetFcfa: 0
+        }
+      });
+    }
+    return null;
+  }
+
+  for (const line of nextLines) {
+    await decrementProductStockForOrder(tx, line.productId, line.quantity);
+  }
+
+  const subtotal = nextLines.reduce((acc, row) => acc + Number(row.lineTotalFcfa || 0), 0);
+  const fee = Math.floor((subtotal * MARKETPLACE_FEE_RATE_BP) / 10_000);
+  const sellerNet = subtotal - fee;
+
+  if (order) {
+    order = await tx.marketOrder.update({
+      where: { id: order.id },
+      data: {
+        buyerUid,
+        sellerUid,
+        sellerName,
+        buyerName,
+        status: "pending",
+        subtotalFcfa: subtotal,
+        platformFeeFcfa: fee,
+        sellerNetFcfa: sellerNet
+      }
+    });
+  } else {
+    order = await tx.marketOrder.create({
+      data: {
+        rendezVousId,
+        buyerUid,
+        sellerUid,
+        sellerName,
+        buyerName,
+        status: "pending",
+        subtotalFcfa: subtotal,
+        platformFeeFcfa: fee,
+        sellerNetFcfa: sellerNet,
+        platformFeeRateBp: MARKETPLACE_FEE_RATE_BP
+      }
+    });
+  }
+
+  for (const line of nextLines) {
+    await tx.marketOrderItem.create({
+      data: {
+        orderId: order.id,
+        productId: line.productId,
+        sellerUid,
+        buyerUid,
+        productTitle: line.productTitle,
+        unitPriceFcfa: line.unitPriceFcfa,
+        quantity: line.quantity,
+        color: line.color,
+        lineTotalFcfa: line.lineTotalFcfa
+      }
+    });
+  }
+
+  return tx.marketOrder.findUnique({ where: { id: order.id }, include: { items: true } });
+}
+
 /** Texte du message automatique au vendeur après commande marketplace. */
 function marketplaceOrderSellerNoticeText(order, buyerName) {
   const name = String(buyerName || "Acheteur").trim() || "Acheteur";
@@ -1939,7 +2133,10 @@ function marketplaceOrderSellerNoticeText(order, buyerName) {
   const sub = Number(order.subtotalFcfa || 0);
   const net = Number(order.sellerNetFcfa || 0);
   const st = String(order.status || "pending");
-  const head = `[Marketplace HairConnect] Nouvelle commande\nRéférence : ${String(order.id)}\nAcheteur : ${name}\n`;
+  const rdvBit = order.rendezVousId
+    ? `\nContexte : achat lié au rendez-vous ${String(order.rendezVousId).slice(0, 8)}…`
+    : "";
+  const head = `[Marketplace HairConnect] Nouvelle commande\nRéférence : ${String(order.id)}\nAcheteur : ${name}${rdvBit}\n`;
   const foot = `\nTotal commande : ${sub} FCFA\nNet vendeur après commission : ${net} FCFA\nStatut : ${st}\nConvenez du retrait ou de la livraison avec l’acheteur via la messagerie HairConnect.`;
   const body = `${head}\n${lines || "(détail indisponible)"}${foot}`;
   return body.length > 8000 ? body.slice(0, 7997) + "…" : body;
@@ -2145,23 +2342,7 @@ app.post("/api/marketplace/orders/:id/cancel", async (req, res) => {
       if (["shipped", "delivered"].includes(String(order.status || "").toLowerCase())) {
         throw new Error("Statut incompatible pour annulation.");
       }
-      for (const it of order.items) {
-        const p = await tx.product.findUnique({ where: { id: it.productId } });
-        if (!p) continue;
-        const nextStock = Number(p.stock || 0) + Number(it.quantity || 0);
-        const prevSold = Number(p.unitsSold || 0);
-        const dec = Number(it.quantity || 0);
-        let nextStatus = String(p.status || "active");
-        if (nextStock > 0 && nextStatus === "soldout") nextStatus = "active";
-        await tx.product.update({
-          where: { id: it.productId },
-          data: {
-            stock: nextStock,
-            status: nextStatus,
-            unitsSold: Math.max(0, prevSold - dec)
-          }
-        });
-      }
+      await restoreMarketOrderItemsStock(tx, order.items);
       await tx.marketOrder.update({ where: { id }, data: { status: "cancelled" } });
     });
 

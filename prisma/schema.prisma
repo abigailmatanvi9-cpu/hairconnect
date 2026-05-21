@@ -172,6 +172,7 @@ model RendezVous {
   pro          User     @relation("ProRendezVous", fields: [proUid], references: [id], onDelete: Cascade)
   client       User     @relation("ClientRendezVous", fields: [clientUid], references: [id], onDelete: Cascade)
   marketplaceSelection RdvMarketplaceSelection?
+  marketplaceOrder     MarketOrder?
 }
 
 model Product {
@@ -225,6 +226,8 @@ model RdvMarketplaceSelectionLine {
 
 model MarketOrder {
   id                String   @id @default(uuid())
+  /// Commande issue de la sélection marketplace d’un rendez-vous (une par RDV).
+  rendezVousId      String?  @unique
   buyerUid          String
   sellerUid         String
   sellerName        String?
@@ -236,6 +239,7 @@ model MarketOrder {
   platformFeeRateBp Int      @default(1000)
   createdAt         DateTime @default(now())
   updatedAt         DateTime @updatedAt
+  rendezVous        RendezVous? @relation(fields: [rendezVousId], references: [id], onDelete: SetNull)
   items             MarketOrderItem[]
 }
 

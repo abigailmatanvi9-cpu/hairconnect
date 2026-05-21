@@ -196,8 +196,8 @@ function applyRdvSelectionModeUi() {
     if (marketRdvBanner) marketRdvBanner.hidden = false;
     if (marketRdvBannerText) {
         marketRdvBannerText.textContent =
-            `Parcourez le catalogue de ${rdvProLabel}, ajoutez les articles souhaités à votre sélection, puis enregistrez. ` +
-            "Il ne s’agit pas d’un achat immédiat : le professionnel verra votre choix et pourra inclure ces articles dans le montant total du rendez-vous.";
+            `Parcourez le catalogue de ${rdvProLabel}, ajoutez les articles souhaités, puis enregistrez. ` +
+            "La commande apparaîtra chez le vendeur dans « Mes ventes », le stock sera mis à jour sur le marketplace, et le montant pourra être inclus dans le total du rendez-vous.";
     }
     if (marketRdvBackLink) marketRdvBackLink.href = rdvReturnUrl;
     if (pageBackLink) pageBackLink.href = rdvReturnUrl;
@@ -207,7 +207,7 @@ function applyRdvSelectionModeUi() {
     if (marketBuyerOrdersSection) marketBuyerOrdersSection.hidden = true;
     if (marketCartTitle) marketCartTitle.textContent = "Ma sélection pour le rendez-vous";
     if (marketSummarySubtitle) marketSummarySubtitle.textContent = "Articles du professionnel de votre rendez-vous";
-    if (checkoutBtn) checkoutBtn.textContent = "Enregistrer pour mon rendez-vous";
+    if (checkoutBtn) checkoutBtn.textContent = "Valider l’achat pour mon rendez-vous";
     if (cartClearBtn) cartClearBtn.textContent = "Vider la sélection";
     document.body.classList.add("market-page--rdv-selection");
 }
@@ -754,7 +754,7 @@ function renderOrders(target, rows, type) {
         li.innerHTML =
             `<article class="jobs-card">` +
             `<h3 class="jobs-card__title">Commande #${escapeHtml(o.id.slice(0, 8))}</h3>` +
-            `<p class="jobs-card__meta">Statut: <strong>${escapeHtml(st)}</strong></p>` +
+            `<p class="jobs-card__meta">Statut: <strong>${escapeHtml(st)}</strong>${o.rendezVousId ? " · <em>Vente liée à un rendez-vous</em>" : ""}</p>` +
             orderLinesHtml(o) +
             `<p class="jobs-card__desc">Total: ${money(o.subtotalFcfa)} · Commission: ${money(o.platformFeeFcfa)} · Net vendeur: ${money(o.sellerNetFcfa)}</p>` +
             `<div class="jobs-card__foot"><span class="jobs-card__date">${new Date(o.createdAt).toLocaleString("fr-FR")}</span>` +
@@ -907,7 +907,14 @@ checkoutBtn.addEventListener("click", async () => {
     try {
         if (rdvSelectionMode) {
             await saveRendezVousItemSelection(rdvId, me.uid, lines);
-            window.location.href = rdvReturnUrl;
+            showOk(
+                lines.length
+                    ? "Achat enregistré : le vendeur voit la vente dans « Mes ventes » et le stock a été mis à jour."
+                    : "Sélection vidée : commande annulée et stocks rétablis si besoin."
+            );
+            setTimeout(() => {
+                window.location.href = rdvReturnUrl;
+            }, 900);
             return;
         }
         const storedLines = readCartFromStorage().filter((c) => Number(c.quantity || 0) > 0);
