@@ -764,6 +764,25 @@ function normalizeRdvSelectionLines(raw) {
   return [...map.values()];
 }
 
+/** Seul un RDV « À venir » (planned) accepte achat / modification d’articles marketplace côté client. */
+function rdvAllowsClientItemSelection(status) {
+  return String(status || "planned").toLowerCase() === "planned";
+}
+
+function rdvItemSelectionBlockedMessage(status) {
+  const s = String(status || "").toLowerCase();
+  if (s === "completed") {
+    return "Cette prestation est terminée : vous ne pouvez plus acheter d’articles pour ce rendez-vous.";
+  }
+  if (s === "cancelled") {
+    return "Ce rendez-vous est annulé : achat d’articles impossible.";
+  }
+  if (s === "noshow") {
+    return "Ce rendez-vous est marqué « absent » : achat d’articles impossible.";
+  }
+  return "Ce rendez-vous n’accepte plus d’achat d’articles.";
+}
+
 function computeRdvTotalPriceFcfa(prestationPriceFcfa, itemsSubtotalFcfa) {
   const items = Number(itemsSubtotalFcfa || 0);
   if (prestationPriceFcfa == null || prestationPriceFcfa === "") {
@@ -1075,13 +1094,20 @@ app.put("/api/rendez-vous/:id/item-selection", async (req, res) => {
     }
     const rdv = await prisma.rendezVous.findUnique({
       where: { id },
-      select: { id: true, clientUid: true, proUid: true }
+      select: { id: true, clientUid: true, proUid: true, status: true }
     });
     if (!rdv) {
       return res.status(404).json({ message: "Rendez-vous introuvable." });
     }
     if (String(rdv.clientUid) !== clientUid) {
       return res.status(403).json({ message: "Seule la cliente du rendez-vous peut modifier cette sélection." });
+    }
+    if (!rdvAllowsClientItemSelection(rdv.status)) {
+      return res.status(400).json({
+        message: rdvItemSelectionBlockedMessage(rdv.status),
+        code: "rdv/selection-closed",
+        status: String(rdv.status || "")
+      });
     }
     const normalized = normalizeRdvSelectionLines(req.body?.lines);
     if (normalized.length > 80) {

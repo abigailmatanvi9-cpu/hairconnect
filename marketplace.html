@@ -183,6 +183,8 @@ const rdvId = String(urlParams.get("rdvId") || "").trim();
 const rdvSellerUid = String(urlParams.get("sellerUid") || "").trim();
 const rdvReturnUrl = String(urlParams.get("return") || "mes-rdv-client.html").trim() || "mes-rdv-client.html";
 let rdvProLabel = "votre professionnel";
+let rdvStatus = "planned";
+let rdvSelectionLocked = false;
 
 let canSellMarketplace = false;
 let marketTabsListenersBound = false;
@@ -210,6 +212,24 @@ function applyRdvSelectionModeUi() {
     if (checkoutBtn) checkoutBtn.textContent = "Valider l’achat pour mon rendez-vous";
     if (cartClearBtn) cartClearBtn.textContent = "Vider la sélection";
     document.body.classList.add("market-page--rdv-selection");
+}
+
+function rdvAllowsClientItemSelection(status) {
+    return String(status || "planned").toLowerCase() === "planned";
+}
+
+function applyRdvSelectionLockUi() {
+    if (!rdvSelectionMode) return;
+    rdvSelectionLocked = !rdvAllowsClientItemSelection(rdvStatus);
+    document.body.classList.toggle("market-page--rdv-locked", rdvSelectionLocked);
+    if (checkoutBtn) checkoutBtn.disabled = rdvSelectionLocked;
+    if (cartClearBtn) cartClearBtn.disabled = rdvSelectionLocked;
+    if (!rdvSelectionLocked || !marketRdvBannerText) return;
+    const labels = { completed: "terminée", cancelled: "annulé", noshow: "absent" };
+    const bit = labels[String(rdvStatus).toLowerCase()] || rdvStatus;
+    marketRdvBannerText.textContent =
+        `Prestation ${bit} : vous ne pouvez plus acheter d’articles pour ce rendez-vous. ` +
+        "La sélection enregistrée reste visible ci-dessous.";
 }
 
 function cartItemsFromRdvSelection(selection) {
@@ -254,11 +274,14 @@ async function loadRdvSelectionCart() {
     if (!rdvSelectionMode || !me) return;
     try {
         const payload = await getRendezVousItemSelection(rdvId, me.uid);
+        rdvStatus = String(payload?.rendezVous?.status || "planned").toLowerCase();
         const selection = payload?.selection || null;
         cartItems = cartItemsFromRdvSelection(selection);
     } catch {
+        rdvStatus = "planned";
         cartItems = [];
     }
+    applyRdvSelectionLockUi();
 }
 
 function normalizeProfileRole(raw) {
@@ -511,6 +534,10 @@ function updateCardLineTotal(productId) {
 function addToCartFromCard(productId) {
     const p = productById(productId);
     if (!p || !me) return;
+    if (rdvSelectionMode && rdvSelectionLocked) {
+        showError("Ce rendez-vous n’accepte plus d’achat d’articles.");
+        return;
+    }
     const opts = readCardAddOptions(productId);
     if (!opts) return;
     if (!rdvSelectionMode && String(p.sellerUid || "") === String(me.uid || "")) {
@@ -535,6 +562,10 @@ function addToCartFromCard(productId) {
 function addToCart(productId, delta, color = "") {
     const p = productById(productId);
     if (!p || !me) return;
+    if (rdvSelectionMode && rdvSelectionLocked) {
+        showError("Ce rendez-vous n’accepte plus d’achat d’articles.");
+        return;
+    }
     const c = color != null ? String(color).trim() : "";
     const colors = parseProductColors(p);
     if (colors.length && !c) {
@@ -592,15 +623,18 @@ function renderCart() {
         const colorLabel = color ? ` · ${escapeHtml(color)}` : "";
         const li = document.createElement("li");
         li.className = "market-cart__line";
+        const qtyControls = rdvSelectionLocked
+            ? `<span class="market-cart__qty market-cart__qty--readonly">Qté : ${qty}</span>`
+            : `<span class="market-cart__qty">` +
+              `<button type="button" data-cart-dec="${escapeHtml(p.id)}" data-cart-color="${escapeHtml(color)}" aria-label="Diminuer">−</button>` +
+              `<span>${qty}</span>` +
+              `<button type="button" data-cart-inc="${escapeHtml(p.id)}" data-cart-color="${escapeHtml(color)}" aria-label="Augmenter">+</button>` +
+              `<button type="button" class="market-cart__remove" data-cart-remove="${escapeHtml(p.id)}" data-cart-color="${escapeHtml(color)}">Retirer</button>` +
+              `</span>`;
         li.innerHTML =
             `<span><strong>${escapeHtml(p.title)}</strong>${colorLabel} × ${qty} · ${money(p.priceFcfa)} / u.</span>` +
             `<span class="market-cart__line-total">${money(Number(p.priceFcfa) * qty)}</span>` +
-            `<span class="market-cart__qty">` +
-            `<button type="button" data-cart-dec="${escapeHtml(p.id)}" data-cart-color="${escapeHtml(color)}" aria-label="Diminuer">−</button>` +
-            `<span>${qty}</span>` +
-            `<button type="button" data-cart-inc="${escapeHtml(p.id)}" data-cart-color="${escapeHtml(color)}" aria-label="Augmenter">+</button>` +
-            `<button type="button" class="market-cart__remove" data-cart-remove="${escapeHtml(p.id)}" data-cart-color="${escapeHtml(color)}">Retirer</button>` +
-            `</span>`;
+            qtyControls;
         cartLinesEl.appendChild(li);
     });
     if (!rdvSelectionMode && JSON.stringify(valid) !== JSON.stringify(cartItems)) {
@@ -661,7 +695,8 @@ function renderProducts() {
     rows.forEach((p) => {
         const mine = !rdvSelectionMode && me && String(p.sellerUid || "") === String(me.uid || "");
         const stock = Number(p.stock || 0);
-        const unavailable = String(p.status || "") !== "active" || stock <= 0;
+        const unavailable =
+            String(p.status || "") !== "active" || stock <= 0 || (rdvSelectionMode && rdvSelectionLocked);
         const colors = parseProductColors(p);
         const inCartTotal = cartItems
             .filter((c) => String(c.productId) === String(p.id))
@@ -822,6 +857,7 @@ onAuthStateChanged(auth, async (user) => {
         }
         if (rdvSelectionMode) {
             await loadRdvSelectionCart();
+            applyRdvSelectionLockUi();
         }
         await Promise.all([loadProducts(), rdvSelectionMode ? Promise.resolve() : loadOrders()]);
         renderCart();
@@ -880,6 +916,10 @@ cartLinesEl.addEventListener("click", (e) => {
     const rem = e.target.closest("[data-cart-remove]");
     errEl.hidden = true;
     okEl.hidden = true;
+    if (rdvSelectionMode && rdvSelectionLocked) {
+        showError("Ce rendez-vous n’accepte plus d’achat d’articles.");
+        return;
+    }
     if (inc) {
         addToCart(inc.getAttribute("data-cart-inc"), 1, inc.getAttribute("data-cart-color") || "");
         renderProducts();
@@ -893,6 +933,10 @@ cartLinesEl.addEventListener("click", (e) => {
 });
 
 cartClearBtn.addEventListener("click", () => {
+    if (rdvSelectionMode && rdvSelectionLocked) {
+        showError("Ce rendez-vous n’accepte plus d’achat d’articles.");
+        return;
+    }
     if (!window.confirm(rdvSelectionMode ? "Vider toute la sélection ?" : "Vider tout le panier ?")) return;
     clearCart();
     renderProducts();
@@ -903,6 +947,10 @@ checkoutBtn.addEventListener("click", async () => {
     const lines = cartItems.filter((c) => Number(c.quantity || 0) > 0);
     errEl.hidden = true;
     okEl.hidden = true;
+    if (rdvSelectionMode && rdvSelectionLocked) {
+        showError("Ce rendez-vous n’accepte plus d’achat d’articles.");
+        return;
+    }
     checkoutBtn.disabled = true;
     try {
         if (rdvSelectionMode) {

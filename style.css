@@ -4777,6 +4777,13 @@ body.hc-theme-pro .market-order-lines {
     margin-top: 0.8rem;
 }
 
+.mes-rdv-client__select-locked {
+    margin: 0;
+    font-size: 0.9rem;
+    color: var(--muted, #6b7280);
+    line-height: 1.45;
+}
+
 .mes-rdv-client__select-btn {
     display: inline-block;
     width: auto;

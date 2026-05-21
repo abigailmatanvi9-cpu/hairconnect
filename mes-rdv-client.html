@@ -175,11 +175,21 @@ function renderCard(r) {
 
     const selectionAction = document.createElement("div");
     selectionAction.className = "mes-rdv-client__selection-action";
-    const marketLink = document.createElement("a");
-    marketLink.className = "register-submit mes-rdv-client__select-btn";
-    marketLink.href = marketplaceSelectionUrl(r);
-    marketLink.textContent = "Choisir des articles marketplace";
-    selectionAction.appendChild(marketLink);
+    if (rdvStatus === "planned") {
+        const marketLink = document.createElement("a");
+        marketLink.className = "register-submit mes-rdv-client__select-btn";
+        marketLink.href = marketplaceSelectionUrl(r);
+        marketLink.textContent = "Choisir des articles marketplace";
+        selectionAction.appendChild(marketLink);
+    } else {
+        const lockedNote = document.createElement("p");
+        lockedNote.className = "mes-rdv-client__select-locked";
+        lockedNote.textContent =
+            rdvStatus === "completed"
+                ? "Prestation terminée : achat d’articles impossible pour ce rendez-vous."
+                : "Achat d’articles impossible pour ce rendez-vous (statut : " + statusLabel + ").";
+        selectionAction.appendChild(lockedNote);
+    }
 
     li.appendChild(head);
     li.appendChild(prest);
