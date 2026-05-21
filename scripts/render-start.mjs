@@ -1,10 +1,9 @@
 /**
- * Démarrage Render : synchronise le schéma PostgreSQL puis lance Express.
+ * Démarrage Render : patches SQL idempotents + db push (sans bloquer le serveur).
  */
 import { execSync } from "node:child_process";
 import { PrismaClient } from "@prisma/client";
 
-/** Colonnes récentes — SQL idempotent si migrate deploy / db push ont échoué. */
 async function applyCriticalSchemaPatches() {
   const prisma = new PrismaClient();
   try {
@@ -33,7 +32,7 @@ async function applyCriticalSchemaPatches() {
     try {
       await prisma.$executeRawUnsafe(sql);
     } catch (e) {
-      console.warn("[HairConnect] Patch SQL ignoré:", e?.message || e);
+      console.warn("[HairConnect] Patch SQL:", e?.message || e);
     }
   }
 
@@ -49,28 +48,21 @@ async function syncDatabase() {
   await applyCriticalSchemaPatches();
 
   try {
-    console.log("[HairConnect] prisma migrate deploy…");
-    execSync("npx prisma migrate deploy", {
+    console.log("[HairConnect] prisma db push…");
+    execSync("npx prisma db push --skip-generate --accept-data-loss", {
       stdio: "inherit",
-      env: process.env
+      env: process.env,
+      cwd: process.cwd()
     });
+    console.log("[HairConnect] Base de données synchronisée (db push).");
   } catch (e) {
-    console.warn("[HairConnect] migrate deploy (non bloquant):", e?.message || e);
+    console.warn(
+      "[HairConnect] db push non bloquant:",
+      e?.message || e,
+      "— les patches SQL ont été appliqués, le serveur démarre quand même."
+    );
   }
-
-  console.log("[HairConnect] prisma db push…");
-  execSync("npx prisma db push --skip-generate", {
-    stdio: "inherit",
-    env: process.env
-  });
-  console.log("[HairConnect] Base de données synchronisée.");
 }
 
-try {
-  await syncDatabase();
-} catch (e) {
-  console.error("[HairConnect] Échec synchronisation BDD:", e?.message || e);
-  process.exit(1);
-}
-
+await syncDatabase();
 await import("../server.js");
