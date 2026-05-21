@@ -102,7 +102,15 @@ model Offre {
   title       String
   description String
   city        String?
+  /// Quartier ou zone du lieu de travail.
+  quartier    String?
   contractType String?
+  /// monthly = salaire mensuel ; per_prestation = rémunération à chaque prestation.
+  remunerationType String?
+  /// Montant mensuel en FCFA (si remunerationType = monthly).
+  salaryFcfa       Int?
+  /// Précisions (commission, fourchette, avantages…).
+  remunerationNote String?
   /// open = visible pour tous ; filled = poste pourvu, masqué pour les autres utilisateurs.
   status      String   @default("open")
   createdAt   DateTime @default(now())

@@ -60,16 +60,15 @@
                 <div class="field-group">
                     <label class="field-label" for="dpCity">Ville</label>
                     <div class="field-input-wrap">
-                        <input type="text" id="dpCity" name="city" placeholder="Ex. Lomé" autocomplete="address-level2" aria-describedby="dpCityHint">
+                        <input type="text" id="dpCity" name="city" placeholder="Ex. Lomé" autocomplete="address-level2">
                     </div>
-                    <p class="field-hint" id="dpCityHint">Villes selon le pays choisi au téléphone. Saisie libre possible.</p>
                 </div>
                 <div class="field-group">
                     <label class="field-label" for="dpQuartier">Quartier ou zone</label>
                     <div class="field-input-wrap">
-                        <input type="text" id="dpQuartier" name="quartier" placeholder="Ex. Tokoin, Bé…" autocomplete="address-line2" aria-describedby="dpQuartierHint">
+                        <input type="text" id="dpQuartier" name="quartier" placeholder="Ex. Tokoin, Bè, Ablogamé…" autocomplete="address-line2">
                     </div>
-                    <p class="field-hint" id="dpQuartierHint">Quartiers de la ville choisie uniquement.</p>
+                    <p class="field-hint">Les clients peuvent filtrer l’annuaire par quartier pour vous trouver.</p>
                 </div>
                 <div class="field-group">
                     <label class="field-label" for="dpPhoneNational">Téléphone (optionnel)</label>
@@ -115,24 +114,10 @@ import {
     HAIRCONNECT_METIERS
 } from "./firebase.js";
 import { initPhoneField, readPhoneFromField } from "./phone-utils.js";
-import { initLocationFields } from "./west-africa-locations.js";
 
 const dpPhoneCountry = document.getElementById("dpPhoneCountry");
 const dpPhoneNational = document.getElementById("dpPhoneNational");
 const dpPhoneHint = document.getElementById("dpPhoneHint");
-const dpCityHint = document.getElementById("dpCityHint");
-const dpQuartierHint = document.getElementById("dpQuartierHint");
-
-const dpLocationFields = initLocationFields(
-    document.getElementById("dpCity"),
-    document.getElementById("dpQuartier"),
-    {
-        idPrefix: "hc-dp-loc",
-        countrySelect: dpPhoneCountry,
-        cityHintEl: dpCityHint,
-        quartierHintEl: dpQuartierHint
-    }
-);
 
 function buildMetierBoxes(container, inputName, idPrefix) {
     if (!container) return;
@@ -286,10 +271,8 @@ function syncFormFromCache() {
         countrySelect: dpPhoneCountry,
         nationalInput: dpPhoneNational,
         hintEl: dpPhoneHint,
-        storedPhone: data.phone || "",
-        onCountryChange: () => dpLocationFields.refresh()
+        storedPhone: data.phone || ""
     });
-    dpLocationFields.refresh();
     if (bio) bio.value = roleDisplay === "Client" ? "" : data.bio || "";
     setMetierChecks("dpProMetiersList", parseMetiersFromProfile(data.proMetiers));
 }

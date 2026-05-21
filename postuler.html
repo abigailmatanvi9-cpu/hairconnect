@@ -18,6 +18,8 @@
 
     <div id="offerBox" class="offer-summary" hidden>
         <h2 id="otitle" class="offer-summary__title"></h2>
+        <p id="olocation" class="offer-summary__meta"></p>
+        <p id="opay" class="offer-summary__meta offer-summary__meta--pay"></p>
         <p id="odesc" class="offer-summary__desc"></p>
     </div>
 
@@ -42,6 +44,50 @@ const offerId = params.get("offre");
 let myUid = null;
 let salonUid = null;
 
+function formatOfferLocation(offer) {
+    const city = String(offer?.city || "").trim();
+    const quartier = String(offer?.quartier || "").trim();
+    if (city && quartier) return `📍 ${city}, ${quartier}`;
+    if (city) return `📍 ${city}`;
+    if (quartier) return `📍 ${quartier}`;
+    return "";
+}
+
+function formatOfferRemuneration(offer) {
+    const type = String(offer?.remunerationType || "").trim().toLowerCase();
+    const note = String(offer?.remunerationNote || "").trim();
+    if (type === "monthly") {
+        const amount = Number(offer?.salaryFcfa);
+        const base =
+            Number.isFinite(amount) && amount > 0
+                ? `💰 ${amount.toLocaleString("fr-FR")} FCFA / mois`
+                : "💰 Salaire mensuel";
+        return note ? `${base} — ${note}` : base;
+    }
+    if (type === "per_prestation") {
+        return note ? `💰 Paiement à la prestation — ${note}` : "💰 Paiement à chaque prestation";
+    }
+    return "";
+}
+
+function fillOfferSummary(off) {
+    document.getElementById("otitle").textContent = off.title || "Offre";
+    document.getElementById("odesc").textContent = off.description || "";
+    const locEl = document.getElementById("olocation");
+    const payEl = document.getElementById("opay");
+    const loc = formatOfferLocation(off);
+    const pay = formatOfferRemuneration(off);
+    if (locEl) {
+        locEl.textContent = loc;
+        locEl.hidden = !loc;
+    }
+    if (payEl) {
+        payEl.textContent = pay;
+        payEl.hidden = !pay;
+    }
+    document.getElementById("offerBox").hidden = false;
+}
+
 if (!offerId) {
     document.getElementById("formError").textContent = "Lien invalide (offre manquante).";
     document.getElementById("formError").hidden = false;
@@ -64,15 +110,11 @@ if (!offerId) {
             document.getElementById("formError").textContent = "Ce poste a déjà été pourvu — les candidatures ne sont plus acceptées.";
             document.getElementById("formError").hidden = false;
             document.getElementById("f").hidden = true;
-            document.getElementById("otitle").textContent = off.title || "Offre";
-            document.getElementById("odesc").textContent = off.description || "";
-            document.getElementById("offerBox").hidden = false;
+            fillOfferSummary(off);
             return;
         }
         salonUid = off.salonUid;
-        document.getElementById("otitle").textContent = off.title || "Offre";
-        document.getElementById("odesc").textContent = off.description || "";
-        document.getElementById("offerBox").hidden = false;
+        fillOfferSummary(off);
 
         const prof = await fetchUserProfile(user.uid);
         const role = String(prof?.role || "").trim().toLowerCase();

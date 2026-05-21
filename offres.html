@@ -57,8 +57,34 @@
             <div class="field-group">
                 <label class="field-label" for="city">Ville</label>
                 <div class="field-input-wrap">
-                    <input type="text" id="city" placeholder="Lieu de travail">
+                    <input type="text" id="city" required placeholder="Ex. Lomé, Kara…">
                 </div>
+            </div>
+            <div class="field-group">
+                <label class="field-label" for="quartier">Quartier</label>
+                <div class="field-input-wrap">
+                    <input type="text" id="quartier" required placeholder="Ex. Tokoin, Bè, Adidogomé…">
+                </div>
+            </div>
+            <div class="field-group">
+                <label class="field-label" for="remunerationType">Rémunération</label>
+                <div class="field-input-wrap">
+                    <select id="remunerationType" class="field-select" required>
+                        <option value="">Choisir…</option>
+                        <option value="monthly">Salaire mensuel fixe</option>
+                        <option value="per_prestation">Paiement à chaque prestation</option>
+                    </select>
+                </div>
+            </div>
+            <div class="field-group" id="salaryMonthlyWrap" hidden>
+                <label class="field-label" for="salaryFcfa">Salaire mensuel (FCFA)</label>
+                <div class="field-input-wrap">
+                    <input type="number" id="salaryFcfa" min="1" step="1" inputmode="numeric" placeholder="Ex. 120000">
+                </div>
+            </div>
+            <div class="field-group" id="remunerationNoteWrap" hidden>
+                <label class="field-label" for="remunerationNote">Précisions sur la rémunération</label>
+                <textarea id="remunerationNote" class="field-textarea" rows="2" placeholder="Ex. commission 40 % par prestation, pourboires…"></textarea>
             </div>
             <div class="field-group">
                 <label class="field-label" for="contractType">Type de contrat</label>
@@ -141,6 +167,54 @@ function getContractLabel(type) {
     return "Offre";
 }
 
+function formatOfferLocation(offer) {
+    const city = String(offer?.city || "").trim();
+    const quartier = String(offer?.quartier || "").trim();
+    if (city && quartier) return `${city}, ${quartier}`;
+    return city || quartier || "Lieu à préciser";
+}
+
+function formatOfferRemuneration(offer) {
+    const type = String(offer?.remunerationType || "").trim().toLowerCase();
+    const note = String(offer?.remunerationNote || "").trim();
+    if (type === "monthly") {
+        const amount = Number(offer?.salaryFcfa);
+        const base =
+            Number.isFinite(amount) && amount > 0
+                ? `${amount.toLocaleString("fr-FR")} FCFA / mois`
+                : "Salaire mensuel (montant à préciser)";
+        return note ? `${base} — ${note}` : base;
+    }
+    if (type === "per_prestation") {
+        return note ? `Paiement à la prestation — ${note}` : "Paiement à chaque prestation";
+    }
+    return "Rémunération à préciser";
+}
+
+function syncRemunerationFields() {
+    const type = String(document.getElementById("remunerationType")?.value || "").trim();
+    const monthlyWrap = document.getElementById("salaryMonthlyWrap");
+    const noteWrap = document.getElementById("remunerationNoteWrap");
+    const salaryInput = document.getElementById("salaryFcfa");
+    if (!monthlyWrap || !noteWrap) return;
+    if (type === "monthly") {
+        monthlyWrap.hidden = false;
+        noteWrap.hidden = false;
+        if (salaryInput) salaryInput.required = true;
+    } else if (type === "per_prestation") {
+        monthlyWrap.hidden = true;
+        noteWrap.hidden = false;
+        if (salaryInput) {
+            salaryInput.required = false;
+            salaryInput.value = "";
+        }
+    } else {
+        monthlyWrap.hidden = true;
+        noteWrap.hidden = true;
+        if (salaryInput) salaryInput.required = false;
+    }
+}
+
 function formatDate(raw) {
     if (!raw) return "";
     try {
@@ -164,7 +238,7 @@ function offerMatchesFilters(offer) {
     const matchesType = activeFilter === "all" ? true : type === activeFilter;
     if (!matchesType) return false;
     if (!query) return true;
-    const haystack = `${offer?.title || ""} ${offer?.description || ""} ${offer?.city || ""} ${offer?.salonName || ""}`.toLowerCase();
+    const haystack = `${offer?.title || ""} ${offer?.description || ""} ${offer?.city || ""} ${offer?.quartier || ""} ${offer?.salonName || ""} ${formatOfferRemuneration(offer)}`.toLowerCase();
     return haystack.includes(query);
 }
 
@@ -183,7 +257,8 @@ function renderList(rows) {
         const type = getContractType(o);
         const createdAt = formatDate(o.createdAt || o.created_at);
         const dateText = createdAt ? `Publié le ${createdAt}` : "Publication récente";
-        const city = o.city || "Lieu à préciser";
+        const location = formatOfferLocation(o);
+        const remuneration = formatOfferRemuneration(o);
         const desc = (o.description || "").trim() || "Le salon recherche un profil motivé pour rejoindre son équipe.";
         const shortDesc = desc.length > 220 ? `${desc.slice(0, 220)}...` : desc;
 
@@ -225,13 +300,13 @@ function renderList(rows) {
             "<p class=\"jobs-card__salon\">" + escapeHtml(o.salonName || "Salon partenaire") + "</p>" +
             "<p class=\"jobs-card__meta\">" +
             "<span class=\"jobs-card__meta-icon\">📍</span>" +
-            escapeHtml(city) +
+            escapeHtml(location) +
             "</p>" +
             "</div>" +
             "<span class=\"jobs-badge\">" + getContractLabel(type) + "</span>" +
             filledBadge +
             "</div>" +
-            "<p class=\"jobs-card__salary\">💰 Salaire selon profil + commissions</p>" +
+            "<p class=\"jobs-card__salary\">💰 " + escapeHtml(remuneration) + "</p>" +
             "<p class=\"jobs-card__desc\">" + escapeHtml(shortDesc) + "</p>" +
             "<div class=\"jobs-card__foot\">" +
             "<span class=\"jobs-card__date\">⏱ " + escapeHtml(dateText) + "</span>" +
@@ -268,7 +343,14 @@ onAuthStateChanged(auth, async (user) => {
         return;
     }
     isSalon = isSalonRole(role);
-    if (isSalon) salonSection.hidden = false;
+    if (isSalon) {
+        salonSection.hidden = false;
+        const paySel = document.getElementById("remunerationType");
+        if (paySel) {
+            paySel.addEventListener("change", syncRemunerationFields);
+            syncRemunerationFields();
+        }
+    }
     try {
         await loadList();
     } catch (e) {
@@ -357,6 +439,20 @@ document.getElementById("offreForm").addEventListener("submit", async (e) => {
     fe.hidden = true;
     fo.hidden = true;
     if (!isSalon || !myUid) return;
+    const payType = String(document.getElementById("remunerationType").value || "").trim();
+    if (!payType) {
+        fe.textContent = "Indiquez si le poste est rémunéré au mois ou à la prestation.";
+        fe.hidden = false;
+        return;
+    }
+    if (payType === "monthly") {
+        const salary = Number.parseInt(String(document.getElementById("salaryFcfa").value || "").trim(), 10);
+        if (!Number.isFinite(salary) || salary <= 0) {
+            fe.textContent = "Indiquez un salaire mensuel en FCFA (nombre entier positif).";
+            fe.hidden = false;
+            return;
+        }
+    }
     const btn = document.getElementById("pubBtn");
     btn.disabled = true;
     try {
@@ -366,11 +462,19 @@ document.getElementById("offreForm").addEventListener("submit", async (e) => {
             document.getElementById("title").value,
             document.getElementById("desc").value,
             document.getElementById("city").value,
-            document.getElementById("contractType").value
+            document.getElementById("contractType").value,
+            {
+                quartier: document.getElementById("quartier").value,
+                remunerationType: payType,
+                salaryFcfa:
+                    payType === "monthly" ? document.getElementById("salaryFcfa").value : null,
+                remunerationNote: document.getElementById("remunerationNote").value
+            }
         );
         fo.textContent = "Offre publiée.";
         fo.hidden = false;
         document.getElementById("offreForm").reset();
+        syncRemunerationFields();
         await loadList();
     } catch (x) {
         fe.textContent = getFirebaseErrorMessage(x);

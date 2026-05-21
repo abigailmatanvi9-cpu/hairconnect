@@ -410,19 +410,34 @@ export async function createDomicileRequest(clientUid, proUid, message) {
     });
 }
 
-export async function createOffre(salonUid, salonName, title, description, city, contractType) {
+export async function createOffre(
+    salonUid,
+    salonName,
+    title,
+    description,
+    city,
+    contractType,
+    { quartier = "", remunerationType = "", salaryFcfa = null, remunerationNote = "" } = {}
+) {
     const normalizedContract =
         typeof contractType === "string" && contractType.trim() ? String(contractType).trim().toLowerCase() : null;
+    const body = {
+        salonUid,
+        salonName: salonName || "",
+        title: title.trim(),
+        description: description.trim(),
+        city: (city || "").trim(),
+        quartier: (quartier || "").trim(),
+        contractType: normalizedContract,
+        remunerationType: (remunerationType || "").trim().toLowerCase(),
+        remunerationNote: (remunerationNote || "").trim() || null
+    };
+    if (body.remunerationType === "monthly" && salaryFcfa != null && salaryFcfa !== "") {
+        body.salaryFcfa = Number.parseInt(String(salaryFcfa), 10);
+    }
     await apiFetch("/offres", {
         method: "POST",
-        body: JSON.stringify({
-            salonUid,
-            salonName: salonName || "",
-            title: title.trim(),
-            description: description.trim(),
-            city: (city || "").trim(),
-            contractType: normalizedContract
-        })
+        body: JSON.stringify(body)
     });
 }
 

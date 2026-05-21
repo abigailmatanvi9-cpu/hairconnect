@@ -1,0 +1,5 @@
+-- AlterTable
+ALTER TABLE "Offre" ADD COLUMN IF NOT EXISTS "quartier" TEXT;
+ALTER TABLE "Offre" ADD COLUMN IF NOT EXISTS "remunerationType" TEXT;
+ALTER TABLE "Offre" ADD COLUMN IF NOT EXISTS "salaryFcfa" INTEGER;
+ALTER TABLE "Offre" ADD COLUMN IF NOT EXISTS "remunerationNote" TEXT;

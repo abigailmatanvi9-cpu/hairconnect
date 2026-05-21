@@ -1485,6 +1485,30 @@ app.post("/api/demandes-domicile", async (req, res) => {
   }
 });
 
+function parseOffreRemunerationInput(body) {
+  const allowed = new Set(["monthly", "per_prestation"]);
+  const raw = String(body?.remunerationType || "")
+    .trim()
+    .toLowerCase();
+  const remunerationType = allowed.has(raw) ? raw : null;
+  if (!remunerationType) {
+    return { error: "remunerationType requis (monthly ou per_prestation)." };
+  }
+  let salaryFcfa = null;
+  if (remunerationType === "monthly") {
+    const parsed = Number.parseInt(String(body?.salaryFcfa ?? "").trim(), 10);
+    if (!Number.isFinite(parsed) || parsed <= 0) {
+      return { error: "salaryFcfa requis (entier positif) pour un salaire mensuel." };
+    }
+    salaryFcfa = parsed;
+  }
+  const remunerationNote =
+    body?.remunerationNote != null && String(body.remunerationNote).trim()
+      ? String(body.remunerationNote).trim()
+      : null;
+  return { remunerationType, salaryFcfa, remunerationNote };
+}
+
 app.post("/api/offres", async (req, res) => {
   try {
     const allowedContractTypes = new Set(["full-time", "part-time", "cdd"]);
@@ -1492,13 +1516,29 @@ app.post("/api/offres", async (req, res) => {
       .trim()
       .toLowerCase();
     const contractType = allowedContractTypes.has(rawContractType) ? rawContractType : null;
+    const city = String(req.body?.city || "").trim();
+    const quartier = String(req.body?.quartier || "").trim();
+    if (!city) {
+      return res.status(400).json({ message: "La ville est requise." });
+    }
+    if (!quartier) {
+      return res.status(400).json({ message: "Le quartier est requis." });
+    }
+    const pay = parseOffreRemunerationInput(req.body);
+    if (pay.error) {
+      return res.status(400).json({ message: pay.error });
+    }
     const data = {
       salonUid: String(req.body?.salonUid || "").trim(),
       salonName: String(req.body?.salonName || "").trim() || null,
       title: String(req.body?.title || "").trim(),
       description: String(req.body?.description || "").trim(),
-      city: String(req.body?.city || "").trim() || null,
-      contractType
+      city,
+      quartier,
+      contractType,
+      remunerationType: pay.remunerationType,
+      salaryFcfa: pay.salaryFcfa,
+      remunerationNote: pay.remunerationNote
     };
     if (!data.salonUid || !data.title || !data.description) {
       return res.status(400).json({ message: "salonUid, title et description sont requis." });
@@ -1508,16 +1548,30 @@ app.post("/api/offres", async (req, res) => {
       return res.status(201).json({ offre: row });
     } catch (error) {
       const msg = String(error?.message || "");
-      const contractFieldUnavailable =
-        msg.includes("Unknown argument `contractType`") || msg.includes("Unknown argument contractType");
-      if (!contractFieldUnavailable) throw error;
+      const unknownField =
+        msg.includes("Unknown argument `contractType`") ||
+        msg.includes("Unknown argument contractType") ||
+        msg.includes("Unknown argument `quartier`") ||
+        msg.includes("Unknown argument `remunerationType`") ||
+        msg.includes("Unknown argument `salaryFcfa`") ||
+        msg.includes("Unknown argument `remunerationNote`");
+      if (!unknownField) throw error;
 
-      // Fallback temporaire: permet de publier même si la migration Prisma n'est pas encore appliquée.
-      const { contractType: _ignored, ...legacyData } = data;
+      const legacyData = {
+        salonUid: data.salonUid,
+        salonName: data.salonName,
+        title: data.title,
+        description: data.description,
+        city: data.city
+      };
+      if (!msg.includes("Unknown argument `contractType`") && !msg.includes("Unknown argument contractType")) {
+        legacyData.contractType = data.contractType;
+      }
       const row = await prisma.offre.create({ data: legacyData });
       return res.status(201).json({
         offre: row,
-        warning: "contractType ignoré temporairement (migration Prisma non appliquée)."
+        warning:
+          "Certains champs (quartier, rémunération…) ignorés : exécutez « npx prisma db push » ou appliquez la migration."
       });
     }
   } catch (error) {

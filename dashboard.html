@@ -1644,6 +1644,13 @@ function offerHrefForRole(o, roleKey) {
     return "offres.html";
 }
 
+function formatDashOfferLocation(o) {
+    const city = String(o?.city || "").trim();
+    const quartier = String(o?.quartier || "").trim();
+    if (city && quartier) return `${city}, ${quartier}`;
+    return city || quartier || "";
+}
+
 function renderFeaturedOfferGrid(listEl, emptyEl, offres, roleKey, salonUid) {
     if (!listEl) return;
     let rows = offres || [];
@@ -1660,11 +1667,11 @@ function renderFeaturedOfferGrid(listEl, emptyEl, offres, roleKey, salonUid) {
         .map((o) => {
             const title = escapeHtml(o.title || "Offre");
             const salon = escapeHtml(o.salonName || "Salon");
-            const city = escapeHtml(String(o.city || "").trim());
+            const loc = escapeHtml(formatDashOfferLocation(o));
             const ct = escapeHtml(String(o.contractType || "").trim());
             const href = offerHrefForRole(o, roleKey);
             const cta = roleKey === "coiffeur" ? "Postuler" : "Voir";
-            const meta = city ? `${salon} · ${city}` : salon;
+            const meta = loc ? `${salon} · ${loc}` : salon;
             return (
                 `<li class="dash-pro-offer-card-wrap">` +
                 `<a href="${href}" class="dash-pro-offer-card">` +
