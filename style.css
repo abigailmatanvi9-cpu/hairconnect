@@ -1472,11 +1472,26 @@ body.login-page--beauty .field-input-wrap--beauty .password-toggle {
     flex: 0 0 auto;
     display: block;
     width: 100%;
-    min-height: 0;
+    min-height: min(70vh, 640px);
     border: 0;
     border-radius: 14px;
-    background: transparent;
+    background: #fff;
     box-shadow: none;
+}
+
+.dash-page-embed__error {
+    margin: 0 0 0.65rem;
+    padding: 0.65rem 0.85rem;
+    border-radius: 10px;
+    font-size: 0.88rem;
+    line-height: 1.45;
+    color: #b91c1c;
+    background: #fef2f2;
+    border: 1px solid #fecaca;
+}
+
+.dash-main:has(#dashPageEmbed:not([hidden])) > .dash-loading {
+    display: none !important;
 }
 
 /* Iframe masquée (à proximité, s'inspirer, etc.) : ne doit jamais réserver de hauteur */
@@ -1496,6 +1511,23 @@ body.login-page--beauty .field-input-wrap--beauty .password-toggle {
     margin: 0 0 1.5rem;
     font-size: 0.95rem;
     color: #8a8278;
+}
+
+.dash-profile-error {
+    margin: 0 0 1rem;
+    padding: 0.75rem 0.9rem;
+    border-radius: 10px;
+    font-size: 0.88rem;
+    line-height: 1.45;
+    color: #b45309;
+    background: #fffbeb;
+    border: 1px solid #fde68a;
+}
+
+.hc-dash-pro .dash-profile-error {
+    color: #92400e;
+    background: #fffbeb;
+    border-color: #fde68a;
 }
 
 .dash-intro {
@@ -7337,6 +7369,17 @@ body.hc-theme-pro .form-info {
 
 .hc-dash-pro .dash-page-embed__title {
     color: var(--hc-pro-ink);
+}
+
+.hc-dash-pro .dash-page-embed__error {
+    color: #b91c1c;
+    background: #fef2f2;
+    border-color: #fecaca;
+}
+
+.hc-dash-pro .dash-page-embed__frame {
+    background: var(--hc-pro-card);
+    border: 1px solid #e2e8f0;
 }
 
 /* Contenu natif sous la barre d’outils (pas collé en bas de la colonne) */

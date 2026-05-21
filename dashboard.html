@@ -63,6 +63,7 @@
 
     <main class="dash-main">
         <p id="dash-loading" class="dash-loading">Chargement de votre espace…</p>
+        <p id="dash-profile-error" class="dash-profile-error" role="alert" hidden></p>
         <!-- Espace Client (cahier des charges III.1) -->
         <section id="panel-client" class="dash-panel dash-panel--client-home" hidden>
             <div class="dash-client-app">
@@ -271,6 +272,7 @@
                 <span class="dash-page-embed__title" id="dashPageEmbedTitle"></span>
                 <a class="dash-page-embed__newtab" id="dashPageEmbedNewTab" href="#" target="_blank" rel="noopener noreferrer">Nouvel onglet</a>
             </div>
+            <p id="dashPageEmbedError" class="dash-page-embed__error" role="alert" hidden></p>
             <iframe class="dash-page-embed__frame" id="dashPageEmbedFrame" title=""></iframe>
             <div id="dashPageEmbedNearby" hidden>
                 <p id="dashEmbedNearError" class="dash-near-error" role="alert" hidden></p>
@@ -433,10 +435,15 @@ function normalizeRole(raw, profile) {
     return normalizeRoleShared(raw);
 }
 
+function hideDashLoading() {
+    const loading = document.getElementById("dash-loading");
+    if (loading) loading.hidden = true;
+}
+
 function applyDashboardPanelsVisibility() {
     const loading = document.getElementById("dash-loading");
     const embedHost = document.getElementById("dashPageEmbed");
-    if (loading) loading.hidden = true;
+    hideDashLoading();
 
     if (dashEmbedOpen && embedHost) {
         embedHost.hidden = false;
@@ -506,11 +513,24 @@ function syncDashEmbedFrameHeight() {
     }
 }
 
+function setDashEmbedError(msg) {
+    const errEl = document.getElementById("dashPageEmbedError");
+    if (!errEl) return;
+    if (!msg) {
+        errEl.textContent = "";
+        errEl.hidden = true;
+        return;
+    }
+    errEl.textContent = msg;
+    errEl.hidden = false;
+}
+
 function closeDashEmbed() {
     if (!dashEmbedOpen) return;
     const wasProfil = dashEmbedRoute === DASH_EMBED_PROFIL;
     dashEmbedOpen = false;
     dashEmbedRoute = "";
+    setDashEmbedError("");
     const frame = document.getElementById("dashPageEmbedFrame");
     const nearbyWrap = document.getElementById("dashPageEmbedNearby");
     const ownPublicationsWrap = document.getElementById("dashPageEmbedOwnPublications");
@@ -619,9 +639,11 @@ function openDashEmbed(url, titleText) {
         mountInspireStyleFilters();
         loadEmbedProFeed();
     } else {
+        setDashEmbedError("");
         if (frame) {
             frame.hidden = false;
             frame.title = titleText || "Contenu";
+            frame.style.minHeight = "min(70vh, 640px)";
             frame.src = url;
         }
         if (nearbyWrap) nearbyWrap.hidden = true;
@@ -1938,15 +1960,33 @@ onAuthStateChanged(auth, async (user) => {
 
     let name = user.email || "Utilisateur";
     let roleRaw = "";
+    let data = null;
+    let roleKey = "unknown";
 
-    const data = await fetchUserProfile(user.uid);
-    dashProfileCache = data || null;
-    if (data) {
-        if (data.name) name = data.name;
-        if (data.role) roleRaw = data.role;
+    try {
+        data = await fetchUserProfile(user.uid);
+        dashProfileCache = data || null;
+        if (data) {
+            if (data.name) name = data.name;
+            if (data.role) roleRaw = data.role;
+        }
+        roleKey = resolveUserRole(data || { role: roleRaw });
+    } catch (e) {
+        console.warn("Profil tableau de bord:", e);
+        dashProfileCache = null;
+        roleKey = "unknown";
+        const profErr = document.getElementById("dash-profile-error");
+        if (profErr) {
+            profErr.textContent =
+                "Connexion au serveur impossible — vos données sont toujours en base. Réessayez ou ouvrez les pages via « Nouvel onglet ». " +
+                (e?.message || "");
+            profErr.hidden = false;
+        }
     }
 
-    const roleKey = resolveUserRole(data || { role: roleRaw });
+    showPanel(roleKey);
+    const profErrOk = document.getElementById("dash-profile-error");
+    if (profErrOk && data) profErrOk.hidden = true;
 
     fillDashSidebarUser(user, data);
     document.getElementById("dashWelcome").textContent = "Bonjour, " + name;
@@ -1987,7 +2027,6 @@ onAuthStateChanged(auth, async (user) => {
         pill.hidden = false;
     }
 
-    showPanel(roleKey);
     mountGlobalBottomNav(roleKey);
     if (dashEmbedOpen && dashEmbedRoute === DASH_EMBED_OWN_PUBLICATIONS) {
         await loadEmbedOwnPublications();
@@ -2080,6 +2119,10 @@ function refreshDashHeroesFromProfileCache() {
 }
 
 window.addEventListener("message", async (ev) => {
+    if (ev.data && ev.data.type === "hc-dash-close-embed") {
+        closeDashEmbed();
+        return;
+    }
     if (!ev.data || ev.data.type !== "hc-profile-updated") return;
     const frame = document.getElementById("dashPageEmbedFrame");
     if (!frame || ev.source !== frame.contentWindow) return;

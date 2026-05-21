@@ -28,7 +28,8 @@
         <p id="formOk" class="form-success" role="status" hidden></p>
         <div class="field-group">
             <label class="field-label" for="msg">Message au salon</label>
-            <textarea id="msg" class="field-textarea" rows="5" placeholder="Présentez-vous, votre expérience, disponibilités…"></textarea>
+            <textarea id="msg" class="field-textarea" rows="8" required placeholder="Présentez-vous en détail : expérience, formations, disponibilités, motivations pour ce poste…"></textarea>
+            <p class="field-hint">Ce texte sera affiché tel quel chez le salon (retours à la ligne conservés). Soyez le plus complet possible.</p>
         </div>
         <button type="submit" class="register-submit" id="btn">Envoyer la candidature</button>
     </form>
@@ -171,8 +172,14 @@ if (!offerId) {
         }
         const btn = document.getElementById("btn");
         btn.disabled = true;
+        const msgText = document.getElementById("msg").value;
+        if (!String(msgText || "").trim()) {
+            err.textContent = "Rédigez un message pour le salon (il sera affiché intégralement).";
+            err.hidden = false;
+            return;
+        }
         try {
-            await createCandidature(offerId, myUid, salonUid, document.getElementById("msg").value);
+            await createCandidature(offerId, myUid, salonUid, msgText);
             ok.textContent = "Candidature envoyée.";
             ok.hidden = false;
             document.getElementById("f").hidden = true;

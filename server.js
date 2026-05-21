@@ -8,6 +8,7 @@ import { readFileSync } from "node:fs";
 import path from "node:path";
 import { randomUUID } from "node:crypto";
 import { parseStoredPhone, validatePhoneNational } from "./phone-utils.js";
+import { isCoiffeurRole } from "./role-utils.js";
 
 const app = express();
 const prisma = new PrismaClient();
@@ -2077,6 +2078,9 @@ app.post("/api/candidatures", async (req, res) => {
     if (String(applicant.role || "").trim().toLowerCase() === "salon") {
       return res.status(403).json({ message: "Les salons ne peuvent pas postuler aux offres d'emploi." });
     }
+    if (!isCoiffeurRole(applicant)) {
+      return res.status(403).json({ message: "Seuls les coiffeurs peuvent postuler aux offres d'emploi." });
+    }
     const offre = await prisma.offre.findUnique({ where: { id: offerId } });
     if (!offre) {
       return res.status(404).json({ message: "Offre introuvable." });
@@ -2109,12 +2113,80 @@ app.post("/api/candidatures", async (req, res) => {
   }
 });
 
+function sanitizeCandidatureCoiffeurPublic(u) {
+  if (!u) return null;
+  return {
+    id: u.id,
+    name: u.name,
+    email: u.email,
+    phone: u.phone,
+    city: u.city,
+    quartier: u.quartier,
+    bio: u.bio,
+    photoUrl: u.photoUrl,
+    role: u.role,
+    proMetiers: u.proMetiers
+  };
+}
+
+async function enrichCandidaturesForSalon(rows) {
+  if (!rows.length) return rows;
+  const coiffeurIds = [...new Set(rows.map((r) => String(r.coiffeurUid || "").trim()).filter(Boolean))];
+  const offerIds = [...new Set(rows.map((r) => String(r.offerId || "").trim()).filter(Boolean))];
+  const [coiffeurs, offres] = await Promise.all([
+    coiffeurIds.length
+      ? prisma.user.findMany({
+          where: { id: { in: coiffeurIds } },
+          select: {
+            id: true,
+            name: true,
+            email: true,
+            phone: true,
+            city: true,
+            quartier: true,
+            bio: true,
+            photoUrl: true,
+            role: true,
+            proMetiers: true
+          }
+        })
+      : [],
+    offerIds.length
+      ? prisma.offre.findMany({
+          where: { id: { in: offerIds } },
+          select: {
+            id: true,
+            title: true,
+            description: true,
+            city: true,
+            quartier: true,
+            contractType: true,
+            remunerationType: true,
+            salaryFcfa: true,
+            remunerationNote: true,
+            status: true,
+            salonName: true
+          }
+        })
+      : []
+  ]);
+  const coiffeurById = Object.fromEntries(coiffeurs.map((u) => [u.id, sanitizeCandidatureCoiffeurPublic(u)]));
+  const offreById = Object.fromEntries(offres.map((o) => [o.id, o]));
+  return rows
+    .map((r) => ({
+      ...r,
+      coiffeur: coiffeurById[r.coiffeurUid] || null,
+      offre: offreById[r.offerId] || null
+    }))
+    .filter((r) => r.coiffeur && isCoiffeurRole(r.coiffeur));
+}
+
 app.get("/api/candidatures", async (req, res) => {
   try {
     const coiffeurUid = req.query.coiffeurUid ? String(req.query.coiffeurUid) : undefined;
     const salonUid = req.query.salonUid ? String(req.query.salonUid) : undefined;
     const offerId = req.query.offerId ? String(req.query.offerId).trim() : undefined;
-    const rows = await prisma.candidature.findMany({
+    let rows = await prisma.candidature.findMany({
       where: {
         ...(coiffeurUid ? { coiffeurUid } : {}),
         ...(salonUid ? { salonUid } : {}),
@@ -2122,6 +2194,9 @@ app.get("/api/candidatures", async (req, res) => {
       },
       orderBy: { createdAt: "desc" }
     });
+    if (salonUid) {
+      rows = await enrichCandidaturesForSalon(rows);
+    }
     return res.json({ candidatures: rows });
   } catch (error) {
     return res.status(500).json({ code: "internal/error", message: error.message });

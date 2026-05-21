@@ -75,6 +75,7 @@ import {
     getFirebaseErrorMessage
 } from "./firebase.js";
 import { formatPhoneDisplay } from "./phone-utils.js";
+import { isProRole, isClientRole, resolveUserRole, authUserId } from "./role-utils.js";
 
 const STATUS_LABELS = {
     planned: "À venir",
@@ -90,25 +91,6 @@ function escapeHtml(s) {
         .replace(/</g, "&lt;")
         .replace(/>/g, "&gt;")
         .replace(/"/g, "&quot;");
-}
-
-function isProRole(raw) {
-    const r = String(raw || "")
-        .trim()
-        .toLowerCase();
-    return (
-        r === "salon" ||
-        r === "coiffeur" ||
-        r === "coiffeuse" ||
-        r === "coiffeur indépendant" ||
-        r === "coiffeuse indépendante"
-    );
-}
-
-function isClientRole(raw) {
-    return String(raw || "")
-        .trim()
-        .toLowerCase() === "client";
 }
 
 function ensureClientOptionInSelect(user) {
@@ -684,12 +666,25 @@ onAuthStateChanged(auth, async (user) => {
         window.location.href = "login.html";
         return;
     }
-    myUid = user.uid;
-    const profile = await fetchUserProfile(user.uid);
-    if (!profile || !isProRole(profile.role)) {
+    myUid = authUserId(user);
+    let profile = null;
+    try {
+        profile = await fetchUserProfile(myUid);
+    } catch (err) {
         if (gate) {
+            gate.textContent = getFirebaseErrorMessage(err) || "Impossible de charger votre profil.";
+            gate.hidden = false;
+        }
+        if (section) section.hidden = true;
+        return;
+    }
+    if (!profile || !isProRole(profile)) {
+        if (gate) {
+            const rk = resolveUserRole(profile);
             gate.textContent =
-                "Cette page est réservée aux coiffeurs et salons. Les clients gèrent leurs demandes depuis leur tableau de bord.";
+                rk === "client"
+                    ? "Cette page est réservée aux coiffeurs et salons. Gérez vos rendez-vous depuis le tableau de bord client."
+                    : "Accès refusé : votre compte n’est pas reconnu comme salon ou coiffeur. Vérifiez le rôle dans Mon profil (doit être « Salon »).";
             gate.hidden = false;
         }
         if (section) section.hidden = true;
