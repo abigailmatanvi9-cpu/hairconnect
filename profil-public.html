@@ -82,6 +82,12 @@
                     </div>
                 </div>
                 <div class="field-group">
+                    <label class="field-label" for="pubClientTitle">Nom de la photo</label>
+                    <div class="field-input-wrap">
+                        <input type="text" id="pubClientTitle" class="field-input" required maxlength="120" placeholder="Ex. Mes tresses boho">
+                    </div>
+                </div>
+                <div class="field-group">
                     <label class="field-label" for="pubClientStyle">Type de réalisation</label>
                     <div class="field-input-wrap">
                         <select id="pubClientStyle" class="field-select" required>
@@ -123,6 +129,7 @@ import {
     createContactRequest,
     PUBLICATION_STYLE_TYPES
 } from "./firebase.js";
+import { compressImageFile } from "./image-utils.js";
 
 const pubClientStyleSelect = document.getElementById("pubClientStyle");
 if (pubClientStyleSelect) {
@@ -461,28 +468,26 @@ if (pubClientForm) {
             return;
         }
         try {
-            if (file.size > 2 * 1024 * 1024) {
-                throw new Error("La photo est trop volumineuse (max 2 Mo).");
+            const photoTitle = String(document.getElementById("pubClientTitle")?.value || "").trim();
+            if (!photoTitle) {
+                throw new Error("Indiquez un nom pour votre photo.");
             }
-            const photoUrl = await new Promise((resolve, reject) => {
-                const reader = new FileReader();
-                reader.onload = () => resolve(String(reader.result || ""));
-                reader.onerror = () => reject(new Error("Impossible de lire la photo."));
-                reader.readAsDataURL(file);
-            });
             const styleType = String(pubClientStyleSelect?.value || "").trim();
             if (!styleType) {
-                throw new Error("Choisissez le type de réalisation (tresses, coupe, etc.).");
+                throw new Error("Choisissez le type dans la liste (tresses, coupe, etc.).");
             }
+            const photoUrl = await compressImageFile(file);
             await createPublication({
                 authorUid: user.uid,
                 targetProUid: uid,
                 photoUrl,
+                title: photoTitle,
                 caption: String(pubClientCaption?.value || "").trim(),
                 kind: "client_after_service",
                 styleType
             });
             if (pubClientPhoto) pubClientPhoto.value = "";
+            document.getElementById("pubClientTitle").value = "";
             if (pubClientStyleSelect) pubClientStyleSelect.value = "";
             if (pubClientCaption) pubClientCaption.value = "";
             if (pubPostOk) {

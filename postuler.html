@@ -35,7 +35,14 @@
 </div>
 
 <script type="module">
-import { auth, fetchOffreById, fetchUserProfile, createCandidature, getFirebaseErrorMessage } from "./firebase.js";
+import {
+    auth,
+    fetchOffreById,
+    fetchUserProfile,
+    createCandidature,
+    listCandidaturesForCoiffeur,
+    getFirebaseErrorMessage
+} from "./firebase.js";
 import { onAuthStateChanged } from "./firebase.js";
 
 const params = new URLSearchParams(location.search);
@@ -127,6 +134,19 @@ if (!offerId) {
                 "En tant que salon, vous pouvez consulter les offres mais pas y postuler. Seuls les coiffeurs peuvent envoyer une candidature.";
             document.getElementById("formError").hidden = false;
             document.getElementById("f").hidden = true;
+            return;
+        }
+        try {
+            const mine = await listCandidaturesForCoiffeur(user.uid);
+            const already = mine.some((c) => String(c.offerId || "") === String(offerId));
+            if (already) {
+                document.getElementById("formOk").textContent =
+                    "Vous avez déjà envoyé une candidature pour cette offre.";
+                document.getElementById("formOk").hidden = false;
+                document.getElementById("f").hidden = true;
+            }
+        } catch (_) {
+            /* la soumission reste bloquée côté serveur si doublon */
         }
     });
 
@@ -155,6 +175,7 @@ if (!offerId) {
             await createCandidature(offerId, myUid, salonUid, document.getElementById("msg").value);
             ok.textContent = "Candidature envoyée.";
             ok.hidden = false;
+            document.getElementById("f").hidden = true;
         } catch (x) {
             err.textContent = getFirebaseErrorMessage(x);
             err.hidden = false;

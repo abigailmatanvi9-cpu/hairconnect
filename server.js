@@ -2087,11 +2087,24 @@ app.post("/api/candidatures", async (req, res) => {
     if (String(offre.salonUid) !== salonUid) {
       return res.status(400).json({ message: "Le salon de l'offre ne correspond pas." });
     }
+    const existing = await prisma.candidature.findFirst({
+      where: { offerId, coiffeurUid }
+    });
+    if (existing) {
+      return res.status(409).json({
+        message: "Vous avez déjà postulé à cette offre d'emploi."
+      });
+    }
     const row = await prisma.candidature.create({
       data: { offerId, coiffeurUid, salonUid, message: message || null }
     });
     return res.status(201).json({ candidature: row });
   } catch (error) {
+    if (error?.code === "P2002") {
+      return res.status(409).json({
+        message: "Vous avez déjà postulé à cette offre d'emploi."
+      });
+    }
     return res.status(500).json({ code: "internal/error", message: error.message });
   }
 });
@@ -2100,10 +2113,12 @@ app.get("/api/candidatures", async (req, res) => {
   try {
     const coiffeurUid = req.query.coiffeurUid ? String(req.query.coiffeurUid) : undefined;
     const salonUid = req.query.salonUid ? String(req.query.salonUid) : undefined;
+    const offerId = req.query.offerId ? String(req.query.offerId).trim() : undefined;
     const rows = await prisma.candidature.findMany({
       where: {
         ...(coiffeurUid ? { coiffeurUid } : {}),
-        ...(salonUid ? { salonUid } : {})
+        ...(salonUid ? { salonUid } : {}),
+        ...(offerId ? { offerId } : {})
       },
       orderBy: { createdAt: "desc" }
     });
@@ -2187,20 +2202,23 @@ app.post("/api/publications", async (req, res) => {
   try {
     const authorUid = String(req.body.authorUid || "").trim();
     const photoUrl = String(req.body.photoUrl || "").trim();
-    const caption = String(req.body.caption || "").trim();
+    const title = String(req.body.title || "").trim().slice(0, 120);
+    const caption = String(req.body.caption || "").trim().slice(0, 500);
     const kind = String(req.body.kind || "").trim();
     const styleType = normalizePublicationStyleType(req.body.styleType);
     let targetProUid = String(req.body.targetProUid || "").trim();
     if (!authorUid || !photoUrl) {
       return res.status(400).json({ message: "authorUid et photoUrl requis." });
     }
+    if (!title) {
+      return res.status(400).json({ message: "Le nom de la photo est requis." });
+    }
     if (kind !== "pro" && kind !== "client_after_service") {
       return res.status(400).json({ message: "kind invalide." });
     }
     if (!styleType) {
       return res.status(400).json({
-        message:
-          "styleType requis (tresses, coupe, coloration, extensions, barbier, afro, soins, autre)."
+        message: "Choisissez un type dans la liste (tresses, coupe, coloration, etc.)."
       });
     }
     if (kind === "pro") targetProUid = authorUid;
@@ -2214,6 +2232,7 @@ app.post("/api/publications", async (req, res) => {
       authorUid,
       targetProUid,
       photoUrl,
+      title,
       caption,
       kind,
       styleType,

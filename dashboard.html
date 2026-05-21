@@ -277,18 +277,40 @@
                 <p id="dashEmbedNearLoading" class="dash-near-loading">Chargement…</p>
                 <ul id="dashEmbedNearList" class="dash-near-list"></ul>
             </div>
-            <div id="dashPageEmbedOwnPublications" hidden>
+            <div id="dashPageEmbedOwnPublications" class="dash-published-photos" hidden>
                 <p id="dashEmbedOwnPublicationsError" class="form-error" role="alert" hidden></p>
                 <p id="dashEmbedOwnPublicationsOk" class="form-success" role="status" hidden></p>
-                <div class="dash-published-photos__actions">
-                    <input type="file" id="dashEmbedOwnPublicationsPhoto" accept="image/*">
-                    <select id="dashEmbedOwnPublicationsStyle" class="field-select dash-published-photos__style" aria-label="Type de photo" required>
-                        <option value="">Type de photo…</option>
-                    </select>
-                    <input type="text" id="dashEmbedOwnPublicationsCaption" placeholder="Légende (optionnel)">
-                    <button type="button" class="dash-published-photos__btn" id="dashEmbedOwnPublicationsAddBtn">Ajouter</button>
-                    <button type="button" class="dash-published-photos__btn dash-published-photos__btn--danger" id="dashEmbedOwnPublicationsDeleteBtn" disabled>Supprimer</button>
-                </div>
+                <form id="dashEmbedOwnPublicationsForm" class="dash-published-photos__form" novalidate>
+                    <div class="field-group">
+                        <label class="field-label" for="dashEmbedOwnPublicationsPhoto">Photo</label>
+                        <input type="file" id="dashEmbedOwnPublicationsPhoto" class="dash-published-photos__file" accept="image/*" required>
+                    </div>
+                    <div class="field-group">
+                        <label class="field-label" for="dashEmbedOwnPublicationsTitle">Nom de la réalisation</label>
+                        <div class="field-input-wrap">
+                            <input type="text" id="dashEmbedOwnPublicationsTitle" class="field-input" required maxlength="120" placeholder="Ex. Tresses boho longues">
+                        </div>
+                    </div>
+                    <div class="field-group">
+                        <label class="field-label" for="dashEmbedOwnPublicationsStyle">Type de photo</label>
+                        <div class="field-input-wrap">
+                            <select id="dashEmbedOwnPublicationsStyle" class="field-select" required>
+                                <option value="">Choisir un type…</option>
+                            </select>
+                        </div>
+                        <p class="field-hint">Utilisé pour le filtre « S'inspirer » (tresses, coupe, coloration…).</p>
+                    </div>
+                    <div class="field-group">
+                        <label class="field-label" for="dashEmbedOwnPublicationsCaption">Légende (optionnel)</label>
+                        <div class="field-input-wrap">
+                            <input type="text" id="dashEmbedOwnPublicationsCaption" class="field-input" maxlength="500" placeholder="Détails, produits utilisés…">
+                        </div>
+                    </div>
+                    <div class="dash-published-photos__actions">
+                        <button type="submit" class="dash-published-photos__btn" id="dashEmbedOwnPublicationsAddBtn">Ajouter</button>
+                        <button type="button" class="dash-published-photos__btn dash-published-photos__btn--danger" id="dashEmbedOwnPublicationsDeleteBtn" disabled>Supprimer la sélection</button>
+                    </div>
+                </form>
                 <p id="dashEmbedOwnPublicationsLoading" class="dash-published-photos__state">Chargement…</p>
                 <ul id="dashEmbedOwnPublicationsList" class="dash-published-photos__list"></ul>
             </div>
@@ -379,6 +401,7 @@ import {
     PUBLICATION_STYLE_TYPES,
     publicationStyleTypeLabel
 } from "./firebase.js";
+import { compressImageFile } from "./image-utils.js";
 
 const panels = ["panel-client", "panel-coiffeur", "panel-salon", "panel-unknown"];
 
@@ -1083,13 +1106,16 @@ function renderOwnPublications(listEl, loadEl, publications) {
             '<p class="dash-published-photos__meta">' +
             escapeHtml(dateText) +
             "</p>" +
-            (p.caption
-                ? '<p class="dash-published-photos__caption">' + escapeHtml(p.caption) + "</p>"
+            (p.title
+                ? '<p class="dash-published-photos__title">' + escapeHtml(p.title) + "</p>"
                 : "") +
             (p.styleType
                 ? '<p class="dash-published-photos__style-tag">' +
                   escapeHtml(publicationStyleTypeLabel(p.styleType) || p.styleType) +
                   "</p>"
+                : "") +
+            (p.caption
+                ? '<p class="dash-published-photos__caption">' + escapeHtml(p.caption) + "</p>"
                 : "");
         listEl.appendChild(li);
     }
@@ -1106,14 +1132,15 @@ async function loadEmbedOwnPublications() {
         loadEl.hidden = false;
         loadEl.textContent = "Chargement…";
     }
-    if (!dashProfileUid) {
+    const actorUid = resolveDashActorUid();
+    if (!actorUid) {
         if (loadEl) loadEl.textContent = "Initialisation de la session…";
         return;
     }
     try {
         const publications = await listPublications({
-            targetProUid: dashProfileUid,
-            authorUid: dashProfileUid,
+            targetProUid: actorUid,
+            authorUid: actorUid,
             kind: "pro"
         });
         if (dashOwnPublicationsSelectedId && !publications.some((p) => String(p.id) === dashOwnPublicationsSelectedId)) {
@@ -1214,14 +1241,38 @@ function mountInspireStyleFilters() {
 
 function fillOwnPublicationStyleSelect() {
     const sel = document.getElementById("dashEmbedOwnPublicationsStyle");
-    if (!sel || sel.dataset.filled === "1") return;
-    sel.dataset.filled = "1";
+    if (!sel) return;
+    const first = sel.querySelector('option[value=""]');
+    sel.innerHTML = "";
+    if (first) sel.appendChild(first);
+    else {
+        const empty = document.createElement("option");
+        empty.value = "";
+        empty.textContent = "Choisir un type…";
+        sel.appendChild(empty);
+    }
     for (const t of PUBLICATION_STYLE_TYPES) {
         const opt = document.createElement("option");
         opt.value = t.slug;
         opt.textContent = t.label;
         sel.appendChild(opt);
     }
+}
+
+function showOwnPublicationsError(message) {
+    if (!dashEmbedOwnPublicationsError) return;
+    const msg = String(message || "").trim();
+    if (!msg) {
+        dashEmbedOwnPublicationsError.hidden = true;
+        dashEmbedOwnPublicationsError.textContent = "";
+        return;
+    }
+    dashEmbedOwnPublicationsError.textContent = msg;
+    dashEmbedOwnPublicationsError.hidden = false;
+}
+
+function resolveDashActorUid() {
+    return dashProfileUid || auth.currentUser?.uid || null;
 }
 
 async function loadEmbedProFeed() {
@@ -1285,9 +1336,10 @@ async function loadEmbedProFeed() {
                 (type === "client_after_service" ? "dash-pro-feed__badge--client" : "dash-pro-feed__badge--pro");
             badge.textContent = type === "client_after_service" ? "Photo client" : "Photo pro";
             const styleLabel = publicationStyleTypeLabel(p.styleType);
+            const photoTitle = String(p.title || "").trim();
             const span = document.createElement("span");
             span.className = "dash-pro-feed__name";
-            span.textContent = name;
+            span.textContent = photoTitle || name;
             a.appendChild(img);
             a.appendChild(badge);
             if (styleLabel) {
@@ -1332,62 +1384,64 @@ if (dashEmbedOwnPublicationsListEl) {
     });
 }
 
-if (dashEmbedOwnPublicationsAddBtn) {
-    dashEmbedOwnPublicationsAddBtn.addEventListener("click", async () => {
-        if (dashEmbedOwnPublicationsError) dashEmbedOwnPublicationsError.hidden = true;
+const dashEmbedOwnPublicationsForm = document.getElementById("dashEmbedOwnPublicationsForm");
+fillOwnPublicationStyleSelect();
+
+if (dashEmbedOwnPublicationsForm) {
+    dashEmbedOwnPublicationsForm.addEventListener("submit", async (e) => {
+        e.preventDefault();
         if (dashEmbedOwnPublicationsOk) dashEmbedOwnPublicationsOk.hidden = true;
-        if (!dashProfileUid) {
-            if (dashEmbedOwnPublicationsError) {
-                dashEmbedOwnPublicationsError.textContent =
-                    "Session non prête. Rechargez la page ou ouvrez votre profil une fois.";
-                dashEmbedOwnPublicationsError.hidden = false;
-            }
+        showOwnPublicationsError("");
+        const actorUid = resolveDashActorUid();
+        if (!actorUid) {
+            showOwnPublicationsError(
+                "Session non prête. Rechargez la page ou reconnectez-vous."
+            );
             return;
         }
         const file = dashEmbedOwnPublicationsPhotoInput?.files?.[0] || null;
         if (!file) {
-            if (dashEmbedOwnPublicationsError) {
-                dashEmbedOwnPublicationsError.textContent = "Choisissez une photo à ajouter.";
-                dashEmbedOwnPublicationsError.hidden = false;
-            }
+            showOwnPublicationsError("Choisissez une photo à ajouter.");
             return;
         }
-        dashEmbedOwnPublicationsAddBtn.disabled = true;
+        const title = String(document.getElementById("dashEmbedOwnPublicationsTitle")?.value || "").trim();
+        if (!title) {
+            showOwnPublicationsError("Indiquez un nom pour cette réalisation.");
+            return;
+        }
+        const styleSel = document.getElementById("dashEmbedOwnPublicationsStyle");
+        const styleType = String(styleSel?.value || "").trim();
+        if (!styleType) {
+            showOwnPublicationsError("Choisissez le type dans la liste déroulante (pas en texte libre).");
+            return;
+        }
+        const btn = dashEmbedOwnPublicationsAddBtn;
+        if (btn) btn.disabled = true;
         try {
-            if (file.size > 2 * 1024 * 1024) {
-                throw new Error("La photo est trop volumineuse (max 2 Mo).");
-            }
-            const photoUrl = await fileToDataUrlDp(file);
+            const photoUrl = await compressImageFile(file);
             const caption = String(dashEmbedOwnPublicationsCaptionInput?.value || "").trim();
-            const styleSel = document.getElementById("dashEmbedOwnPublicationsStyle");
-            const styleType = String(styleSel?.value || "").trim();
-            if (!styleType) {
-                throw new Error("Choisissez le type de photo (tresses, coupe, etc.).");
-            }
             await createPublication({
-                authorUid: dashProfileUid,
-                targetProUid: dashProfileUid,
+                authorUid: actorUid,
+                targetProUid: actorUid,
                 photoUrl,
+                title,
                 caption,
                 kind: "pro",
                 styleType
             });
             dashOwnPublicationsSelectedId = "";
-            if (dashEmbedOwnPublicationsPhotoInput) dashEmbedOwnPublicationsPhotoInput.value = "";
-            if (styleSel) styleSel.value = "";
-            if (dashEmbedOwnPublicationsCaptionInput) dashEmbedOwnPublicationsCaptionInput.value = "";
+            dashEmbedOwnPublicationsForm.reset();
+            fillOwnPublicationStyleSelect();
             if (dashEmbedOwnPublicationsOk) {
-                dashEmbedOwnPublicationsOk.textContent = "Photo ajoutée.";
+                dashEmbedOwnPublicationsOk.textContent = "Photo publiée.";
                 dashEmbedOwnPublicationsOk.hidden = false;
             }
             await loadEmbedOwnPublications();
         } catch (err) {
-            if (dashEmbedOwnPublicationsError) {
-                dashEmbedOwnPublicationsError.textContent = getFirebaseErrorMessage(err);
-                dashEmbedOwnPublicationsError.hidden = false;
-            }
+            const msg = getFirebaseErrorMessage(err) || String(err?.message || "Publication impossible.");
+            showOwnPublicationsError(msg);
         } finally {
-            dashEmbedOwnPublicationsAddBtn.disabled = false;
+            if (btn) btn.disabled = false;
         }
     });
 }
@@ -1396,10 +1450,11 @@ if (dashEmbedOwnPublicationsDeleteBtn) {
     dashEmbedOwnPublicationsDeleteBtn.addEventListener("click", async () => {
         if (dashEmbedOwnPublicationsError) dashEmbedOwnPublicationsError.hidden = true;
         if (dashEmbedOwnPublicationsOk) dashEmbedOwnPublicationsOk.hidden = true;
-        if (!dashProfileUid || !dashOwnPublicationsSelectedId) return;
+        const actorUid = resolveDashActorUid();
+        if (!actorUid || !dashOwnPublicationsSelectedId) return;
         dashEmbedOwnPublicationsDeleteBtn.disabled = true;
         try {
-            await deletePublication(dashOwnPublicationsSelectedId, dashProfileUid);
+            await deletePublication(dashOwnPublicationsSelectedId, actorUid);
             dashOwnPublicationsSelectedId = "";
             if (dashEmbedOwnPublicationsOk) {
                 dashEmbedOwnPublicationsOk.textContent = "Photo supprimée.";

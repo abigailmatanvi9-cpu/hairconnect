@@ -627,13 +627,14 @@ export async function listFavorites(clientId) {
     return (payload.favorites || []).map((f) => ({ ...f, createdAt: { toMillis: () => new Date(f.createdAt).getTime() } }));
 }
 
-export async function createPublication({ authorUid, targetProUid, photoUrl, caption, kind, styleType }) {
+export async function createPublication({ authorUid, targetProUid, photoUrl, title, caption, kind, styleType }) {
     await apiFetch("/publications", {
         method: "POST",
         body: JSON.stringify({
             authorUid,
             targetProUid,
             photoUrl: String(photoUrl || "").trim(),
+            title: String(title || "").trim(),
             caption: String(caption || "").trim(),
             kind: String(kind || "").trim(),
             styleType: String(styleType || "").trim().toLowerCase()

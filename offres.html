@@ -125,6 +125,7 @@ import {
     createOffre,
     deleteOffre,
     listOffres,
+    listCandidaturesForCoiffeur,
     updateOffreStatus,
     getFirebaseErrorMessage
 } from "./firebase.js";
@@ -141,6 +142,8 @@ const countEl = document.getElementById("jobsCountText");
 let myUid = null;
 let myName = "";
 let isSalon = false;
+let isCoiffeur = false;
+let myAppliedOfferIds = new Set();
 let activeFilter = "all";
 let searchTerm = "";
 let cachedRows = [];
@@ -293,11 +296,17 @@ function renderList(rows) {
                   escapeHtml(o.id) +
                   "\">Marquer comme pourvue</button>"
             : "";
+        const alreadyApplied =
+            isCoiffeur && myAppliedOfferIds.has(String(o.id || ""));
         const applyControl = isSalon
             ? "<span class=\"jobs-card__apply jobs-card__apply--disabled\" aria-disabled=\"true\">Postuler (réservé aux coiffeurs)</span>"
             : isFilled
               ? "<span class=\"jobs-card__apply jobs-card__apply--disabled\" aria-disabled=\"true\">Poste pourvu</span>"
-              : "<a class=\"jobs-card__apply\" href=\"postuler.html?offre=" + encodeURIComponent(o.id) + "\">Postuler</a>";
+              : alreadyApplied
+                ? "<span class=\"jobs-card__apply jobs-card__apply--disabled\" aria-disabled=\"true\">Déjà postulé</span>"
+                : "<a class=\"jobs-card__apply\" href=\"postuler.html?offre=" +
+                  encodeURIComponent(o.id) +
+                  "\">Postuler</a>";
 
         const filledBadge = isFilled
             ? "<span class=\"jobs-badge jobs-badge--filled\">Poste pourvu</span>"
@@ -357,6 +366,15 @@ onAuthStateChanged(auth, async (user) => {
         return;
     }
     isSalon = isSalonRole(role);
+    isCoiffeur = roleKey === "coiffeur";
+    if (isCoiffeur) {
+        try {
+            const mine = await listCandidaturesForCoiffeur(myUid);
+            myAppliedOfferIds = new Set(mine.map((c) => String(c.offerId || "")));
+        } catch {
+            myAppliedOfferIds = new Set();
+        }
+    }
     if (isSalon) {
         salonSection.hidden = false;
         initLocationFields({

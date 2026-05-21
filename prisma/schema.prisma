@@ -123,6 +123,8 @@ model Candidature {
   salonUid    String
   message     String?
   createdAt   DateTime @default(now())
+
+  @@unique([offerId, coiffeurUid])
 }
 
 model Favorite {
