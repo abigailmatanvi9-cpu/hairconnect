@@ -19,6 +19,7 @@ app.use(cors());
 app.use(express.json({ limit: "10mb" }));
 
 const MARKETPLACE_FEE_RATE_BP = 1000; // 10%
+const MARKETPLACE_MSG_PREFIX = "[Marketplace HairConnect]";
 
 /** Slugs autorisés — alignés sur `HAIRCONNECT_METIERS` côté client. */
 const METIER_SLUGS = new Set([
@@ -655,9 +656,58 @@ async function filterMessagesByContactGate(viewerUid, messages) {
   });
   const okPairs = new Set(accepted.map((r) => `${r.clientUid}\t${r.proUid}`));
   return messages.filter((m) => {
+    if (isMarketplaceSystemMessage(m.text)) return true;
     const pair = contactClientProPair(m.fromUid, m.toUid, roleMap);
     if (!pair) return true;
     return okPairs.has(`${pair.clientUid}\t${pair.proUid}`);
+  });
+}
+
+function isMarketplaceSystemMessage(text) {
+  return String(text || "").trimStart().startsWith(MARKETPLACE_MSG_PREFIX);
+}
+
+/** Ouvre la messagerie client↔pro après une commande (sinon le message est masqué par le filtre contact). */
+async function ensureContactAcceptedForMarketplaceOrder(buyerUid, sellerUid) {
+  const roleMap = await buildRoleMapForIds([buyerUid, sellerUid]);
+  const pair = contactClientProPair(buyerUid, sellerUid, roleMap);
+  if (!pair) return;
+  const { clientUid, proUid } = pair;
+  try {
+    const existing = await prisma.contactRequest.findUnique({
+      where: { clientUid_proUid: { clientUid, proUid } }
+    });
+    if (existing?.status === "accepted") return;
+    if (existing) {
+      await prisma.contactRequest.update({
+        where: { id: existing.id },
+        data: { status: "accepted" }
+      });
+      return;
+    }
+    await prisma.contactRequest.create({
+      data: {
+        clientUid,
+        proUid,
+        status: "accepted",
+        message: "Ouverture automatique suite à une commande marketplace."
+      }
+    });
+  } catch (e) {
+    console.warn("[marketplace] contact auto-accept:", e?.message || e);
+  }
+}
+
+async function sendMarketplaceOrderSellerNotification(order, buyerUid, buyerName) {
+  if (!order?.sellerUid || !buyerUid) return;
+  await ensureContactAcceptedForMarketplaceOrder(buyerUid, String(order.sellerUid));
+  const text = marketplaceOrderSellerNoticeText(order, buyerName);
+  await prisma.message.create({
+    data: {
+      fromUid: buyerUid,
+      toUid: String(order.sellerUid),
+      text
+    }
   });
 }
 
@@ -1249,14 +1299,7 @@ app.put("/api/rendez-vous/:id/item-selection", async (req, res) => {
       (prevOrderSubtotal === null || prevOrderSubtotal !== newOrderSubtotal);
     if (shouldNotifySeller) {
       try {
-        const text = marketplaceOrderSellerNoticeText(rdvMarketOrder, buyerName);
-        await prisma.message.create({
-          data: {
-            fromUid: clientUid,
-            toUid: String(rdvMarketOrder.sellerUid),
-            text
-          }
-        });
+        await sendMarketplaceOrderSellerNotification(rdvMarketOrder, clientUid, buyerName);
       } catch (notifyErr) {
         console.error("[marketplace-rdv] message vendeur:", notifyErr);
       }
@@ -2162,7 +2205,7 @@ function marketplaceOrderSellerNoticeText(order, buyerName) {
   const rdvBit = order.rendezVousId
     ? `\nContexte : achat lié au rendez-vous ${String(order.rendezVousId).slice(0, 8)}…`
     : "";
-  const head = `[Marketplace HairConnect] Nouvelle commande\nRéférence : ${String(order.id)}\nAcheteur : ${name}${rdvBit}\n`;
+  const head = `${MARKETPLACE_MSG_PREFIX} Nouvelle commande\nRéférence : ${String(order.id)}\nAcheteur : ${name}${rdvBit}\n`;
   const foot = `\nTotal commande : ${sub} FCFA\nNet vendeur après commission : ${net} FCFA\nStatut : ${st}\nConvenez du retrait ou de la livraison avec l’acheteur via la messagerie HairConnect.`;
   const body = `${head}\n${lines || "(détail indisponible)"}${foot}`;
   return body.length > 8000 ? body.slice(0, 7997) + "…" : body;
@@ -2277,14 +2320,7 @@ app.post("/api/marketplace/orders", async (req, res) => {
     for (const order of ordersOut) {
       if (!order || !order.sellerUid) continue;
       try {
-        const text = marketplaceOrderSellerNoticeText(order, buyerName);
-        await prisma.message.create({
-          data: {
-            fromUid: buyerUid,
-            toUid: String(order.sellerUid),
-            text
-          }
-        });
+        await sendMarketplaceOrderSellerNotification(order, buyerUid, buyerName);
       } catch (notifyErr) {
         console.error("[marketplace] message vendeur:", notifyErr);
       }
