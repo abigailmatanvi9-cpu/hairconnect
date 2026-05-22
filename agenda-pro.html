@@ -318,6 +318,7 @@ function renderCard(r) {
     const id = escapeHtml(r.id);
     const status = String(r.status || "planned").toLowerCase();
     const isClosed = rdvIsClosedStatus(status);
+    const canRenew = status === "cancelled";
     const statusLabel = STATUS_LABELS[status] || status;
     const rating = r.proRating != null ? Number(r.proRating) : null;
     const selectionSummary = r.itemSelectionSummary || { itemsCount: 0, itemsSubtotalFcfa: 0 };
@@ -458,20 +459,22 @@ function renderCard(r) {
         '<div class="agenda-pro__actions">' +
         (isClosed
             ? '<p class="agenda-pro__locked-note">Rendez-vous clôturé : plus de modification possible.</p>' +
-              '<button type="button" class="agenda-pro__renew-btn" data-renew-toggle="' +
-              id +
-              '">Renouveler ce rendez-vous</button>' +
-              '<div class="agenda-pro__renew-panel" data-renew-panel="' +
-              id +
-              '" hidden>' +
-              '<label class="agenda-pro__k agenda-pro__lbl">Nouvelle date &amp; heure</label>' +
-              '<input type="datetime-local" class="agenda-pro__input" data-renew-datetime value="' +
-              escapeHtml(defaultRenewDatetime(r.scheduledAt)) +
-              '">' +
-              '<button type="button" class="register-submit agenda-pro__renew-confirm" data-renew-confirm="' +
-              id +
-              '">Créer le nouveau rendez-vous</button>' +
-              "</div>"
+              (canRenew
+                  ? '<button type="button" class="agenda-pro__renew-btn" data-renew-toggle="' +
+                    id +
+                    '">Renouveler ce rendez-vous</button>' +
+                    '<div class="agenda-pro__renew-panel" data-renew-panel="' +
+                    id +
+                    '" hidden>' +
+                    '<label class="agenda-pro__k agenda-pro__lbl">Nouvelle date &amp; heure</label>' +
+                    '<input type="datetime-local" class="agenda-pro__input" data-renew-datetime value="' +
+                    escapeHtml(defaultRenewDatetime(r.scheduledAt)) +
+                    '">' +
+                    '<button type="button" class="register-submit agenda-pro__renew-confirm" data-renew-confirm="' +
+                    id +
+                    '">Créer le nouveau rendez-vous</button>' +
+                    "</div>"
+                  : "")
             : '<button type="button" class="register-submit agenda-pro__save" data-save-rdv="' +
               id +
               '">Enregistrer</button>' +

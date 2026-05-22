@@ -880,6 +880,11 @@ function rdvIsClosedForProEdit(status) {
   return s === "completed" || s === "cancelled" || s === "noshow";
 }
 
+/** Renouvellement : uniquement pour un RDV annulé. */
+function rdvAllowsRenew(status) {
+  return String(status || "planned").toLowerCase() === "cancelled";
+}
+
 function rdvItemSelectionBlockedMessage(status) {
   const s = String(status || "").toLowerCase();
   if (s === "completed") {
@@ -1056,7 +1061,7 @@ app.patch("/api/rendez-vous/:id", async (req, res) => {
     if (rdvIsClosedForProEdit(existing.status)) {
       return res.status(400).json({
         message:
-          "Ce rendez-vous est terminé, annulé ou marqué « absent » : modification impossible. Utilisez « Renouveler » pour planifier un nouveau créneau."
+          "Ce rendez-vous est terminé, annulé ou marqué « absent » : modification impossible. Pour un RDV annulé, utilisez « Renouveler »."
       });
     }
     const data = {};
@@ -1150,7 +1155,7 @@ app.patch("/api/rendez-vous/:id", async (req, res) => {
   }
 });
 
-/** Crée un nouveau RDV « À venir » à partir d’un RDV clôturé (même client / prestation / prix prestation). */
+/** Crée un nouveau RDV « À venir » à partir d’un RDV annulé (même client / prestation / prix prestation). */
 app.post("/api/rendez-vous/:id/renew", async (req, res) => {
   try {
     const id = String(req.params.id || "").trim();
@@ -1166,10 +1171,9 @@ app.post("/api/rendez-vous/:id/renew", async (req, res) => {
     if (String(existing.proUid) !== proUid) {
       return res.status(403).json({ message: "Renouvellement non autorisé." });
     }
-    if (!rdvIsClosedForProEdit(existing.status)) {
+    if (!rdvAllowsRenew(existing.status)) {
       return res.status(400).json({
-        message:
-          "Le renouvellement est réservé aux rendez-vous terminés, annulés ou marqués « absent »."
+        message: "Le renouvellement n’est possible que pour un rendez-vous annulé."
       });
     }
     const scheduledAt = scheduledRaw ? new Date(scheduledRaw) : null;

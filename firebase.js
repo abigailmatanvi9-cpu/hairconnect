@@ -268,7 +268,7 @@ export async function updateRendezVous(id, proUid, partial) {
     return payload.rendezVous;
 }
 
-/** Nouveau RDV « À venir » à partir d’un RDV terminé, annulé ou « absent ». */
+/** Nouveau RDV « À venir » à partir d’un RDV annulé uniquement. */
 export async function renewRendezVous(id, proUid, scheduledAt) {
     const payload = await apiFetch(`/rendez-vous/${encodeURIComponent(id)}/renew`, {
         method: "POST",
