@@ -20,6 +20,8 @@ app.use(express.json({ limit: "10mb" }));
 
 const MARKETPLACE_FEE_RATE_BP = 1000; // 10%
 const MARKETPLACE_MSG_PREFIX = "[Marketplace HairConnect]";
+const MARKETPLACE_MSG_PREFIX_VENDEUR = "[Marketplace HairConnect · vendeur]";
+const MARKETPLACE_MSG_PREFIX_ACHETEUR = "[Marketplace HairConnect · acheteur]";
 
 /** Slugs autorisés — alignés sur `HAIRCONNECT_METIERS` côté client. */
 const METIER_SLUGS = new Set([
@@ -657,6 +659,7 @@ async function filterMessagesByContactGate(viewerUid, messages) {
   const okPairs = new Set(accepted.map((r) => `${r.clientUid}\t${r.proUid}`));
   const marketPairs = await buildActiveMarketplacePairSetFromMessages(messages, roleMap);
   return messages.filter((m) => {
+    if (!marketplaceNoticeVisibleToViewer(m, viewerUid)) return false;
     if (isMarketplaceSystemMessage(m.text)) return true;
     const pair = contactClientProPair(m.fromUid, m.toUid, roleMap);
     if (!pair) return true;
@@ -698,7 +701,24 @@ async function buildActiveMarketplacePairSetFromMessages(messages, roleMap) {
 }
 
 function isMarketplaceSystemMessage(text) {
-  return String(text || "").trimStart().startsWith(MARKETPLACE_MSG_PREFIX);
+  const t = String(text || "").trimStart();
+  return (
+    t.startsWith(MARKETPLACE_MSG_PREFIX_VENDEUR) ||
+    t.startsWith(MARKETPLACE_MSG_PREFIX_ACHETEUR) ||
+    t.startsWith(MARKETPLACE_MSG_PREFIX)
+  );
+}
+
+/** Notification automatique : visible uniquement par le destinataire (toUid). */
+function marketplaceNoticeVisibleToViewer(message, viewerUid) {
+  const t = String(message?.text || "").trimStart();
+  if (t.startsWith(MARKETPLACE_MSG_PREFIX_VENDEUR) || t.startsWith(MARKETPLACE_MSG_PREFIX_ACHETEUR)) {
+    return String(message.toUid) === String(viewerUid);
+  }
+  if (t.startsWith(MARKETPLACE_MSG_PREFIX)) {
+    return String(message.toUid) === String(viewerUid);
+  }
+  return true;
 }
 
 /** Ouvre la messagerie client↔pro après une commande (sinon le message est masqué par le filtre contact). */
@@ -732,16 +752,17 @@ async function ensureContactAcceptedForMarketplaceOrder(buyerUid, sellerUid) {
   }
 }
 
-async function sendMarketplaceOrderSellerNotification(order, buyerUid, buyerName) {
+async function sendMarketplaceOrderNotifications(order, buyerUid, buyerName, sellerName) {
   if (!order?.sellerUid || !buyerUid) return;
-  await ensureContactAcceptedForMarketplaceOrder(buyerUid, String(order.sellerUid));
-  const text = marketplaceOrderSellerNoticeText(order, buyerName);
+  const sellerUid = String(order.sellerUid);
+  await ensureContactAcceptedForMarketplaceOrder(buyerUid, sellerUid);
+  const sellerText = marketplaceOrderSellerNoticeText(order, buyerName);
+  const buyerText = marketplaceOrderBuyerNoticeText(order, sellerName);
   await prisma.message.create({
-    data: {
-      fromUid: buyerUid,
-      toUid: String(order.sellerUid),
-      text
-    }
+    data: { fromUid: buyerUid, toUid: sellerUid, text: sellerText }
+  });
+  await prisma.message.create({
+    data: { fromUid: sellerUid, toUid: buyerUid, text: buyerText }
   });
 }
 
@@ -1333,7 +1354,7 @@ app.put("/api/rendez-vous/:id/item-selection", async (req, res) => {
       (prevOrderSubtotal === null || prevOrderSubtotal !== newOrderSubtotal);
     if (shouldNotifySeller) {
       try {
-        await sendMarketplaceOrderSellerNotification(rdvMarketOrder, clientUid, buyerName);
+        await sendMarketplaceOrderNotifications(rdvMarketOrder, clientUid, buyerName, sellerName);
       } catch (notifyErr) {
         console.error("[marketplace-rdv] message vendeur:", notifyErr);
       }
@@ -2223,24 +2244,45 @@ async function syncRdvLinkedMarketOrder(tx, params) {
   return tx.marketOrder.findUnique({ where: { id: order.id }, include: { items: true } });
 }
 
-/** Texte du message automatique au vendeur après commande marketplace. */
-function marketplaceOrderSellerNoticeText(order, buyerName) {
-  const name = String(buyerName || "Acheteur").trim() || "Acheteur";
+function marketplaceOrderItemsLines(order) {
   const items = Array.isArray(order.items) ? order.items : [];
-  const lines = items
+  return items
     .map((it) => {
       const colorBit = it.color ? `, couleur ${String(it.color).trim()}` : "";
       return `- ${String(it.productTitle || "Article").trim()} × ${Number(it.quantity || 0)}${colorBit} (${Number(it.lineTotalFcfa || 0)} FCFA)`;
     })
     .join("\n");
+}
+
+function marketplaceOrderRdvContextLine(order) {
+  return order.rendezVousId
+    ? `\nContexte : achat lié au rendez-vous ${String(order.rendezVousId).slice(0, 8)}…`
+    : "";
+}
+
+/** Message automatique visible uniquement par le vendeur (toUid = sellerUid). */
+function marketplaceOrderSellerNoticeText(order, buyerName) {
+  const name = String(buyerName || "Acheteur").trim() || "Acheteur";
+  const lines = marketplaceOrderItemsLines(order);
   const sub = Number(order.subtotalFcfa || 0);
   const net = Number(order.sellerNetFcfa || 0);
   const st = String(order.status || "pending");
-  const rdvBit = order.rendezVousId
-    ? `\nContexte : achat lié au rendez-vous ${String(order.rendezVousId).slice(0, 8)}…`
-    : "";
-  const head = `${MARKETPLACE_MSG_PREFIX} Nouvelle commande\nRéférence : ${String(order.id)}\nAcheteur : ${name}${rdvBit}\n`;
+  const head =
+    `${MARKETPLACE_MSG_PREFIX_VENDEUR} Nouvelle commande\nRéférence : ${String(order.id)}\nAcheteur : ${name}${marketplaceOrderRdvContextLine(order)}\n`;
   const foot = `\nTotal commande : ${sub} FCFA\nNet vendeur après commission : ${net} FCFA\nStatut : ${st}\nConvenez du retrait ou de la livraison avec l’acheteur via la messagerie HairConnect.`;
+  const body = `${head}\n${lines || "(détail indisponible)"}${foot}`;
+  return body.length > 8000 ? body.slice(0, 7997) + "…" : body;
+}
+
+/** Message automatique visible uniquement par l’acheteur (toUid = buyerUid). */
+function marketplaceOrderBuyerNoticeText(order, sellerName) {
+  const name = String(sellerName || "Vendeur").trim() || "Vendeur";
+  const lines = marketplaceOrderItemsLines(order);
+  const sub = Number(order.subtotalFcfa || 0);
+  const st = String(order.status || "pending");
+  const head =
+    `${MARKETPLACE_MSG_PREFIX_ACHETEUR} Commande enregistrée\nRéférence : ${String(order.id)}\nVendeur : ${name}${marketplaceOrderRdvContextLine(order)}\n`;
+  const foot = `\nTotal : ${sub} FCFA\nStatut : ${st}\nConvenez du retrait ou de la livraison avec le vendeur via la messagerie HairConnect.`;
   const body = `${head}\n${lines || "(détail indisponible)"}${foot}`;
   return body.length > 8000 ? body.slice(0, 7997) + "…" : body;
 }
@@ -2354,7 +2396,8 @@ app.post("/api/marketplace/orders", async (req, res) => {
     for (const order of ordersOut) {
       if (!order || !order.sellerUid) continue;
       try {
-        await sendMarketplaceOrderSellerNotification(order, buyerUid, buyerName);
+        const sellerLabel = String(order.sellerName || "").trim() || "Vendeur";
+        await sendMarketplaceOrderNotifications(order, buyerUid, buyerName, sellerLabel);
       } catch (notifyErr) {
         console.error("[marketplace] message vendeur:", notifyErr);
       }
