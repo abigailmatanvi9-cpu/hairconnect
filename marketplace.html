@@ -72,7 +72,7 @@
         <p class="market-panel__lead">Publiez vos articles et gérez vos ventes jusqu’à la livraison.</p>
 
         <section class="jobs-create market-publish">
-            <h2 class="subpage-h2">Publier un article</h2>
+            <h2 class="subpage-h2" id="marketPublishHeading">Publier un article</h2>
             <form id="marketProductForm" class="register-form">
                 <div class="field-group">
                     <label class="field-label" for="marketTitle">Titre</label>
@@ -115,6 +115,7 @@
                     <textarea id="marketDescription" class="field-textarea" rows="4" required></textarea>
                 </div>
                 <button type="submit" class="register-submit" id="marketPublishBtn">Publier l'article</button>
+                <button type="button" class="register-submit market-publish-cancel" id="marketCancelEditBtn" hidden>Annuler la modification</button>
             </form>
         </section>
 
@@ -132,6 +133,7 @@ import {
     fetchUserProfile,
     listMarketplaceProducts,
     createMarketplaceProduct,
+    updateMarketplaceProduct,
     deleteMarketplaceProduct,
     createMarketplaceOrder,
     cancelMarketplaceOrder,
@@ -188,6 +190,12 @@ let rdvSelectionLocked = false;
 
 let canSellMarketplace = false;
 let marketTabsListenersBound = false;
+let editingProductId = null;
+
+const marketPublishHeading = document.getElementById("marketPublishHeading");
+const marketProductForm = document.getElementById("marketProductForm");
+const marketPublishBtn = document.getElementById("marketPublishBtn");
+const marketCancelEditBtn = document.getElementById("marketCancelEditBtn");
 
 function applyRdvSelectionModeUi() {
     if (!rdvSelectionMode) return;
@@ -296,6 +304,49 @@ function normalizeProfileRole(raw) {
 function computeCanSellMarketplace(prof) {
     const k = normalizeProfileRole(prof?.role || "");
     return k === "coiffeur" || k === "salon";
+}
+
+function colorsToInputString(p) {
+    return parseProductColors(p).join(", ");
+}
+
+function fillProductEditForm(p) {
+    if (!p) return;
+    editingProductId = String(p.id || "").trim();
+    document.getElementById("marketTitle").value = String(p.title || "");
+    document.getElementById("marketCategory").value = String(p.category || "");
+    document.getElementById("marketPrice").value = String(Number(p.priceFcfa || 0) || "");
+    document.getElementById("marketStock").value = String(Math.max(0, Number(p.stock || 0)));
+    document.getElementById("marketColors").value = colorsToInputString(p);
+    document.getElementById("marketDescription").value = String(p.description || "");
+    document.getElementById("marketPhoto").value = "";
+    if (marketPhotoFile) marketPhotoFile.value = "";
+    const photo = String(p.photoUrl || "").trim();
+    if (marketPhotoPreview && marketPhotoPreviewWrap && photo) {
+        marketPhotoPreview.src = photo;
+        marketPhotoPreviewWrap.hidden = false;
+    } else if (marketPhotoPreviewWrap) {
+        marketPhotoPreviewWrap.hidden = true;
+        if (marketPhotoPreview) marketPhotoPreview.removeAttribute("src");
+    }
+    if (marketPublishHeading) marketPublishHeading.textContent = "Modifier l'article";
+    if (marketPublishBtn) marketPublishBtn.textContent = "Enregistrer les modifications";
+    if (marketCancelEditBtn) marketCancelEditBtn.hidden = false;
+}
+
+function resetProductEditForm() {
+    editingProductId = null;
+    if (marketProductForm) marketProductForm.reset();
+    if (marketPhotoPreviewWrap) marketPhotoPreviewWrap.hidden = true;
+    if (marketPhotoPreview) marketPhotoPreview.removeAttribute("src");
+    if (marketPhotoFile) marketPhotoFile.value = "";
+    if (marketPhotoFileHint) {
+        marketPhotoFileHint.textContent =
+            "Formats : JPG, PNG, WebP ou GIF — max 2 Mo. Visible par tous les acheteurs dans le catalogue.";
+    }
+    if (marketPublishHeading) marketPublishHeading.textContent = "Publier un article";
+    if (marketPublishBtn) marketPublishBtn.textContent = "Publier l'article";
+    if (marketCancelEditBtn) marketCancelEditBtn.hidden = true;
 }
 
 function applyMarketplaceSellUiVisibility() {
@@ -744,7 +795,8 @@ function renderProducts() {
                 : `<span class="jobs-card__date">Commission plateforme : 10 %</span>`) +
             `<div class="jobs-card__foot-actions">` +
             (mine
-                ? `<button type="button" class="jobs-card__delete" data-market-delete="${escapeHtml(p.id)}">Supprimer</button>`
+                ? `<button type="button" class="jobs-card__apply" data-market-edit="${escapeHtml(p.id)}">Modifier</button>` +
+                  `<button type="button" class="jobs-card__delete" data-market-delete="${escapeHtml(p.id)}">Supprimer</button>`
                 : `<button type="button" class="jobs-card__apply ${unavailable ? "jobs-card__apply--disabled" : ""}" data-market-add="${escapeHtml(p.id)}" ${unavailable ? "disabled" : ""}>${addLabel}</button>`) +
             `</div></div></article>`;
         listEl.appendChild(li);
@@ -886,10 +938,27 @@ listEl.addEventListener("change", (e) => {
 
 listEl.addEventListener("click", async (e) => {
     const addBtn = e.target.closest("[data-market-add]");
+    const editBtn = e.target.closest("[data-market-edit]");
     const delBtn = e.target.closest("[data-market-delete]");
     errEl.hidden = true;
     okEl.hidden = true;
     try {
+        if (editBtn) {
+            const id = editBtn.getAttribute("data-market-edit");
+            if (!id || !me) return;
+            const p = productById(id);
+            if (!p || String(p.sellerUid || "") !== String(me.uid || "")) return;
+            applyMarketTab("sell");
+            try {
+                localStorage.setItem(MARKET_TAB_KEY, "sell");
+            } catch {
+                /* ignore */
+            }
+            location.hash = "vendre";
+            fillProductEditForm(p);
+            document.getElementById("marketPublishHeading")?.scrollIntoView({ behavior: "smooth", block: "start" });
+            return;
+        }
         if (addBtn) {
             const id = addBtn.getAttribute("data-market-add");
             if (!id || !me) return;
@@ -1032,51 +1101,65 @@ sellerOrdersEl.addEventListener("click", async (e) => {
     }
 });
 
-document.getElementById("marketProductForm").addEventListener("submit", async (e) => {
-    e.preventDefault();
-    if (!me) return;
-    if (!canSellMarketplace) {
-        showError("La vente sur le marketplace est réservée aux professionnels (salon ou coiffeur).");
-        return;
-    }
-    errEl.hidden = true;
-    okEl.hidden = true;
-    const btn = document.getElementById("marketPublishBtn");
-    btn.disabled = true;
-    try {
-        let photoUrl = document.getElementById("marketPhoto").value.trim();
-        const file = marketPhotoFile?.files?.[0];
-        if (file) {
-            if (file.size > MARKET_PHOTO_MAX_BYTES) {
-                showError("Photo trop volumineuse (max 2 Mo).");
-                return;
+if (marketCancelEditBtn) {
+    marketCancelEditBtn.addEventListener("click", () => {
+        resetProductEditForm();
+        errEl.hidden = true;
+        okEl.hidden = true;
+    });
+}
+
+if (marketProductForm) {
+    marketProductForm.addEventListener("submit", async (e) => {
+        e.preventDefault();
+        if (!me) return;
+        if (!canSellMarketplace) {
+            showError("La vente sur le marketplace est réservée aux professionnels (salon ou coiffeur).");
+            return;
+        }
+        errEl.hidden = true;
+        okEl.hidden = true;
+        const btn = marketPublishBtn;
+        if (btn) btn.disabled = true;
+        try {
+            let photoUrl = document.getElementById("marketPhoto").value.trim();
+            const file = marketPhotoFile?.files?.[0];
+            if (file) {
+                if (file.size > MARKET_PHOTO_MAX_BYTES) {
+                    showError("Photo trop volumineuse (max 2 Mo).");
+                    return;
+                }
+                photoUrl = await fileToDataUrl(file);
             }
-            photoUrl = await fileToDataUrl(file);
+            const input = {
+                title: document.getElementById("marketTitle").value,
+                category: document.getElementById("marketCategory").value,
+                priceFcfa: document.getElementById("marketPrice").value,
+                stock: document.getElementById("marketStock").value,
+                colors: document.getElementById("marketColors").value,
+                description: document.getElementById("marketDescription").value
+            };
+            if (photoUrl) input.photoUrl = photoUrl;
+
+            if (editingProductId) {
+                await updateMarketplaceProduct(editingProductId, me.uid, input);
+                showOk("Article mis à jour.");
+            } else {
+                await createMarketplaceProduct(me.uid, displayNameFromProfile(profile, me), {
+                    ...input,
+                    photoUrl: photoUrl || ""
+                });
+                showOk("Article publié.");
+            }
+            resetProductEditForm();
+            await loadProducts();
+        } catch (e5) {
+            showError(getFirebaseErrorMessage(e5));
+        } finally {
+            if (btn) btn.disabled = false;
         }
-        await createMarketplaceProduct(me.uid, displayNameFromProfile(profile, me), {
-            title: document.getElementById("marketTitle").value,
-            category: document.getElementById("marketCategory").value,
-            priceFcfa: document.getElementById("marketPrice").value,
-            stock: document.getElementById("marketStock").value,
-            colors: document.getElementById("marketColors").value,
-            photoUrl,
-            description: document.getElementById("marketDescription").value
-        });
-        showOk("Article publié.");
-        e.target.reset();
-        if (marketPhotoPreviewWrap) marketPhotoPreviewWrap.hidden = true;
-        if (marketPhotoPreview) marketPhotoPreview.removeAttribute("src");
-        if (marketPhotoFileHint) {
-            marketPhotoFileHint.textContent =
-                "Formats : JPG, PNG, WebP ou GIF — max 2 Mo. Visible par tous les acheteurs dans le catalogue.";
-        }
-        await loadProducts();
-    } catch (e5) {
-        showError(getFirebaseErrorMessage(e5));
-    } finally {
-        btn.disabled = false;
-    }
-});
+    });
+}
 
 if (rdvSelectionMode) {
     applyRdvSelectionModeUi();

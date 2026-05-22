@@ -529,6 +529,22 @@ export async function createMarketplaceProduct(sellerUid, sellerName, input) {
     return payload.product;
 }
 
+export async function updateMarketplaceProduct(productId, sellerUid, input) {
+    const body = { sellerUid: String(sellerUid || "").trim() };
+    if (input?.title !== undefined) body.title = String(input.title || "").trim();
+    if (input?.description !== undefined) body.description = String(input.description || "").trim();
+    if (input?.category !== undefined) body.category = String(input.category || "").trim();
+    if (input?.priceFcfa !== undefined) body.priceFcfa = Number(input.priceFcfa);
+    if (input?.stock !== undefined) body.stock = Number(input.stock);
+    if (input?.colors !== undefined) body.colors = String(input.colors || "").trim();
+    if (input?.photoUrl !== undefined) body.photoUrl = String(input.photoUrl || "").trim();
+    const payload = await apiFetch(`/marketplace/products/${encodeURIComponent(productId)}`, {
+        method: "PATCH",
+        body: JSON.stringify(body)
+    });
+    return payload.product;
+}
+
 export async function deleteMarketplaceProduct(productId, sellerUid) {
     await apiFetch(`/marketplace/products/${encodeURIComponent(productId)}`, {
         method: "DELETE",

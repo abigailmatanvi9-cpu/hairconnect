@@ -4294,6 +4294,17 @@ button.dash-home-cat {
     margin-top: 1.5rem;
 }
 
+.market-publish-cancel {
+    margin-top: 0.65rem;
+    width: 100%;
+}
+
+.market-product-form-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
 .market-mode-tabs {
     grid-template-columns: 1fr 1fr;
     max-width: 22rem;
