@@ -2566,9 +2566,15 @@ app.post("/api/candidatures", async (req, res) => {
       });
     }
     const row = await prisma.candidature.create({
-      data: { offerId, coiffeurUid, salonUid, message: message || null }
+      data: {
+        offerId,
+        coiffeurUid,
+        salonUid,
+        message: message || null,
+        status: "pending"
+      }
     });
-    return res.status(201).json({ candidature: row });
+    return res.status(201).json({ candidature: { ...row, status: normalizeCandidatureStatus(row.status) } });
   } catch (error) {
     if (error?.code === "P2002") {
       return res.status(409).json({
@@ -2647,6 +2653,78 @@ async function enrichCandidaturesForSalon(rows) {
     .filter((r) => r.coiffeur && isCoiffeurRole(r.coiffeur));
 }
 
+function normalizeCandidatureStatus(raw) {
+  const s = String(raw || "pending")
+    .trim()
+    .toLowerCase();
+  return s === "accepted" || s === "rejected" ? s : "pending";
+}
+
+function candidatureStatusNoticeText(candidature, offre, salonLabel, status) {
+  const title = String(offre?.title || "cette offre").trim();
+  const salon = String(salonLabel || "Le salon").trim();
+  if (status === "accepted") {
+    return `[HairConnect · candidature] Bonne nouvelle : ${salon} a accepté votre candidature pour « ${title} ». Ouvrez la messagerie pour convenir des prochaines étapes.`;
+  }
+  return `[HairConnect · candidature] ${salon} a refusé votre candidature pour « ${title} ». Vous pouvez consulter d'autres offres sur HairConnect.`;
+}
+
+app.patch("/api/candidatures/:id", async (req, res) => {
+  try {
+    const id = String(req.params.id || "").trim();
+    const salonUid = String(req.body?.salonUid || "").trim();
+    const status = normalizeCandidatureStatus(req.body?.status);
+    if (!id || !salonUid) {
+      return res.status(400).json({ message: "id et salonUid requis." });
+    }
+    if (!["accepted", "rejected"].includes(status)) {
+      return res.status(400).json({ message: "status doit être accepted ou rejected." });
+    }
+    const existing = await prisma.candidature.findUnique({ where: { id } });
+    if (!existing) {
+      return res.status(404).json({ message: "Candidature introuvable." });
+    }
+    if (String(existing.salonUid) !== salonUid) {
+      return res.status(403).json({ message: "Seul le salon concerné peut traiter cette candidature." });
+    }
+    const current = normalizeCandidatureStatus(existing.status);
+    if (current !== "pending") {
+      return res.status(409).json({
+        message: `Cette candidature est déjà ${current === "accepted" ? "acceptée" : "refusée"}.`
+      });
+    }
+    const row = await prisma.candidature.update({
+      where: { id },
+      data: { status }
+    });
+    const [offre, salonUser, coiffeurUser] = await Promise.all([
+      prisma.offre.findUnique({
+        where: { id: row.offerId },
+        select: { id: true, title: true, salonName: true }
+      }),
+      prisma.user.findUnique({ where: { id: salonUid }, select: { id: true, name: true, salonName: true } }),
+      prisma.user.findUnique({ where: { id: row.coiffeurUid }, select: { id: true, name: true } })
+    ]);
+    const salonLabel = publicationAuthorLabelFromUser(salonUser || {}) || offre?.salonName || "Salon";
+    try {
+      const text = candidatureStatusNoticeText(row, offre, salonLabel, status);
+      await prisma.message.create({
+        data: {
+          fromUid: salonUid,
+          toUid: String(row.coiffeurUid),
+          text
+        }
+      });
+    } catch (notifyErr) {
+      console.error("[candidature] notification coiffeur:", notifyErr);
+    }
+    const enriched = await enrichCandidaturesForSalon([row]);
+    return res.json({ candidature: enriched[0] || row });
+  } catch (error) {
+    return res.status(500).json({ code: "internal/error", message: error.message });
+  }
+});
+
 app.get("/api/candidatures", async (req, res) => {
   try {
     const coiffeurUid = req.query.coiffeurUid ? String(req.query.coiffeurUid) : undefined;
@@ -2660,6 +2738,7 @@ app.get("/api/candidatures", async (req, res) => {
       },
       orderBy: { createdAt: "desc" }
     });
+    rows = rows.map((r) => ({ ...r, status: normalizeCandidatureStatus(r.status) }));
     if (salonUid) {
       rows = await enrichCandidaturesForSalon(rows);
     }

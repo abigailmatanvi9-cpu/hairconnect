@@ -6211,6 +6211,44 @@ body.hc-theme-pro .pro-card-links a {
     text-decoration: underline;
 }
 
+.candidature-filters {
+    margin-bottom: 1rem;
+}
+
+.candidature-card__status {
+    display: inline-block;
+    margin-top: 0.35rem;
+    padding: 0.2rem 0.55rem;
+    font-size: 0.75rem;
+    font-weight: 600;
+    border-radius: 999px;
+}
+
+.candidature-card__status--pending {
+    background: rgba(234, 179, 8, 0.2);
+    color: #a16207;
+}
+
+.candidature-card__status--accepted {
+    background: rgba(34, 197, 94, 0.18);
+    color: #15803d;
+}
+
+.candidature-card__status--rejected {
+    background: rgba(239, 68, 68, 0.15);
+    color: #b91c1c;
+}
+
+.candidature-card__btn-accept {
+    flex: 1;
+    min-width: 7rem;
+}
+
+.candidature-card__btn-reject {
+    flex: 1;
+    min-width: 7rem;
+}
+
 /* Messagerie */
 body.hc-theme-pro .msg-item {
     border: 1px solid var(--hc-pro-line);

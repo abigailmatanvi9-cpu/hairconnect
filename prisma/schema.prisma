@@ -122,7 +122,10 @@ model Candidature {
   coiffeurUid String
   salonUid    String
   message     String?
+  /// pending | accepted | rejected
+  status      String   @default("pending")
   createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 
   @@unique([offerId, coiffeurUid])
 }

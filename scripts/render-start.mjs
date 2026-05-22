@@ -24,6 +24,8 @@ async function applyCriticalSchemaPatches() {
     `ALTER TABLE "MarketOrderItem" ADD COLUMN IF NOT EXISTS "color" TEXT;`,
     `ALTER TABLE "MarketOrder" ADD COLUMN IF NOT EXISTS "rendezVousId" TEXT;`,
     `CREATE UNIQUE INDEX IF NOT EXISTS "MarketOrder_rendezVousId_key" ON "MarketOrder"("rendezVousId");`,
+    `ALTER TABLE "Candidature" ADD COLUMN IF NOT EXISTS "status" TEXT NOT NULL DEFAULT 'pending';`,
+    `ALTER TABLE "Candidature" ADD COLUMN IF NOT EXISTS "updatedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP;`,
     `ALTER TABLE "Offre" ADD COLUMN IF NOT EXISTS "quartier" TEXT;`,
     `ALTER TABLE "Offre" ADD COLUMN IF NOT EXISTS "remunerationType" TEXT;`,
     `ALTER TABLE "Offre" ADD COLUMN IF NOT EXISTS "salaryFcfa" INTEGER;`,

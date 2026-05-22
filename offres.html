@@ -143,7 +143,8 @@ let myUid = null;
 let myName = "";
 let isSalon = false;
 let isCoiffeur = false;
-let myAppliedOfferIds = new Set();
+/** offerId → statut candidature (pending | accepted | rejected) */
+let myCandidatureStatusByOffer = new Map();
 let activeFilter = "all";
 let searchTerm = "";
 let cachedRows = [];
@@ -296,14 +297,24 @@ function renderList(rows) {
                   escapeHtml(o.id) +
                   "\">Marquer comme pourvue</button>"
             : "";
-        const alreadyApplied =
-            isCoiffeur && myAppliedOfferIds.has(String(o.id || ""));
+        const candSt = isCoiffeur ? myCandidatureStatusByOffer.get(String(o.id || "")) : null;
+        const alreadyApplied = Boolean(candSt);
+        const candLabel =
+            candSt === "accepted"
+                ? "Candidature acceptée"
+                : candSt === "rejected"
+                  ? "Candidature refusée"
+                  : candSt === "pending"
+                    ? "Candidature en attente"
+                    : "";
         const applyControl = isSalon
             ? "<span class=\"jobs-card__apply jobs-card__apply--disabled\" aria-disabled=\"true\">Postuler (réservé aux coiffeurs)</span>"
             : isFilled
               ? "<span class=\"jobs-card__apply jobs-card__apply--disabled\" aria-disabled=\"true\">Poste pourvu</span>"
               : alreadyApplied
-                ? "<span class=\"jobs-card__apply jobs-card__apply--disabled\" aria-disabled=\"true\">Déjà postulé</span>"
+                ? "<span class=\"jobs-card__apply jobs-card__apply--disabled\" aria-disabled=\"true\">" +
+                  escapeHtml(candLabel || "Déjà postulé") +
+                  "</span>"
                 : "<a class=\"jobs-card__apply\" href=\"postuler.html?offre=" +
                   encodeURIComponent(o.id) +
                   "\">Postuler</a>";
@@ -370,9 +381,11 @@ onAuthStateChanged(auth, async (user) => {
     if (isCoiffeur) {
         try {
             const mine = await listCandidaturesForCoiffeur(myUid);
-            myAppliedOfferIds = new Set(mine.map((c) => String(c.offerId || "")));
+            myCandidatureStatusByOffer = new Map(
+                mine.map((c) => [String(c.offerId || ""), String(c.status || "pending").toLowerCase()])
+            );
         } catch {
-            myAppliedOfferIds = new Set();
+            myCandidatureStatusByOffer = new Map();
         }
     }
     if (isSalon) {

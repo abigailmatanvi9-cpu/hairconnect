@@ -614,12 +614,33 @@ export async function createCandidature(offerId, coiffeurUid, salonUid, message)
 
 export async function listCandidaturesForCoiffeur(coiffeurUid) {
     const payload = await apiFetch(`/candidatures?coiffeurUid=${encodeURIComponent(coiffeurUid)}`);
-    return (payload.candidatures || []).map((c) => ({ ...c, createdAt: { toMillis: () => new Date(c.createdAt).getTime() } }));
+    return (payload.candidatures || []).map((c) => ({
+        ...c,
+        status: String(c.status || "pending").toLowerCase(),
+        createdAt: { toMillis: () => new Date(c.createdAt).getTime() },
+        updatedAt: c.updatedAt ? { toMillis: () => new Date(c.updatedAt).getTime() } : null
+    }));
 }
 
 export async function listCandidaturesForSalon(salonUid) {
     const payload = await apiFetch(`/candidatures?salonUid=${encodeURIComponent(salonUid)}`);
-    return (payload.candidatures || []).map((c) => ({ ...c, createdAt: { toMillis: () => new Date(c.createdAt).getTime() } }));
+    return (payload.candidatures || []).map((c) => ({
+        ...c,
+        status: String(c.status || "pending").toLowerCase(),
+        createdAt: { toMillis: () => new Date(c.createdAt).getTime() },
+        updatedAt: c.updatedAt ? { toMillis: () => new Date(c.updatedAt).getTime() } : null
+    }));
+}
+
+export async function respondCandidature(candidatureId, salonUid, status) {
+    const payload = await apiFetch(`/candidatures/${encodeURIComponent(candidatureId)}`, {
+        method: "PATCH",
+        body: JSON.stringify({
+            salonUid: String(salonUid || "").trim(),
+            status: String(status || "").trim().toLowerCase()
+        })
+    });
+    return payload.candidature;
 }
 
 export async function listAvisForPro(toProUid) {

@@ -139,10 +139,17 @@ if (!offerId) {
         }
         try {
             const mine = await listCandidaturesForCoiffeur(user.uid);
-            const already = mine.some((c) => String(c.offerId || "") === String(offerId));
-            if (already) {
+            const existing = mine.find((c) => String(c.offerId || "") === String(offerId));
+            if (existing) {
+                const st = String(existing.status || "pending").toLowerCase();
+                const stLabel =
+                    st === "accepted"
+                        ? "acceptée"
+                        : st === "rejected"
+                          ? "refusée"
+                          : "en attente de réponse du salon";
                 document.getElementById("formOk").textContent =
-                    "Vous avez déjà envoyé une candidature pour cette offre.";
+                    "Vous avez déjà postulé — candidature " + stLabel + ".";
                 document.getElementById("formOk").hidden = false;
                 document.getElementById("f").hidden = true;
             }
@@ -180,7 +187,8 @@ if (!offerId) {
         }
         try {
             await createCandidature(offerId, myUid, salonUid, msgText);
-            ok.textContent = "Candidature envoyée.";
+            ok.textContent =
+                "Candidature envoyée (en attente). Le salon pourra l’accepter ou la refuser ; vous serez prévenu par messagerie.";
             ok.hidden = false;
             document.getElementById("f").hidden = true;
         } catch (x) {

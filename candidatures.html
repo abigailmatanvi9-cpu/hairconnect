@@ -16,8 +16,19 @@
         <h1 class="login-title">Candidatures coiffeurs</h1>
     </header>
 
-    <p class="subpage-lead">Uniquement les candidatures envoyées par des coiffeurs. Le message s’affiche tel quel — contactez le candidat si vous êtes intéressé.</p>
+    <p class="subpage-lead">
+        Traitez chaque candidature : <strong>en attente</strong>, <strong>acceptée</strong> ou <strong>refusée</strong>.
+        Le coiffeur est notifié dans la messagerie.
+    </p>
 
+    <div class="candidature-filters jobs-tabs" id="candFilters" role="tablist" aria-label="Filtrer les candidatures">
+        <button type="button" class="jobs-tab is-active" data-cand-filter="all">Toutes</button>
+        <button type="button" class="jobs-tab" data-cand-filter="pending">En attente</button>
+        <button type="button" class="jobs-tab" data-cand-filter="accepted">Acceptées</button>
+        <button type="button" class="jobs-tab" data-cand-filter="rejected">Refusées</button>
+    </div>
+
+    <p id="ok" class="form-success" role="status" hidden></p>
     <p id="err" class="form-error" role="alert" hidden></p>
     <ul id="list" class="candidature-list"></ul>
 </div>
@@ -27,6 +38,7 @@ import {
     auth,
     fetchUserProfile,
     listCandidaturesForSalon,
+    respondCandidature,
     getFirebaseErrorMessage
 } from "./firebase.js";
 import { onAuthStateChanged } from "./firebase.js";
@@ -34,7 +46,13 @@ import { resolveUserRole, authUserId, isCoiffeurRole } from "./role-utils.js";
 
 const listEl = document.getElementById("list");
 const errEl = document.getElementById("err");
+const okEl = document.getElementById("ok");
+const filtersEl = document.getElementById("candFilters");
 const inDashEmbed = window.self !== window.top;
+
+let myUid = null;
+let allRows = [];
+let activeFilter = "all";
 
 const backBtn = document.getElementById("backBtn");
 if (backBtn && inDashEmbed) {
@@ -74,6 +92,17 @@ function formatDate(raw) {
     }
 }
 
+function normalizeStatus(raw) {
+    const s = String(raw || "pending").toLowerCase();
+    return s === "accepted" || s === "rejected" ? s : "pending";
+}
+
+function statusLabel(st) {
+    if (st === "accepted") return "Acceptée";
+    if (st === "rejected") return "Refusée";
+    return "En attente";
+}
+
 function renderCandidatureCard(c) {
     const co = c.coiffeur || {};
     const off = c.offre || {};
@@ -81,13 +110,25 @@ function renderCandidatureCard(c) {
     const name = String(co.name || "Coiffeur").trim();
     const offerTitle = String(off.title || "Offre").trim();
     const dateText = formatDate(c.createdAt);
+    const st = normalizeStatus(c.status);
     const rawMessage = c.message != null ? String(c.message) : "";
     const messageHtml = rawMessage.trim()
         ? escapeHtml(rawMessage)
         : "(Aucun message.)";
 
+    const actions =
+        st === "pending"
+            ? '<button type="button" class="register-submit candidature-card__btn-accept" data-cand-accept="' +
+              escapeHtml(c.id) +
+              '">Accepter</button>' +
+              '<button type="button" class="jobs-card__delete candidature-card__btn-reject" data-cand-reject="' +
+              escapeHtml(c.id) +
+              '">Refuser</button>'
+            : "";
+
     const li = document.createElement("li");
     li.className = "candidature-card";
+    li.dataset.status = st;
     li.innerHTML =
         '<header class="candidature-card__head">' +
         '<div class="candidature-card__who">' +
@@ -107,14 +148,22 @@ function renderCandidatureCard(c) {
         " »" +
         (dateText ? " · " + escapeHtml(dateText) : "") +
         "</p>" +
+        '<span class="candidature-card__status candidature-card__status--' +
+        escapeHtml(st) +
+        '">' +
+        escapeHtml(statusLabel(st)) +
+        "</span>" +
         "</div></div></header>" +
         '<div class="candidature-card__message-body">' +
         messageHtml +
         "</div>" +
         '<div class="candidature-card__actions">' +
-        '<a class="register-submit candidature-card__btn-msg" href="messagerie.html?to=' +
-        encodeURIComponent(coiffeurUid) +
-        '">Répondre au coiffeur</a>' +
+        actions +
+        (st === "accepted"
+            ? '<a class="register-submit candidature-card__btn-msg" href="messagerie.html?to=' +
+              encodeURIComponent(coiffeurUid) +
+              '">Contacter le coiffeur</a>'
+            : "") +
         '<a class="candidature-card__link-profile" href="profil-public.html?uid=' +
         encodeURIComponent(coiffeurUid) +
         '">Profil</a>' +
@@ -122,15 +171,88 @@ function renderCandidatureCard(c) {
     return li;
 }
 
+function renderList() {
+    listEl.innerHTML = "";
+    const rows =
+        activeFilter === "all"
+            ? allRows
+            : allRows.filter((c) => normalizeStatus(c.status) === activeFilter);
+    if (!rows.length) {
+        const li = document.createElement("li");
+        li.className = "candidature-card candidature-card--empty";
+        li.textContent =
+            activeFilter === "all"
+                ? "Aucune candidature de coiffeur pour le moment."
+                : "Aucune candidature dans cette catégorie.";
+        listEl.appendChild(li);
+        return;
+    }
+    for (const c of rows) {
+        listEl.appendChild(renderCandidatureCard(c));
+    }
+}
+
+async function loadAll() {
+    allRows = await listCandidaturesForSalon(myUid);
+    allRows = allRows.filter((c) => isCoiffeurRole(c.coiffeur || {}));
+    renderList();
+}
+
+async function handleRespond(id, status) {
+    if (!id || !myUid) return;
+    const label = status === "accepted" ? "accepter" : "refuser";
+    if (!window.confirm(`Confirmer : ${label} cette candidature ?`)) return;
+    errEl.hidden = true;
+    okEl.hidden = true;
+    try {
+        await respondCandidature(id, myUid, status);
+        okEl.textContent =
+            status === "accepted"
+                ? "Candidature acceptée. Le coiffeur a été prévenu par messagerie."
+                : "Candidature refusée. Le coiffeur a été prévenu par messagerie.";
+        okEl.hidden = false;
+        await loadAll();
+    } catch (e) {
+        errEl.textContent = getFirebaseErrorMessage(e);
+        errEl.hidden = false;
+    }
+}
+
+if (filtersEl) {
+    filtersEl.addEventListener("click", (e) => {
+        const btn = e.target.closest("[data-cand-filter]");
+        if (!btn) return;
+        activeFilter = btn.getAttribute("data-cand-filter") || "all";
+        for (const tab of filtersEl.querySelectorAll(".jobs-tab")) {
+            const on = tab === btn;
+            tab.classList.toggle("is-active", on);
+            tab.setAttribute("aria-selected", on ? "true" : "false");
+        }
+        renderList();
+    });
+}
+
+listEl.addEventListener("click", (e) => {
+    const acceptBtn = e.target.closest("[data-cand-accept]");
+    const rejectBtn = e.target.closest("[data-cand-reject]");
+    if (acceptBtn) {
+        handleRespond(acceptBtn.getAttribute("data-cand-accept"), "accepted");
+        return;
+    }
+    if (rejectBtn) {
+        handleRespond(rejectBtn.getAttribute("data-cand-reject"), "rejected");
+    }
+});
+
 onAuthStateChanged(auth, async (user) => {
     if (!user) {
         window.location.href = "login.html";
         return;
     }
-    const uid = authUserId(user);
+    myUid = authUserId(user);
     let prof = null;
     try {
-        prof = await fetchUserProfile(uid);
+        prof = await fetchUserProfile(myUid);
     } catch (e) {
         errEl.textContent = getFirebaseErrorMessage(e);
         errEl.hidden = false;
@@ -146,26 +268,13 @@ onAuthStateChanged(auth, async (user) => {
         window.location.replace("dashboard.html");
         return;
     }
-    listEl.innerHTML = "";
+    if (role !== "salon") {
+        errEl.textContent = "Cette page est réservée aux salons.";
+        errEl.hidden = false;
+        return;
+    }
     try {
-        if (role !== "salon") {
-            errEl.textContent =
-                "Cette page est réservée aux salons.";
-            errEl.hidden = false;
-            return;
-        }
-        const all = await listCandidaturesForSalon(uid);
-        const rows = all.filter((c) => isCoiffeurRole(c.coiffeur || {}));
-        if (!rows.length) {
-            const li = document.createElement("li");
-            li.className = "candidature-card candidature-card--empty";
-            li.textContent = "Aucune candidature de coiffeur pour le moment.";
-            listEl.appendChild(li);
-            return;
-        }
-        for (const c of rows) {
-            listEl.appendChild(renderCandidatureCard(c));
-        }
+        await loadAll();
     } catch (e) {
         errEl.textContent = getFirebaseErrorMessage(e);
         errEl.hidden = false;
