@@ -15,11 +15,6 @@
         <h1 class="login-title" id="proAvisTitle">Avis clients</h1>
     </header>
 
-    <p id="guestBannerProAvis" class="guest-discovery-banner" hidden>
-        <strong>Mode découverte.</strong> Consultation seule —
-        <a href="login.html">connectez-vous</a> pour laisser un avis depuis la fiche du professionnel.
-    </p>
-
     <p id="proAvisErr" class="form-error" role="alert" hidden></p>
     <p id="proAvisLead" class="subpage-lead" hidden></p>
     <ul id="proAvisList" class="pro-avis-page__list"></ul>
@@ -31,8 +26,6 @@ import {
     onAuthStateChanged,
     fetchUserProfile,
     listAvisForPro,
-    isGuestDiscovery,
-    clearGuestDiscovery,
     getFirebaseErrorMessage
 } from "./firebase.js";
 
@@ -45,7 +38,6 @@ const listEl = document.getElementById("proAvisList");
 const leadEl = document.getElementById("proAvisLead");
 const titleEl = document.getElementById("proAvisTitle");
 const backEl = document.getElementById("proAvisBack");
-const guestBar = document.getElementById("guestBannerProAvis");
 
 function escapeHtml(s) {
     return String(s || "")
@@ -126,8 +118,7 @@ if (!uid) {
     });
 
     onAuthStateChanged(auth, async (user) => {
-        if (user) clearGuestDiscovery();
-        if (!user && !isGuestDiscovery()) {
+        if (!user) {
             window.location.href = "login.html";
             return;
         }
@@ -151,12 +142,6 @@ if (!uid) {
         leadEl.textContent =
             "Notes, commentaires et éventuelles photos publiées par les clients pour " + proName + ".";
         leadEl.hidden = false;
-
-        if (!user && isGuestDiscovery()) {
-            guestBar.hidden = false;
-        } else if (guestBar) {
-            guestBar.hidden = true;
-        }
 
         try {
             const avis = await listAvisForPro(uid);

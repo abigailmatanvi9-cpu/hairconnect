@@ -15,11 +15,6 @@
         <h1 class="login-title" id="proGalTitle">Photos partagées</h1>
     </header>
 
-    <p id="guestBannerProGal" class="guest-discovery-banner" hidden>
-        <strong>Mode découverte.</strong> Consultation seule —
-        <a href="login.html">connectez-vous</a> pour partager une photo depuis la fiche du professionnel.
-    </p>
-
     <p id="proGalErr" class="form-error" role="alert" hidden></p>
     <p id="proGalLead" class="subpage-lead" hidden></p>
     <p id="proGalPostErr" class="form-error" role="alert" hidden></p>
@@ -34,8 +29,6 @@ import {
     fetchUserProfile,
     listPublications,
     deletePublication,
-    isGuestDiscovery,
-    clearGuestDiscovery,
     getFirebaseErrorMessage
 } from "./firebase.js";
 
@@ -48,7 +41,6 @@ const listEl = document.getElementById("proGalList");
 const leadEl = document.getElementById("proGalLead");
 const titleEl = document.getElementById("proGalTitle");
 const backEl = document.getElementById("proGalBack");
-const guestBar = document.getElementById("guestBannerProGal");
 const postErr = document.getElementById("proGalPostErr");
 const postOk = document.getElementById("proGalPostOk");
 
@@ -129,8 +121,7 @@ if (!uid) {
     });
 
     onAuthStateChanged(auth, async (user) => {
-        if (user) clearGuestDiscovery();
-        if (!user && !isGuestDiscovery()) {
+        if (!user) {
             window.location.href = "login.html";
             return;
         }
@@ -155,14 +146,8 @@ if (!uid) {
             "Photos et légendes partagées sur la fiche de " + proName + " (publications après prestation).";
         leadEl.hidden = false;
 
-        if (!user && isGuestDiscovery()) {
-            guestBar.hidden = false;
-        } else if (guestBar) {
-            guestBar.hidden = true;
-        }
-
         try {
-            await loadGallery(user?.uid || "");
+            await loadGallery(user.uid);
         } catch (e2) {
             errEl.textContent = getFirebaseErrorMessage(e2);
             errEl.hidden = false;

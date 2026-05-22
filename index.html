@@ -25,24 +25,12 @@
     <div class="marketing-actions">
         <a href="login.html" class="btn primary marketing-btn">SE CONNECTER</a>
         <a href="register.html" class="btn secondary marketing-btn">CRÉER UN COMPTE</a>
-        <button type="button" class="btn secondary marketing-btn marketing-btn--guest" id="guestDiscoverBtn">
-            PARCOURIR SANS COMPTE
-        </button>
     </div>
 
     <p class="footer marketing-footer">
         En continuant, vous acceptez nos Conditions d'utilisation et notre Politique de confidentialité
     </p>
 </div>
-
-<script type="module">
-import { startGuestDiscovery } from "./firebase.js";
-
-document.getElementById("guestDiscoverBtn")?.addEventListener("click", () => {
-    startGuestDiscovery();
-    window.location.href = "recherche.html";
-});
-</script>
 
 </body>
 </html>

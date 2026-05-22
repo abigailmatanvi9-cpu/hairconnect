@@ -457,73 +457,6 @@ body.hc-marketing--beauty .marketing-footer {
     text-decoration: underline;
 }
 
-.login-guest {
-    margin: 1.75rem 0 0;
-    padding-top: 1.25rem;
-    border-top: 1px solid #2e2924;
-    text-align: center;
-}
-
-.login-guest-hint {
-    margin: 0 0 0.65rem;
-    font-size: 0.88rem;
-    color: #a9a29a;
-    line-height: 1.45;
-}
-
-.login-guest-btn {
-    display: block;
-    width: 100%;
-    box-sizing: border-box;
-    padding: 0.8rem 1rem;
-    border-radius: 12px;
-    border: 1px solid #5a534a;
-    background: transparent;
-    color: #d69e78;
-    font: inherit;
-    font-size: 0.92rem;
-    font-weight: 600;
-    cursor: pointer;
-    transition: background 0.15s ease, border-color 0.15s ease;
-}
-
-.login-guest-btn:hover {
-    background: rgba(214, 158, 120, 0.08);
-    border-color: #7a7268;
-}
-
-.login-guest-btn:focus-visible {
-    outline: 2px solid #d69e78;
-    outline-offset: 2px;
-}
-
-.guest-discovery-banner {
-    margin: 0 0 1rem;
-    padding: 0.75rem 1rem;
-    border-radius: 10px;
-    background: rgba(214, 158, 120, 0.1);
-    border: 1px solid rgba(166, 124, 82, 0.35);
-    color: #d4cdc4;
-    font-size: 0.85rem;
-    line-height: 1.45;
-    text-align: left;
-}
-
-.guest-discovery-banner strong {
-    color: #fff;
-    font-weight: 600;
-}
-
-.guest-discovery-banner a {
-    color: #d69e78;
-    font-weight: 600;
-    text-decoration: none;
-}
-
-.guest-discovery-banner a:hover {
-    text-decoration: underline;
-}
-
 /* Page profil — hub type app (tous rôles) */
 .profil-hub-page {
     font-family: var(--hc-font);
@@ -5874,34 +5807,6 @@ body.hc-theme-pro .field-label-checkbox {
 
 body.hc-theme-pro .field-label-checkbox input {
     accent-color: var(--hc-pro-purple);
-}
-
-body.hc-theme-pro .guest-discovery-banner {
-    background: var(--hc-pro-purple-soft);
-    border-color: #e8d0c6;
-    color: var(--hc-pro-ink);
-}
-
-body.hc-theme-pro .guest-discovery-banner strong {
-    color: var(--hc-pro-purple-deep);
-}
-
-body.hc-theme-pro .guest-discovery-banner a {
-    color: var(--hc-pro-purple);
-}
-
-body.hc-theme-pro .login-guest {
-    border-top-color: var(--hc-pro-line);
-}
-
-body.hc-theme-pro .login-guest-hint {
-    color: var(--hc-pro-muted);
-}
-
-body.hc-theme-pro .login-guest-btn {
-    border-color: var(--hc-pro-line);
-    color: var(--hc-pro-purple);
-    background: #fff;
 }
 
 body.hc-theme-pro .role-card__inner {

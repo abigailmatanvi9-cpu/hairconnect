@@ -23,7 +23,6 @@ function resolveApiBase() {
 
 const API_BASE = resolveApiBase();
 const STORAGE_KEY = "hairconnect_auth_user";
-const GUEST_DISCOVERY_KEY = "hairconnect_guest";
 const authListeners = new Set();
 
 /** Liste des types de pros (slug + libellé) — inscriptions, profil, filtre annuaire. */
@@ -59,31 +58,6 @@ export function isAllowedPublicationStyleType(slug) {
 export function publicationStyleTypeLabel(slug) {
     const key = String(slug || "").trim().toLowerCase();
     return STYLE_TYPE_BY_SLUG.get(key)?.label || "";
-}
-
-/** Parcours de l’annuaire sans compte (session onglet). */
-export function isGuestDiscovery() {
-    try {
-        return sessionStorage.getItem(GUEST_DISCOVERY_KEY) === "1";
-    } catch {
-        return false;
-    }
-}
-
-export function startGuestDiscovery() {
-    try {
-        sessionStorage.setItem(GUEST_DISCOVERY_KEY, "1");
-    } catch (e) {
-        console.warn(e);
-    }
-}
-
-export function clearGuestDiscovery() {
-    try {
-        sessionStorage.removeItem(GUEST_DISCOVERY_KEY);
-    } catch {
-        /* ignore */
-    }
 }
 
 function normalizeUser(rawUser) {
@@ -161,7 +135,6 @@ export async function registerUser(email, password) {
     });
     const user = normalizeUser(payload.user);
     setCurrentUser(user);
-    clearGuestDiscovery();
     return { user };
 }
 
@@ -172,13 +145,11 @@ export async function loginUser(email, password) {
     });
     const user = normalizeUser(payload.user);
     setCurrentUser(user);
-    clearGuestDiscovery();
     return { user };
 }
 
 export async function signOut() {
     setCurrentUser(null);
-    clearGuestDiscovery();
 }
 
 export async function saveUserData(uid, name, email, role, extra = {}) {

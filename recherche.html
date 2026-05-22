@@ -16,11 +16,6 @@
         <h1 class="login-title">Annuaire</h1>
     </header>
 
-    <p id="guestBanner" class="guest-discovery-banner" hidden>
-        <strong>Mode découverte.</strong> Consultez les fiches librement.
-        <a href="login.html">Connectez-vous</a> pour écrire, noter ou enregistrer des favoris.
-    </p>
-
     <p class="subpage-lead">
         Liste de <strong>tous les salons et coiffeurs</strong> enregistrés sur HairConnect (sauf filtre métier ci-dessous). Affinez avec la
         <strong>ville</strong>, le <strong>quartier</strong> et le <strong>rôle</strong>.
@@ -68,8 +63,6 @@ import {
     listFavorites,
     addFavorite,
     removeFavorite,
-    isGuestDiscovery,
-    clearGuestDiscovery,
     HAIRCONNECT_METIERS
 } from "./firebase.js";
 import { onAuthStateChanged } from "./firebase.js";
@@ -287,33 +280,17 @@ document.addEventListener("change", (e) => {
 onAuthStateChanged(auth, async (user) => {
     currentUser = user;
     const back = document.getElementById("rechercheBack");
-    if (user) {
-        clearGuestDiscovery();
-    }
-    if (!user && !isGuestDiscovery()) {
+    if (!user) {
         window.location.href = "login.html";
         return;
     }
-    if (back) {
-        if (user) back.href = "dashboard.html";
-        else if (isGuestDiscovery()) back.href = "index.html";
-        else back.href = "dashboard.html";
-    }
-    const guestBanner = document.getElementById("guestBanner");
-    if (guestBanner) {
-        guestBanner.hidden = Boolean(user) || !isGuestDiscovery();
-    }
+    if (back) back.href = "dashboard.html";
     try {
         applyAnnuaireMetiersFromStorageToUi();
-        if (user) {
-            [all, favorites] = await Promise.all([
-                fetchProfessionalsForAnnuaire(),
-                listFavorites(user.uid)
-            ]);
-        } else {
-            all = await fetchProfessionalsForAnnuaire();
-            favorites = [];
-        }
+        [all, favorites] = await Promise.all([
+            fetchProfessionalsForAnnuaire(),
+            listFavorites(user.uid)
+        ]);
         const params = new URLSearchParams(location.search);
         const rp = params.get("role");
         if (rp === "Coiffeur" || rp === "Salon") {

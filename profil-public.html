@@ -16,11 +16,6 @@
         <h1 class="login-title">Fiche profil</h1>
     </header>
 
-    <p id="guestBannerProfil" class="guest-discovery-banner" hidden>
-        <strong>Mode découverte.</strong> Les actions (message, avis, favoris) nécessitent un compte.
-        <a href="login.html">Se connecter</a>
-    </p>
-
     <p id="err" class="form-error" role="alert" hidden></p>
     <div id="content" class="public-profile" hidden>
         <p class="public-role" id="pubRole"></p>
@@ -122,8 +117,6 @@ import {
     listAvisForPro,
     listPublications,
     createPublication,
-    isGuestDiscovery,
-    clearGuestDiscovery,
     getFirebaseErrorMessage,
     getContactRequestBetween,
     createContactRequest,
@@ -341,10 +334,7 @@ if (!uid) {
     });
 
     onAuthStateChanged(auth, async (user) => {
-        if (user) {
-            clearGuestDiscovery();
-        }
-        if (!user && !isGuestDiscovery()) {
+        if (!user) {
             window.location.href = "login.html";
             return;
         }
@@ -364,26 +354,11 @@ if (!uid) {
         }
 
         fillPublicProfile(d);
-        const guestBar = document.getElementById("guestBannerProfil");
         await refreshAvisSummary();
         await refreshGallerySummary();
 
-        if (!user && isGuestDiscovery()) {
-            document.getElementById("linkMsg").href = "login.html";
-            document.getElementById("linkMsg").textContent = "Se connecter pour écrire";
-            document.getElementById("linkMsg").hidden = false;
-            const crpGuest = document.getElementById("contactRequestPanel");
-            if (crpGuest) crpGuest.hidden = true;
-            favBtn.hidden = true;
-            if (guestBar) guestBar.hidden = false;
-            content.hidden = false;
-            return;
-        }
-
         let myProfile = null;
-        if (user) {
-            myProfile = await fetchUserProfile(user.uid).catch(() => null);
-        }
+        myProfile = await fetchUserProfile(user.uid).catch(() => null);
 
         const linkMsgEl = document.getElementById("linkMsg");
         const contactRequestPanel = document.getElementById("contactRequestPanel");
@@ -393,7 +368,6 @@ if (!uid) {
         linkMsgEl.textContent = "Message";
         linkMsgEl.hidden = false;
         if (contactRequestPanel) contactRequestPanel.hidden = true;
-        if (guestBar) guestBar.hidden = true;
         content.hidden = false;
 
         const targetRole = String(d.role || "").toLowerCase();
