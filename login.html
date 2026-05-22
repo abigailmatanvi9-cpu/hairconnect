@@ -49,13 +49,18 @@
         <button type="submit" class="register-submit login-submit--beauty" id="loginSubmit">CONNEXION</button>
     </form>
 
+    <div class="login-guest">
+        <p class="login-guest-hint">Découvrez l’annuaire sans créer de compte.</p>
+        <button type="button" class="login-guest-btn" id="guestDiscoverBtn">Parcourir en mode invité</button>
+    </div>
+
     <p class="register-footer register-footer--beauty">
         <a href="register.html">Créer un compte</a>
     </p>
 </div>
 
 <script type="module">
-import { loginUser, getFirebaseErrorMessage } from "./firebase.js";
+import { loginUser, getFirebaseErrorMessage, startGuestDiscovery } from "./firebase.js";
 
 const form = document.getElementById("loginForm");
 const formError = document.getElementById("formError");
@@ -111,6 +116,11 @@ function navigateLoginBack() {
 }
 
 document.getElementById("loginBackBtn")?.addEventListener("click", () => navigateLoginBack());
+
+document.getElementById("guestDiscoverBtn")?.addEventListener("click", () => {
+    startGuestDiscovery();
+    window.location.href = "recherche.html";
+});
 
 form.addEventListener("submit", async (e) => {
     e.preventDefault();
