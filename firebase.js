@@ -268,6 +268,19 @@ export async function updateRendezVous(id, proUid, partial) {
     return payload.rendezVous;
 }
 
+/** Nouveau RDV « À venir » à partir d’un RDV terminé, annulé ou « absent ». */
+export async function renewRendezVous(id, proUid, scheduledAt) {
+    const payload = await apiFetch(`/rendez-vous/${encodeURIComponent(id)}/renew`, {
+        method: "POST",
+        body: JSON.stringify({
+            proUid: String(proUid || "").trim(),
+            scheduledAt:
+                scheduledAt instanceof Date ? scheduledAt.toISOString() : String(scheduledAt || "")
+        })
+    });
+    return payload.rendezVous;
+}
+
 export async function getRendezVousItemSelection(rendezVousId, uid) {
     const payload = await apiFetch(
         `/rendez-vous/${encodeURIComponent(rendezVousId)}/item-selection?uid=${encodeURIComponent(String(uid || "").trim())}`

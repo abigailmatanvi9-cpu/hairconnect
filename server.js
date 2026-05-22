@@ -874,6 +874,12 @@ function rdvAllowsClientItemSelection(status) {
   return String(status || "planned").toLowerCase() === "planned";
 }
 
+/** RDV clôturé côté pro : plus de modification (terminé, annulé, absent). */
+function rdvIsClosedForProEdit(status) {
+  const s = String(status || "planned").toLowerCase();
+  return s === "completed" || s === "cancelled" || s === "noshow";
+}
+
 function rdvItemSelectionBlockedMessage(status) {
   const s = String(status || "").toLowerCase();
   if (s === "completed") {
@@ -1047,6 +1053,12 @@ app.patch("/api/rendez-vous/:id", async (req, res) => {
     if (String(existing.proUid) !== proUid) {
       return res.status(403).json({ message: "Modification non autorisée." });
     }
+    if (rdvIsClosedForProEdit(existing.status)) {
+      return res.status(400).json({
+        message:
+          "Ce rendez-vous est terminé, annulé ou marqué « absent » : modification impossible. Utilisez « Renouveler » pour planifier un nouveau créneau."
+      });
+    }
     const data = {};
     if (req.body.prestation !== undefined) {
       const p = String(req.body.prestation || "").trim();
@@ -1133,6 +1145,62 @@ app.patch("/api/rendez-vous/:id", async (req, res) => {
       }
     });
     return res.json({ rendezVous: row });
+  } catch (error) {
+    return res.status(500).json({ code: "internal/error", message: error.message });
+  }
+});
+
+/** Crée un nouveau RDV « À venir » à partir d’un RDV clôturé (même client / prestation / prix prestation). */
+app.post("/api/rendez-vous/:id/renew", async (req, res) => {
+  try {
+    const id = String(req.params.id || "").trim();
+    const proUid = String(req.body.proUid || "").trim();
+    const scheduledRaw = req.body.scheduledAt;
+    if (!id || !proUid) {
+      return res.status(400).json({ message: "id et proUid requis." });
+    }
+    const existing = await prisma.rendezVous.findUnique({ where: { id } });
+    if (!existing) {
+      return res.status(404).json({ message: "Rendez-vous introuvable." });
+    }
+    if (String(existing.proUid) !== proUid) {
+      return res.status(403).json({ message: "Renouvellement non autorisé." });
+    }
+    if (!rdvIsClosedForProEdit(existing.status)) {
+      return res.status(400).json({
+        message:
+          "Le renouvellement est réservé aux rendez-vous terminés, annulés ou marqués « absent »."
+      });
+    }
+    const scheduledAt = scheduledRaw ? new Date(scheduledRaw) : null;
+    if (!scheduledAt || Number.isNaN(scheduledAt.getTime())) {
+      return res.status(400).json({ message: "Date et heure du nouveau rendez-vous invalides." });
+    }
+    const row = await prisma.rendezVous.create({
+      data: {
+        proUid: existing.proUid,
+        clientUid: existing.clientUid,
+        scheduledAt,
+        prestation: existing.prestation,
+        status: "planned",
+        prestationPriceFcfa: existing.prestationPriceFcfa,
+        priceFcfa: computeRdvTotalPriceFcfa(existing.prestationPriceFcfa, 0)
+      },
+      include: {
+        client: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+            phone: true,
+            city: true,
+            photoUrl: true,
+            role: true
+          }
+        }
+      }
+    });
+    return res.status(201).json({ rendezVous: row });
   } catch (error) {
     return res.status(500).json({ code: "internal/error", message: error.message });
   }

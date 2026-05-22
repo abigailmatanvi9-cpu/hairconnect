@@ -71,6 +71,7 @@ import {
     getRendezVousItemSelection,
     createRendezVous,
     updateRendezVous,
+    renewRendezVous,
     sendRendezVousReminderNow,
     getFirebaseErrorMessage
 } from "./firebase.js";
@@ -83,6 +84,30 @@ const STATUS_LABELS = {
     cancelled: "Annulé",
     noshow: "Absent"
 };
+
+const RDV_CLOSED_STATUSES = new Set(["completed", "cancelled", "noshow"]);
+
+function rdvIsClosedStatus(status) {
+    return RDV_CLOSED_STATUSES.has(String(status || "planned").toLowerCase());
+}
+
+function defaultRenewDatetime(iso) {
+    const d = iso ? new Date(iso) : new Date();
+    if (Number.isNaN(d.getTime())) return "";
+    d.setDate(d.getDate() + 7);
+    return toDatetimeLocalValue(d.toISOString());
+}
+
+function setCardFieldsDisabled(li, disabled) {
+    li.querySelectorAll("input, textarea, select").forEach((el) => {
+        el.disabled = disabled;
+    });
+    li.querySelectorAll("[data-star]").forEach((btn) => {
+        btn.disabled = disabled;
+        if (disabled) btn.setAttribute("tabindex", "-1");
+        else btn.removeAttribute("tabindex");
+    });
+}
 const fmt = new Intl.NumberFormat("fr-FR", { maximumFractionDigits: 0 });
 
 function escapeHtml(s) {
@@ -292,6 +317,7 @@ function renderCard(r) {
     const c = r.client || {};
     const id = escapeHtml(r.id);
     const status = String(r.status || "planned").toLowerCase();
+    const isClosed = rdvIsClosedStatus(status);
     const statusLabel = STATUS_LABELS[status] || status;
     const rating = r.proRating != null ? Number(r.proRating) : null;
     const selectionSummary = r.itemSelectionSummary || { itemsCount: 0, itemsSubtotalFcfa: 0 };
@@ -430,14 +456,30 @@ function renderCard(r) {
         id +
         '" rows="2" placeholder="Note interne après le rendez-vous…"></textarea>' +
         '<div class="agenda-pro__actions">' +
-        '<button type="button" class="register-submit agenda-pro__save" data-save-rdv="' +
-        id +
-        '">Enregistrer</button>' +
-        (status === "planned"
-            ? '<button type="button" class="agenda-pro__remind-btn" data-send-reminder="' +
-              escapeHtml(r.id) +
-              '">Envoyer le rappel (messagerie)</button>'
-            : "") +
+        (isClosed
+            ? '<p class="agenda-pro__locked-note">Rendez-vous clôturé : plus de modification possible.</p>' +
+              '<button type="button" class="agenda-pro__renew-btn" data-renew-toggle="' +
+              id +
+              '">Renouveler ce rendez-vous</button>' +
+              '<div class="agenda-pro__renew-panel" data-renew-panel="' +
+              id +
+              '" hidden>' +
+              '<label class="agenda-pro__k agenda-pro__lbl">Nouvelle date &amp; heure</label>' +
+              '<input type="datetime-local" class="agenda-pro__input" data-renew-datetime value="' +
+              escapeHtml(defaultRenewDatetime(r.scheduledAt)) +
+              '">' +
+              '<button type="button" class="register-submit agenda-pro__renew-confirm" data-renew-confirm="' +
+              id +
+              '">Créer le nouveau rendez-vous</button>' +
+              "</div>"
+            : '<button type="button" class="register-submit agenda-pro__save" data-save-rdv="' +
+              id +
+              '">Enregistrer</button>' +
+              (status === "planned"
+                  ? '<button type="button" class="agenda-pro__remind-btn" data-send-reminder="' +
+                    escapeHtml(r.id) +
+                    '">Envoyer le rappel (messagerie)</button>'
+                  : "")) +
         "</div>" +
         '<p class="agenda-pro__saved" id="ok-' +
         id +
@@ -468,6 +510,44 @@ function renderCard(r) {
                 });
             });
         });
+    }
+
+    if (isClosed) {
+        li.classList.add("agenda-pro__card--locked");
+        setCardFieldsDisabled(li, true);
+        const renewToggle = li.querySelector("[data-renew-toggle]");
+        const renewPanel = li.querySelector("[data-renew-panel]");
+        const renewConfirm = li.querySelector("[data-renew-confirm]");
+        const renewDatetime = li.querySelector("[data-renew-datetime]");
+        if (renewToggle && renewPanel) {
+            renewToggle.addEventListener("click", () => {
+                renewPanel.hidden = !renewPanel.hidden;
+            });
+        }
+        if (renewConfirm && renewDatetime) {
+            renewConfirm.addEventListener("click", async () => {
+                const when = String(renewDatetime.value || "").trim();
+                if (!when) {
+                    alert("Indiquez la date et l’heure du nouveau rendez-vous.");
+                    return;
+                }
+                renewConfirm.disabled = true;
+                try {
+                    await renewRendezVous(r.id, myUid, when);
+                    if (renewPanel) renewPanel.hidden = true;
+                    await loadList();
+                    const formOk = document.getElementById("formOk");
+                    if (formOk) {
+                        formOk.textContent = "Nouveau rendez-vous créé (statut : À venir).";
+                        formOk.hidden = false;
+                    }
+                } catch (e) {
+                    alert(getFirebaseErrorMessage(e));
+                } finally {
+                    renewConfirm.disabled = false;
+                }
+            });
+        }
     }
 
     const saveBtn = li.querySelector("[data-save-rdv]");
