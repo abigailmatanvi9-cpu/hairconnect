@@ -655,12 +655,46 @@ async function filterMessagesByContactGate(viewerUid, messages) {
     select: { clientUid: true, proUid: true }
   });
   const okPairs = new Set(accepted.map((r) => `${r.clientUid}\t${r.proUid}`));
+  const marketPairs = await buildActiveMarketplacePairSetFromMessages(messages, roleMap);
   return messages.filter((m) => {
     if (isMarketplaceSystemMessage(m.text)) return true;
     const pair = contactClientProPair(m.fromUid, m.toUid, roleMap);
     if (!pair) return true;
-    return okPairs.has(`${pair.clientUid}\t${pair.proUid}`);
+    const key = `${pair.clientUid}\t${pair.proUid}`;
+    if (okPairs.has(key)) return true;
+    return marketPairs.has(key);
   });
+}
+
+async function pairHasActiveMarketplaceOrder(clientUid, proUid) {
+  const row = await prisma.marketOrder.findFirst({
+    where: {
+      buyerUid: clientUid,
+      sellerUid: proUid,
+      status: { not: "cancelled" }
+    },
+    select: { id: true }
+  });
+  return Boolean(row);
+}
+
+/** Paires client↔pro ayant au moins une commande marketplace active (hors annulée). */
+async function buildActiveMarketplacePairSetFromMessages(messages, roleMap) {
+  const keys = new Set();
+  for (const m of messages) {
+    const pair = contactClientProPair(m.fromUid, m.toUid, roleMap);
+    if (pair) keys.add(`${pair.clientUid}\t${pair.proUid}`);
+  }
+  if (!keys.size) return new Set();
+  const or = [...keys].map((k) => {
+    const [clientUid, proUid] = k.split("\t");
+    return { buyerUid: clientUid, sellerUid: proUid };
+  });
+  const orders = await prisma.marketOrder.findMany({
+    where: { status: { not: "cancelled" }, OR: or },
+    select: { buyerUid: true, sellerUid: true }
+  });
+  return new Set(orders.map((o) => `${o.buyerUid}\t${o.sellerUid}`));
 }
 
 function isMarketplaceSystemMessage(text) {
@@ -718,14 +752,14 @@ async function assertMessageContactAllowed(fromUid, toUid) {
   const row = await prisma.contactRequest.findUnique({
     where: { clientUid_proUid: { clientUid: pair.clientUid, proUid: pair.proUid } }
   });
-  if (!row || row.status !== "accepted") {
-    const err = new Error(
-      "Messagerie indisponible : le professionnel doit d’abord accepter votre demande de contact."
-    );
-    err.code = "contact/not-accepted";
-    err.status = 403;
-    throw err;
-  }
+  if (row?.status === "accepted") return;
+  if (await pairHasActiveMarketplaceOrder(pair.clientUid, pair.proUid)) return;
+  const err = new Error(
+    "Messagerie indisponible : envoyez une demande de contact depuis la fiche du professionnel, ou passez une commande sur sa boutique marketplace."
+  );
+  err.code = "contact/not-accepted";
+  err.status = 403;
+  throw err;
 }
 
 async function computeRdvSelectionSummaryMap(rendezVousIds) {
@@ -2327,6 +2361,30 @@ app.post("/api/marketplace/orders", async (req, res) => {
     }
 
     return res.status(201).json({ orders: ordersOut, feeRateBp: MARKETPLACE_FEE_RATE_BP });
+  } catch (error) {
+    return res.status(500).json({ code: "internal/error", message: error.message });
+  }
+});
+
+app.get("/api/marketplace/messaging-peers", async (req, res) => {
+  try {
+    const uid = String(req.query.uid || "").trim();
+    if (!uid) {
+      return res.status(400).json({ message: "uid requis." });
+    }
+    const rows = await prisma.marketOrder.findMany({
+      where: {
+        status: { not: "cancelled" },
+        OR: [{ buyerUid: uid }, { sellerUid: uid }]
+      },
+      select: { buyerUid: true, sellerUid: true }
+    });
+    const peerUids = new Set();
+    for (const o of rows) {
+      const other = String(o.buyerUid) === uid ? o.sellerUid : o.buyerUid;
+      if (other) peerUids.add(String(other));
+    }
+    return res.json({ peerUids: [...peerUids] });
   } catch (error) {
     return res.status(500).json({ code: "internal/error", message: error.message });
   }

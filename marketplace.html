@@ -974,8 +974,8 @@ checkoutBtn.addEventListener("click", async () => {
         const n = (res.orders || []).length;
         showOk(
             n > 1
-                ? `${n} commandes créées (une par vendeur). Les vendeurs ont été prévenus par messagerie.`
-                : "Commande créée. Le vendeur a été prévenu par messagerie."
+                ? `${n} commandes créées. Les vendeurs ont été prévenus : la messagerie est ouverte pour organiser livraison et paiement.`
+                : "Commande créée. Le vendeur a été prévenu : la messagerie est ouverte pour organiser livraison et paiement."
         );
         clearCart();
         await Promise.all([loadProducts(), loadOrders()]);

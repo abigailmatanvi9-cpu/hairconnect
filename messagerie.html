@@ -75,7 +75,8 @@ import {
     fetchUserProfile,
     getFirebaseErrorMessage,
     listContactRequestsForUser,
-    respondContactRequest
+    respondContactRequest,
+    listMarketplaceMessagingPeers
 } from "./firebase.js";
 import { onAuthStateChanged } from "./firebase.js";
 import { authUserId, resolveUserRole, isProRole } from "./role-utils.js";
@@ -111,6 +112,7 @@ const msgInboundRequests = document.getElementById("msgInboundRequests");
 const msgClientOutbound = document.getElementById("msgClientOutbound");
 
 let contactRequests = [];
+let marketplacePeerUids = new Set();
 let myRoleStr = "";
 let myRoleKey = "unknown";
 
@@ -127,12 +129,19 @@ function pairNeedsContactGate(roleA, roleB) {
 async function loadContactRequests() {
     if (!myUid) {
         contactRequests = [];
+        marketplacePeerUids = new Set();
         return;
     }
     try {
-        contactRequests = await listContactRequestsForUser(myUid);
+        const [reqs, marketPeers] = await Promise.all([
+            listContactRequestsForUser(myUid),
+            listMarketplaceMessagingPeers(myUid).catch(() => ({ peerUids: [] }))
+        ]);
+        contactRequests = reqs;
+        marketplacePeerUids = new Set((marketPeers.peerUids || []).map((id) => String(id)));
     } catch {
         contactRequests = [];
+        marketplacePeerUids = new Set();
     }
 }
 
@@ -163,10 +172,11 @@ async function canMessagePeer(peerUid) {
         return { ok: true };
     }
     if (hasAcceptedContact(clientUid, proUid)) return { ok: true };
+    if (marketplacePeerUids.has(peerUid)) return { ok: true };
     return {
         ok: false,
         reason:
-            "La messagerie avec ce contact n’est ouverte qu’après acceptation d’une demande. En tant que client, ouvrez la fiche du professionnel et utilisez « Envoyer une demande de contact »."
+            "La messagerie s’ouvre après acceptation d’une demande de contact, ou automatiquement dès qu’une commande marketplace existe entre vous et ce professionnel."
     };
 }
 
@@ -542,9 +552,20 @@ function buildConversations(items) {
             map.set(peer, m);
         }
     }
-    return Array.from(map.entries())
-        .map(([uid, lastMessage]) => ({ uid, lastMessage }))
-        .sort((a, b) => toMillis(b.lastMessage.createdAt) - toMillis(a.lastMessage.createdAt));
+    const list = Array.from(map.entries()).map(([uid, lastMessage]) => ({ uid, lastMessage }));
+    for (const uid of marketplacePeerUids) {
+        if (!list.some((c) => c.uid === uid)) {
+            list.push({
+                uid,
+                isMarketplace: true,
+                lastMessage: {
+                    text: "Commande marketplace — vous pouvez échanger ici",
+                    createdAt: new Date(0)
+                }
+            });
+        }
+    }
+    return list.sort((a, b) => toMillis(b.lastMessage.createdAt) - toMillis(a.lastMessage.createdAt));
 }
 
 function renderConversationList() {
@@ -575,7 +596,9 @@ function renderConversationList() {
         if (c.uid === activePeerUid) li.classList.add("is-active");
         const text = c.isPending
             ? "Pas encore de message — écrivez ci-dessous"
-            : snippetFromMessage(c.lastMessage.text);
+            : c.isMarketplace
+              ? "Commande marketplace — discutez ici"
+              : snippetFromMessage(c.lastMessage.text);
         li.innerHTML =
             "<button type=\"button\" class=\"msg-chat__conv-btn\" data-peer-uid=\"" +
             escapeHtml(c.uid) +

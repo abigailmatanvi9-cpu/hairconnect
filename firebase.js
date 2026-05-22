@@ -565,6 +565,13 @@ export async function cancelMarketplaceOrder(orderId, { buyerUid, sellerUid } = 
     return payload.order;
 }
 
+export async function listMarketplaceMessagingPeers(uid) {
+    const payload = await apiFetch(
+        `/marketplace/messaging-peers?uid=${encodeURIComponent(String(uid || "").trim())}`
+    );
+    return { peerUids: payload.peerUids || [] };
+}
+
 export async function listMarketplaceOrders(params = {}) {
     const q = new URLSearchParams();
     if (params.buyerUid) q.set("buyerUid", String(params.buyerUid));
