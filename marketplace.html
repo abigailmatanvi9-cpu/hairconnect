@@ -775,11 +775,14 @@ function renderOrders(target, rows, type) {
         return;
     }
     rows.forEach((o) => {
-        const st = String(o.status || "");
+        const st = String(o.status || "").toLowerCase();
         const canProgress = type === "seller" && ["pending", "confirmed", "shipped"].includes(st);
         const next =
             st === "pending" ? "confirmed" : st === "confirmed" ? "shipped" : st === "shipped" ? "delivered" : "";
-        const canCancel = ["pending", "confirmed"].includes(st);
+        const canCancel =
+            type === "buyer"
+                ? ["pending", "confirmed"].includes(st)
+                : ["pending", "confirmed", "shipped"].includes(st);
         const cancelAttr =
             type === "buyer"
                 ? `data-order-cancel-buyer="${escapeHtml(o.id)}"`

@@ -2490,19 +2490,31 @@ app.post("/api/marketplace/orders/:id/cancel", async (req, res) => {
     if (st === "cancelled") {
       return res.status(400).json({ message: "Cette commande est déjà annulée." });
     }
-    if (["shipped", "delivered"].includes(st)) {
-      return res.status(400).json({ message: "Impossible d’annuler une commande déjà expédiée ou livrée." });
-    }
     const isBuyer = buyerUid && buyerUid === String(existing.buyerUid || "");
     const isSeller = sellerUid && sellerUid === String(existing.sellerUid || "");
     if (!isBuyer && !isSeller) {
       return res.status(403).json({ message: "Annulation non autorisée." });
     }
+    if (isBuyer && ["shipped", "delivered"].includes(st)) {
+      return res.status(400).json({
+        message:
+          st === "delivered"
+            ? "Cette commande est livrée : vous ne pouvez plus l’annuler."
+            : "Cette commande a déjà été expédiée : annulation impossible côté acheteur."
+      });
+    }
+    if (["shipped", "delivered"].includes(st)) {
+      return res.status(400).json({ message: "Impossible d’annuler une commande déjà expédiée ou livrée." });
+    }
 
     await prisma.$transaction(async (tx) => {
       const order = await tx.marketOrder.findUnique({ where: { id }, include: { items: true } });
       if (!order || String(order.status || "").toLowerCase() === "cancelled") return;
-      if (["shipped", "delivered"].includes(String(order.status || "").toLowerCase())) {
+      const orderSt = String(order.status || "").toLowerCase();
+      if (isBuyer && ["shipped", "delivered"].includes(orderSt)) {
+        throw new Error("Annulation acheteur impossible pour ce statut.");
+      }
+      if (["shipped", "delivered"].includes(orderSt)) {
         throw new Error("Statut incompatible pour annulation.");
       }
       await restoreMarketOrderItemsStock(tx, order.items);
