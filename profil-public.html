@@ -23,7 +23,6 @@
         <p class="public-meta" id="pubCity"></p>
         <p class="public-bio" id="pubBio"></p>
         <pre class="public-services" id="pubServices"></pre>
-        <p id="pubHome" class="public-badge" hidden>Déplacements à domicile : oui</p>
         <div class="public-actions">
             <div id="contactRequestPanel" class="public-contact-request" hidden>
                 <p id="contactRequestStatus" class="public-contact-request__status" aria-live="polite"></p>
@@ -224,7 +223,6 @@ if (!uid) {
     errEl.hidden = false;
 } else {
     function fillPublicProfile(d) {
-        document.getElementById("pubHome").hidden = true;
         document.getElementById("pubRole").textContent = d.role || "—";
         document.getElementById("pubName").textContent = d.salonName || d.name || "Sans nom";
         const cityStr = String(d.city || "").trim();
@@ -245,7 +243,6 @@ if (!uid) {
                 pubServicesEl.hidden = false;
             }
         }
-        if (d.homeVisit) document.getElementById("pubHome").hidden = false;
     }
 
     let pubContactPair = null;

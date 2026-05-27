@@ -31,7 +31,6 @@ model User {
   proMetiers    Json?
   /// Types de pros recherchés — JSON ["barbier","tresseuse",…] (client).
   rechercheMetiers Json?
-  homeVisit     Boolean?
   /// Solde simulé (FCFA) — branchement API Flooz / Moov à prévoir en production.
   balanceFloozFcfa Int @default(0)
   /// Solde simulé (FCFA) — branchement API Mix by Yas à prévoir en production.
@@ -87,14 +86,6 @@ model Avis {
   createdAt     DateTime @default(now())
 }
 
-model DemandeDomicile {
-  id        String   @id @default(uuid())
-  clientUid String
-  proUid    String?
-  message   String
-  createdAt DateTime @default(now())
-}
-
 model Offre {
   id          String   @id @default(uuid())
   salonUid    String
@@ -147,6 +138,8 @@ model RendezVous {
   clientUid           String
   scheduledAt         DateTime
   prestation          String
+  /// true = prestation chez le client ; false = au salon / en cabine.
+  atHome              Boolean   @default(false)
   status              String    @default("planned")
   proRating           Int?
   proComment          String?

@@ -74,7 +74,7 @@ function sanitizeUser(user) {
 async function findUserPublicById(id) {
   const rows = await prisma.$queryRaw`
     SELECT id, email, name, role, city, quartier, phone, "photoUrl", bio, "servicesTarifs", "tarifMenuPhotoUrl", "salonName", gender, clientele,
-      "proMetiers", "rechercheMetiers", "homeVisit",
+      "proMetiers", "rechercheMetiers",
       "balanceFloozFcfa", "balanceMixFcfa", "createdAt", "updatedAt"
     FROM "User"
     WHERE id = ${id}
@@ -88,7 +88,7 @@ async function findUsersPublic(roleInList) {
   if (roles.length) {
     return prisma.$queryRaw`
       SELECT id, email, name, role, city, quartier, phone, "photoUrl", bio, "servicesTarifs", "tarifMenuPhotoUrl", "salonName", gender, clientele,
-        "proMetiers", "rechercheMetiers", "homeVisit",
+        "proMetiers", "rechercheMetiers",
         "balanceFloozFcfa", "balanceMixFcfa", "createdAt", "updatedAt"
       FROM "User"
       WHERE role IN (${Prisma.join(roles)})
@@ -96,7 +96,7 @@ async function findUsersPublic(roleInList) {
   }
   return prisma.$queryRaw`
     SELECT id, email, name, role, city, quartier, phone, "photoUrl", bio, "servicesTarifs", "tarifMenuPhotoUrl", "salonName", gender, clientele,
-      "proMetiers", "rechercheMetiers", "homeVisit",
+      "proMetiers", "rechercheMetiers",
       "balanceFloozFcfa", "balanceMixFcfa", "createdAt", "updatedAt"
     FROM "User"
   `;
@@ -237,9 +237,43 @@ function buildRdvReminderText(rdv) {
   const proLabel = publicationAuthorLabelFromUser(rdv.pro);
   const when = formatRdvDateTimeFr(rdv.scheduledAt);
   const prest = String(rdv.prestation || "").trim().replace(/</g, "");
+  const lieu = rdvLocationLabel(rdv.atHome);
   return `Rappel HairConnect : votre rendez-vous${
     prest ? ` « ${prest} »` : ""
-  } avec ${proLabel} est prévu le ${when}. À très bientôt !`;
+  } avec ${proLabel} est prévu le ${when} (${lieu}). À très bientôt !`;
+}
+
+function rdvLocationLabel(atHome) {
+  return atHome ? "à domicile (chez vous)" : "au salon / en cabine";
+}
+
+function buildRdvConfirmationText(rdv, pro) {
+  const proLabel = publicationAuthorLabelFromUser(pro);
+  const when = formatRdvDateTimeFr(rdv.scheduledAt);
+  const prest = String(rdv.prestation || "").trim().replace(/</g, "") || "—";
+  const lieu = rdvLocationLabel(rdv.atHome);
+  let priceLine = "";
+  if (rdv.prestationPriceFcfa != null && Number(rdv.prestationPriceFcfa) > 0) {
+    priceLine = `\nPrix prestation : ${Number(rdv.prestationPriceFcfa)} FCFA`;
+  }
+  return `[HairConnect · rendez-vous] ${proLabel} a planifié un rendez-vous avec vous :\n\nPrestation : ${prest}\nDate : ${when}\nLieu : ${lieu}${priceLine}\n\nConsultez « Mes RDV » ou répondez ici pour confirmer les détails.`;
+}
+
+async function sendRdvConfirmationToClient(rdv, pro) {
+  if (!rdv?.clientUid || !rdv?.proUid || !pro) return;
+  try {
+    await ensureContactAcceptedForMarketplaceOrder(rdv.clientUid, rdv.proUid);
+    const text = buildRdvConfirmationText(rdv, pro);
+    await prisma.message.create({
+      data: {
+        fromUid: rdv.proUid,
+        toUid: rdv.clientUid,
+        text
+      }
+    });
+  } catch (e) {
+    console.error("[rdv] confirmation client:", e);
+  }
 }
 
 async function createRdvReminderForRecord(rdv) {
@@ -1014,12 +1048,14 @@ app.post("/api/rendez-vous", async (req, res) => {
       if (parsed !== undefined) prestationPriceFcfa = parsed;
     }
     const priceFcfa = computeRdvTotalPriceFcfa(prestationPriceFcfa, 0);
+    const atHome = Boolean(req.body?.atHome);
     const row = await prisma.rendezVous.create({
       data: {
         proUid,
         clientUid,
         scheduledAt,
         prestation,
+        atHome,
         status: "planned",
         prestationPriceFcfa,
         priceFcfa
@@ -1038,6 +1074,11 @@ app.post("/api/rendez-vous", async (req, res) => {
         }
       }
     });
+    try {
+      await sendRdvConfirmationToClient(row, pro);
+    } catch (notifyErr) {
+      console.error("[rdv] notification création:", notifyErr);
+    }
     return res.status(201).json({ rendezVous: row });
   } catch (error) {
     return res.status(500).json({ code: "internal/error", message: error.message });
@@ -1068,6 +1109,9 @@ app.patch("/api/rendez-vous/:id", async (req, res) => {
     if (req.body.prestation !== undefined) {
       const p = String(req.body.prestation || "").trim();
       if (p) data.prestation = p;
+    }
+    if (req.body.atHome !== undefined) {
+      data.atHome = Boolean(req.body.atHome);
     }
     if (req.body.scheduledAt !== undefined) {
       const d = new Date(req.body.scheduledAt);
@@ -1176,6 +1220,10 @@ app.post("/api/rendez-vous/:id/renew", async (req, res) => {
         message: "Le renouvellement n’est possible que pour un rendez-vous annulé."
       });
     }
+    const pro = await prisma.user.findUnique({ where: { id: proUid } });
+    if (!pro) {
+      return res.status(404).json({ message: "Professionnel introuvable." });
+    }
     const scheduledAt = scheduledRaw ? new Date(scheduledRaw) : null;
     if (!scheduledAt || Number.isNaN(scheduledAt.getTime())) {
       return res.status(400).json({ message: "Date et heure du nouveau rendez-vous invalides." });
@@ -1186,6 +1234,7 @@ app.post("/api/rendez-vous/:id/renew", async (req, res) => {
         clientUid: existing.clientUid,
         scheduledAt,
         prestation: existing.prestation,
+        atHome: Boolean(existing.atHome),
         status: "planned",
         prestationPriceFcfa: existing.prestationPriceFcfa,
         priceFcfa: computeRdvTotalPriceFcfa(existing.prestationPriceFcfa, 0)
@@ -1204,6 +1253,11 @@ app.post("/api/rendez-vous/:id/renew", async (req, res) => {
         }
       }
     });
+    try {
+      await sendRdvConfirmationToClient(row, pro);
+    } catch (notifyErr) {
+      console.error("[rdv] notification renouvellement:", notifyErr);
+    }
     return res.status(201).json({ rendezVous: row });
   } catch (error) {
     return res.status(500).json({ code: "internal/error", message: error.message });
@@ -1826,15 +1880,6 @@ app.get("/api/avis", async (req, res) => {
       orderBy: { createdAt: "desc" }
     });
     return res.json({ avis: rows });
-  } catch (error) {
-    return res.status(500).json({ code: "internal/error", message: error.message });
-  }
-});
-
-app.post("/api/demandes-domicile", async (req, res) => {
-  try {
-    const row = await prisma.demandeDomicile.create({ data: req.body });
-    return res.status(201).json({ demande: row });
   } catch (error) {
     return res.status(500).json({ code: "internal/error", message: error.message });
   }

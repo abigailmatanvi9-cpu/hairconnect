@@ -115,6 +115,12 @@ function renderCard(r) {
     prest.innerHTML =
         "<span class=\"agenda-pro__k\">Prestation</span><br>" + escapeHtml(r.prestation || "—");
 
+    const lieuLine = document.createElement("p");
+    lieuLine.className = "mes-rdv-client__prest";
+    lieuLine.innerHTML =
+        "<span class=\"agenda-pro__k\">Lieu</span><br>" +
+        escapeHtml(r.atHome ? "À domicile (chez vous)" : "Au salon / en cabine");
+
     const statusLine = document.createElement("p");
     statusLine.className = "mes-rdv-client__statusline";
     statusLine.innerHTML =
@@ -193,6 +199,7 @@ function renderCard(r) {
 
     li.appendChild(head);
     li.appendChild(prest);
+    li.appendChild(lieuLine);
     li.appendChild(statusLine);
     li.appendChild(selectSummary);
     li.appendChild(infoRow);

@@ -120,7 +120,6 @@
                     <a href="messagerie.html" data-dash-embed="messagerie.html">Messagerie</a>
                     <a href="favoris.html" data-dash-embed="favoris.html">Favoris</a>
                     <a href="avis.html" data-dash-embed="avis.html">Avis</a>
-                    <a href="demande-domicile.html" data-dash-embed="demande-domicile.html">À domicile</a>
                     <a href="marketplace.html">Marketplace</a>
                 </nav>
             </div>
@@ -856,7 +855,6 @@ function ratingMapFromAvis(avisList) {
 
 function tagsForProCard(p) {
     const tags = [proRoleLabel(p.role)];
-    if (p.homeVisit) tags.push("À domicile");
     const chunks = String(p.servicesTarifs || "")
         .split(/\n|—|–|-/)
         .map((s) => s.trim())
@@ -1561,10 +1559,6 @@ function sidebarNavHtml(roleKey) {
             '<span class="dash-sidebar__icon" aria-hidden="true">' +
             ICON_LIST_NAV +
             "</span><span class=\"dash-sidebar__label\">RDV &amp; paiement</span></a>" +
-            '<a href="demande-domicile.html" class="dash-sidebar__link" data-dash-embed="demande-domicile.html">' +
-            '<span class="dash-sidebar__icon" aria-hidden="true">' +
-            ICON_CAL_NAV +
-            "</span><span class=\"dash-sidebar__label\">À domicile</span></a>" +
             profilBtn
         );
     }

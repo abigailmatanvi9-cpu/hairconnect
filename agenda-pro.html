@@ -20,7 +20,7 @@
 
     <section id="agendaSection" class="agenda-pro" hidden>
         <h2 class="subpage-h2">Nouveau rendez-vous</h2>
-        <p class="agenda-pro__hint">Choisissez un client dans la liste, puis indiquez la date, l’heure et la prestation prévue. Le prix (FCFA) sert de référence pour le client. Un message de rappel est envoyé automatiquement dans la messagerie vers environ 24 h avant le RDV (tant que le serveur tourne).</p>
+        <p class="agenda-pro__hint">Choisissez un client dans la liste, puis indiquez la date, l’heure, la prestation et le lieu (salon ou à domicile). Le client reçoit un message de confirmation dans la messagerie. Un rappel est envoyé automatiquement vers 24 h avant le RDV.</p>
         <form id="newRdVForm" class="register-form agenda-pro__form">
             <p id="formErr" class="form-error" role="alert" hidden></p>
             <p id="formOk" class="form-success" role="status" hidden></p>
@@ -50,6 +50,12 @@
                     <input type="number" id="priceFcfa" min="0" step="1" placeholder="Ex. 15000 (optionnel)">
                 </div>
                 <p class="field-hint">Les articles choisis par le client s’ajouteront automatiquement à ce montant.</p>
+            </div>
+            <div class="field-group field-checkbox">
+                <label class="field-label-checkbox">
+                    <input type="checkbox" id="atHomeNew">
+                    Prestation à domicile (chez le client)
+                </label>
             </div>
             <button type="submit" class="register-submit" id="createBtn">Ajouter au planning</button>
         </form>
@@ -313,6 +319,10 @@ async function loadList() {
     }
 }
 
+function rdvLocationText(atHome) {
+    return atHome ? "À domicile (chez le client)" : "Au salon / en cabine";
+}
+
 function renderCard(r) {
     const c = r.client || {};
     const id = escapeHtml(r.id);
@@ -336,6 +346,7 @@ function renderCard(r) {
     const clientPhone = escapeHtml(formatPhoneDisplay(c.phone));
     const clientCity = escapeHtml(c.city || "—");
     const prestEsc = escapeHtml(r.prestation || "");
+    const atHome = Boolean(r.atHome);
 
     li.innerHTML =
         '<div class="agenda-pro__card-head">' +
@@ -347,6 +358,9 @@ function renderCard(r) {
         '">' +
         escapeHtml(statusLabel) +
         "</span></div>" +
+        '<p class="agenda-pro__client-line"><span class="agenda-pro__k">Lieu</span> ' +
+        escapeHtml(rdvLocationText(atHome)) +
+        "</p>" +
         '<div class="agenda-pro__client">' +
         "<h3 class=\"agenda-pro__client-name\">" +
         clientName +
@@ -405,6 +419,15 @@ function renderCard(r) {
         '<textarea class="field-textarea agenda-pro__textarea" id="prest-' +
         id +
         '" rows="2"></textarea>' +
+        (isClosed
+            ? ""
+            : '<div class="field-group field-checkbox agenda-pro__at-home">' +
+              '<label class="field-label-checkbox">' +
+              '<input type="checkbox" data-at-home id="athome-' +
+              id +
+              '"' +
+              (atHome ? " checked" : "") +
+              "> Prestation à domicile (chez le client)</label></div>") +
         '<label class="agenda-pro__k agenda-pro__lbl" for="stat-' +
         id +
         '">Statut</label>' +
@@ -589,6 +612,8 @@ function renderCard(r) {
                 }
                 if (ratEl && ratEl.value) partial.proRating = Number(ratEl.value);
                 else partial.proRating = null;
+                const atHomeEl = li.querySelector("[data-at-home]");
+                if (atHomeEl) partial.atHome = atHomeEl.checked;
                 await updateRendezVous(r.id, myUid, partial);
                 if (okEl) {
                     okEl.hidden = false;
@@ -720,7 +745,8 @@ document.getElementById("newRdVForm").addEventListener("submit", async (e) => {
             clientUid,
             scheduledAt,
             prestation,
-            prestationPriceFcfa
+            prestationPriceFcfa,
+            atHome: document.getElementById("atHomeNew")?.checked || false
         });
         const selReset = document.getElementById("clientSelect");
         if (selReset) selReset.value = "";
@@ -728,8 +754,10 @@ document.getElementById("newRdVForm").addEventListener("submit", async (e) => {
         document.getElementById("prestation").value = "";
         const pf = document.getElementById("priceFcfa");
         if (pf) pf.value = "";
+        const atHomeNew = document.getElementById("atHomeNew");
+        if (atHomeNew) atHomeNew.checked = false;
         if (formOk) {
-            formOk.textContent = "Rendez-vous ajouté.";
+            formOk.textContent = "Rendez-vous ajouté — le client est notifié dans la messagerie.";
             formOk.hidden = false;
         }
         await loadList();

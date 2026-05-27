@@ -216,12 +216,13 @@ export async function listRendezVousForClient(clientUid) {
     return payload.rendezVous || [];
 }
 
-export async function createRendezVous({ proUid, clientUid, scheduledAt, prestation, priceFcfa, prestationPriceFcfa }) {
+export async function createRendezVous({ proUid, clientUid, scheduledAt, prestation, priceFcfa, prestationPriceFcfa, atHome }) {
     const body = {
         proUid: String(proUid || "").trim(),
         clientUid: String(clientUid || "").trim(),
         scheduledAt: scheduledAt instanceof Date ? scheduledAt.toISOString() : String(scheduledAt || ""),
-        prestation: String(prestation || "").trim()
+        prestation: String(prestation || "").trim(),
+        atHome: Boolean(atHome)
     };
     const prestRaw = prestationPriceFcfa != null && prestationPriceFcfa !== "" ? prestationPriceFcfa : priceFcfa;
     if (prestRaw != null && prestRaw !== "") {
@@ -260,6 +261,9 @@ export async function updateRendezVous(id, proUid, partial) {
             const n = parseInt(String(partial.prestationPriceFcfa).replace(/\s/g, ""), 10);
             if (Number.isFinite(n) && n >= 0) body.prestationPriceFcfa = n;
         }
+    }
+    if (partial.atHome !== undefined) {
+        body.atHome = Boolean(partial.atHome);
     }
     const payload = await apiFetch(`/rendez-vous/${encodeURIComponent(id)}`, {
         method: "PATCH",
@@ -410,13 +414,6 @@ export async function createReview(fromClientUid, toProUid, rating, comment, pho
             comment: comment.trim(),
             photoUrl: (photoUrl || "").trim()
         })
-    });
-}
-
-export async function createDomicileRequest(clientUid, proUid, message) {
-    await apiFetch("/demandes-domicile", {
-        method: "POST",
-        body: JSON.stringify({ clientUid, proUid: proUid || null, message: message.trim() })
     });
 }
 

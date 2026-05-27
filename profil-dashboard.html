@@ -96,12 +96,6 @@
                     <label class="field-label" for="dpBio">Description</label>
                     <textarea id="dpBio" name="bio" class="field-textarea" rows="4" placeholder="Présentez-vous ou décrivez votre établissement…"></textarea>
                 </div>
-                <div class="field-group field-checkbox" id="dpWrapHomeVisit" hidden>
-                    <label class="field-label-checkbox">
-                        <input type="checkbox" id="dpHomeVisit" name="homeVisit">
-                        J’accepte les prestations à domicile
-                    </label>
-                </div>
                 <button type="submit" class="register-submit" id="dpSaveBtn">Enregistrer</button>
             </form>
         </div>
@@ -257,21 +251,15 @@ function syncFormFromCache() {
     applyHubAvatar(displayName, photoUrl);
 
     const wrapSalon = document.getElementById("dpWrapSalonName");
-    const wrapHome = document.getElementById("dpWrapHomeVisit");
     const wrapProMetiers = document.getElementById("dpWrapProMetiers");
     const wrapBio = document.getElementById("dpWrapBio");
     if (wrapSalon) wrapSalon.hidden = roleDisplay !== "Salon";
-    if (wrapHome) wrapHome.hidden = roleDisplay !== "Coiffeur";
     if (wrapProMetiers) wrapProMetiers.hidden = roleDisplay !== "Coiffeur" && roleDisplay !== "Salon";
     if (wrapBio) wrapBio.hidden = roleDisplay === "Client";
 
     if (roleDisplay === "Salon") {
         const sn = document.getElementById("dpSalonName");
         if (sn) sn.value = data.salonName || "";
-    }
-    if (roleDisplay === "Coiffeur") {
-        const hv = document.getElementById("dpHomeVisit");
-        if (hv) hv.checked = Boolean(data.homeVisit);
     }
     const nm = document.getElementById("dpName");
     const bio = document.getElementById("dpBio");
@@ -384,9 +372,6 @@ document.getElementById("dpForm").addEventListener("submit", async (e) => {
 
     if (roleDisplay === "Salon") {
         payload.salonName = document.getElementById("dpSalonName").value.trim();
-    }
-    if (roleDisplay === "Coiffeur") {
-        payload.homeVisit = document.getElementById("dpHomeVisit").checked;
     }
     if (roleDisplay === "Coiffeur" || roleDisplay === "Salon") {
         payload.proMetiers = readMetierChecks("dpProMetier");
