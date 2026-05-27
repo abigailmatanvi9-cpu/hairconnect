@@ -22,7 +22,11 @@
         <h2 class="public-name" id="pubName"></h2>
         <p class="public-meta" id="pubCity"></p>
         <p class="public-bio" id="pubBio"></p>
-        <pre class="public-services" id="pubServices"></pre>
+        <h3 class="public-publications__title" id="pubTarifsTitle" hidden>Services et tarifs</h3>
+        <pre class="public-services" id="pubServices" hidden></pre>
+        <figure id="pubTarifMenuWrap" class="public-tarif-menu" hidden>
+            <img id="pubTarifMenuImg" class="public-tarif-menu__img" alt="Menu tarifs">
+        </figure>
         <div class="public-actions">
             <div id="contactRequestPanel" class="public-contact-request" hidden>
                 <p id="contactRequestStatus" class="public-contact-request__status" aria-live="polite"></p>
@@ -231,16 +235,39 @@ if (!uid) {
         if (cityStr) locParts.push("Ville : " + cityStr);
         if (quartStr) locParts.push("Proximité : " + quartStr);
         document.getElementById("pubCity").textContent = locParts.join(" · ");
-        document.getElementById("pubBio").textContent = d.bio || "";
+        const bioEl = document.getElementById("pubBio");
+        if (bioEl) {
+            const bioText = String(d.bio || "").trim();
+            bioEl.textContent = bioText;
+            bioEl.hidden = !bioText;
+        }
         const pubServicesEl = document.getElementById("pubServices");
+        const pubTarifsTitle = document.getElementById("pubTarifsTitle");
         const textTarifs = String(d.servicesTarifs || "").trim();
-        if (pubServicesEl) {
-            if (textTarifs) {
+        const menuUrl = String(d.tarifMenuPhotoUrl || "").trim();
+        const isProProfile =
+            String(d.role || "")
+                .trim()
+                .toLowerCase() !== "client";
+        if (pubServicesEl && pubTarifsTitle) {
+            if (textTarifs && isProProfile) {
                 pubServicesEl.textContent = textTarifs;
                 pubServicesEl.hidden = false;
+                pubTarifsTitle.hidden = false;
             } else {
-                pubServicesEl.textContent = "Services / tarifs non renseignés.";
-                pubServicesEl.hidden = false;
+                pubServicesEl.hidden = true;
+                pubTarifsTitle.hidden = true;
+            }
+        }
+        const menuWrap = document.getElementById("pubTarifMenuWrap");
+        const menuImg = document.getElementById("pubTarifMenuImg");
+        if (menuWrap && menuImg) {
+            if (menuUrl && isProProfile) {
+                menuImg.src = menuUrl;
+                menuWrap.hidden = false;
+            } else {
+                menuImg.removeAttribute("src");
+                menuWrap.hidden = true;
             }
         }
     }

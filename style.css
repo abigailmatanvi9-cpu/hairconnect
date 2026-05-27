@@ -2917,6 +2917,30 @@ button.dash-home-cat {
     color: #c4bcb4;
 }
 
+.public-tarif-menu {
+    margin: 1rem 0 0;
+}
+
+.public-tarif-menu__img {
+    display: block;
+    max-width: 100%;
+    border-radius: 10px;
+    border: 1px solid #3a3632;
+}
+
+.profil-tarif-preview {
+    margin-top: 0.75rem;
+}
+
+.profil-tarif-preview__img {
+    display: block;
+    max-width: 100%;
+    max-height: 220px;
+    object-fit: contain;
+    border-radius: 8px;
+    margin-bottom: 0.5rem;
+}
+
 .public-badge {
     margin: 1rem 0 0;
     font-size: 0.85rem;
