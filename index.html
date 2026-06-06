@@ -3,34 +3,111 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>HairConnect</title>
+    <title>HairConnect — Salon &amp; coiffure</title>
     <link rel="stylesheet" href="style.css">
 </head>
-<body class="hc-marketing hc-marketing--beauty">
+<body class="hc-marketing hc-marketing--spa">
 
-<div class="marketing-sheet">
-    <div class="marketing-blobs" aria-hidden="true">
-        <span class="marketing-blobs__c marketing-blobs__c--1"></span>
-        <span class="marketing-blobs__c marketing-blobs__c--2"></span>
-        <span class="marketing-blobs__c marketing-blobs__c--3"></span>
-    </div>
-
-    <p class="marketing-greeting">BONJOUR !</p>
-    <p class="marketing-tagline">Trouvez les meilleures prestations coiffure près de chez vous.</p>
-    <p class="marketing-brand">HairConnect</p>
-    <p class="marketing-description">
-        Connectez-vous avec des coiffeurs talentueux et des salons près de chez vous.
-    </p>
-
-    <div class="marketing-actions">
-        <a href="login.html" class="btn primary marketing-btn">SE CONNECTER</a>
-        <a href="register.html" class="btn secondary marketing-btn">CRÉER UN COMPTE</a>
-    </div>
-
-    <p class="footer marketing-footer">
-        En continuant, vous acceptez nos Conditions d'utilisation et notre Politique de confidentialité
-    </p>
+<div class="spa-topbar">
+    <p class="spa-topbar__msg">Découvrez les meilleures offres coiffure &amp; beauté près de chez vous !</p>
+    <form class="spa-topbar__form" action="#" method="get" onsubmit="return false;">
+        <input type="text" placeholder="Prénom" aria-label="Prénom" class="spa-topbar__input">
+        <input type="email" placeholder="E-mail" aria-label="E-mail" class="spa-topbar__input">
+        <button type="submit" class="spa-topbar__btn">S'inscrire</button>
+    </form>
 </div>
+
+<header class="spa-header">
+    <div class="spa-header__info">
+        <span class="spa-header__info-item">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07 19.5 19.5 0 01-6-6 19.79 19.79 0 01-3.07-8.67A2 2 0 014.11 2h3a2 2 0 012 1.72c.127.96.361 1.903.7 2.81a2 2 0 01-.45 2.11L8.09 9.91a16 16 0 006 6l1.27-1.27a2 2 0 012.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0122 16.92z"/></svg>
+            +228 90 00 00 00
+        </span>
+        <span class="spa-header__info-item">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><path d="M22 6l-10 7L2 6"/></svg>
+            contact@hairconnect.com
+        </span>
+        <span class="spa-header__info-item">Lun – Sam : 9h – 19h</span>
+    </div>
+    <div class="spa-header__main">
+        <a href="index.html" class="spa-logo">
+            <span class="spa-logo__icon" aria-hidden="true">
+                <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12 3c-1.5 2.5-4 4-4 7a4 4 0 008 0c0-3-2.5-4.5-4-7z"/><path d="M8 21h8M10 17h4"/></svg>
+            </span>
+            <span class="spa-logo__text">HairConnect</span>
+        </a>
+        <button type="button" class="spa-nav-toggle" id="spaNavToggle" aria-label="Menu" aria-expanded="false">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 7h16M4 12h16M4 17h16"/></svg>
+        </button>
+        <nav class="spa-nav" id="spaNav">
+            <a href="index.html" class="spa-nav__link is-active">Accueil</a>
+            <a href="offres.html" class="spa-nav__link">Services</a>
+            <a href="marketplace.html" class="spa-nav__link">Boutique</a>
+            <a href="login.html" class="spa-nav__link">Connexion</a>
+            <a href="register.html" class="spa-nav__link spa-nav__link--cta">Réserver</a>
+        </nav>
+    </div>
+</header>
+
+<section class="spa-hero">
+    <div class="spa-hero__bg" role="img" aria-label="Outils de coiffure en salon"></div>
+    <div class="spa-hero__overlay"></div>
+    <div class="spa-hero__content">
+        <h1 class="spa-hero__title">Ce qui se passe au salon reste au salon</h1>
+        <p class="spa-hero__lead">
+            Trouvez les meilleurs coiffeurs, salons et prestations beauté près de chez vous.
+            Réservez en quelques clics et profitez d'une expérience soignée.
+        </p>
+        <div class="spa-hero__actions">
+            <a href="offres.html" class="spa-btn spa-btn--ghost">Voir les services</a>
+            <a href="register.html" class="spa-btn spa-btn--primary">Réserver</a>
+        </div>
+    </div>
+</section>
+
+<section class="spa-services">
+    <h2 class="spa-services__title">Une expérience beauté garantie</h2>
+    <p class="spa-services__lead">Coiffure, soins et mise en beauté — tout ce dont vous avez besoin, au même endroit.</p>
+    <div class="spa-services__grid">
+        <article class="spa-service-card">
+            <h3 class="spa-service-card__title">Coiffure &amp; coupe</h3>
+            <div class="spa-service-card__img spa-service-card__img--1" role="img" aria-label="Coiffure"></div>
+            <p class="spa-service-card__text">Des professionnels qualifiés pour une coupe, une couleur ou un brushing parfait, adaptés à votre style.</p>
+            <a href="offres.html" class="spa-service-card__link">Découvrir →</a>
+        </article>
+        <article class="spa-service-card">
+            <h3 class="spa-service-card__title">Salons &amp; pros</h3>
+            <div class="spa-service-card__img spa-service-card__img--2" role="img" aria-label="Salon"></div>
+            <p class="spa-service-card__text">Parcourez les profils des coiffeurs et salons de votre ville, consultez les avis et réservez en ligne.</p>
+            <a href="register.html" class="spa-service-card__link">S'inscrire →</a>
+        </article>
+        <article class="spa-service-card">
+            <h3 class="spa-service-card__title">Marketplace beauté</h3>
+            <div class="spa-service-card__img spa-service-card__img--3" role="img" aria-label="Produits beauté"></div>
+            <p class="spa-service-card__text">Produits capillaires et accessoires sélectionnés pour compléter votre routine beauté à la maison.</p>
+            <a href="marketplace.html" class="spa-service-card__link">Boutique →</a>
+        </article>
+    </div>
+</section>
+
+<footer class="spa-footer">
+    <p class="spa-footer__brand">HairConnect</p>
+    <p class="spa-footer__legal">En continuant, vous acceptez nos Conditions d'utilisation et notre Politique de confidentialité.</p>
+    <div class="spa-footer__links">
+        <a href="login.html">Connexion</a>
+        <a href="register.html">Créer un compte</a>
+        <a href="dashboard.html">Tableau de bord</a>
+    </div>
+</footer>
+
+<script>
+document.getElementById("spaNavToggle")?.addEventListener("click", () => {
+    const nav = document.getElementById("spaNav");
+    const btn = document.getElementById("spaNavToggle");
+    const open = nav?.classList.toggle("is-open");
+    if (btn) btn.setAttribute("aria-expanded", open ? "true" : "false");
+});
+</script>
 
 </body>
 </html>
