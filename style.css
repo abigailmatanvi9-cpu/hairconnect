@@ -1935,7 +1935,7 @@ button.dash-home-cat {
 .dash-home-jobs-icon {
     flex-shrink: 0;
     display: flex;
-    color: #000000;
+    color: var(--hc-pro-gold);
 }
 
 .dash-home-links {
