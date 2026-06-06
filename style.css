@@ -17,13 +17,13 @@
     /* Th?me ? pro ? ? lavande, rose poudr?, cr?me (maquette Smartech) */
     --hc-pro-purple: #8a79af;
     --hc-pro-purple-deep: #9b8fc0;
-    --hc-pro-purple-soft: #f3f0fa;
+    --hc-pro-purple-soft: #ffffff;
     --hc-pro-rose: #f2eae7;
     --hc-pro-beige: #f2eae7;
     --hc-pro-ink: #6d6d6d;
     --hc-pro-muted: #9a9a9a;
-    --hc-pro-surface: #fdfbf9;
-    --hc-pro-card: #e8e4f3;
+    --hc-pro-surface: #ffffff;
+    --hc-pro-card: #ffffff;
     --hc-pro-success: #7accc8;
     --hc-pro-radius: 24px;
     --hc-pro-radius-sm: 16px;
@@ -33,7 +33,7 @@
     --hc-pro-focus-ring: rgba(138, 121, 175, 0.22);
     --hc-pro-gold: #8a79af;
     --hc-pro-gold-mid: #9b8fc0;
-    --hc-pro-gold-light: #e8e4f3;
+    --hc-pro-gold-light: #ffffff;
     --hc-pro-gold-soft: rgba(138, 121, 175, 0.14);
     --hc-pro-teal: #7accc8;
     --hc-pro-yellow: #f9c74f;
@@ -1021,7 +1021,7 @@ body.login-page--beauty .field-input-wrap--beauty .password-toggle {
     margin: 0;
     min-height: 100vh;
     font-family: var(--hc-font);
-    background: #fdfbf9;
+    background: #ffffff;
     color: #6d6d6d;
 }
 
@@ -1258,7 +1258,7 @@ body.login-page--beauty .field-input-wrap--beauty .password-toggle {
     gap: 1rem;
     padding: 1rem 1.25rem;
     border-bottom: none;
-    background: #fdfbf9;
+    background: #ffffff;
     box-shadow: none;
     position: sticky;
     top: 0;
@@ -1758,15 +1758,15 @@ button.dash-home-cat {
     height: 2.65rem;
     border-radius: 50%;
     color: #8a79af;
-    background: #e8e4f3;
-    border: none;
+    background: #ffffff;
+    border: 1px solid #ebe4df;
     text-decoration: none;
     transition: background 0.15s ease, color 0.15s ease;
 }
 
 .dash-home-bell:hover {
     color: #9b8fc0;
-    background: #f3f0fa;
+    background: #fafafa;
 }
 
 .dash-home-search {
@@ -1775,9 +1775,9 @@ button.dash-home-cat {
     gap: 0.65rem;
     padding: 0.65rem 1rem;
     border-radius: 999px;
-    background: #e8e4f3;
-    border: none;
-    box-shadow: 0 4px 16px rgba(138, 121, 175, 0.08);
+    background: #ffffff;
+    border: 1px solid #ebe4df;
+    box-shadow: 0 4px 16px rgba(138, 121, 175, 0.06);
     margin-bottom: 0.75rem;
 }
 
@@ -6778,7 +6778,7 @@ body.hc-theme-pro .form-info {
 }
 
 .hc-dash-pro .dash-sidebar-avatar-fb {
-    background: linear-gradient(135deg, #f3f0fa, #e8e4f3);
+    background: linear-gradient(135deg, #ffffff, #f5f5f5);
     color: var(--hc-pro-purple);
 }
 
@@ -6929,10 +6929,10 @@ body.hc-theme-pro .form-info {
     max-width: none;
     margin: 0 auto;
     padding: 1.35rem 1.25rem 2rem;
-    background: var(--hc-pro-card);
+    background: #ffffff;
     border-radius: var(--hc-pro-radius);
-    border: 1px solid #e8e8e8;
-    box-shadow: var(--hc-pro-shadow);
+    border: none;
+    box-shadow: none;
 }
 
 .hc-dash-pro .dash-home-greet {
@@ -6945,13 +6945,13 @@ body.hc-theme-pro .form-info {
 
 .hc-dash-pro .dash-home-bell {
     color: var(--hc-pro-purple);
-    background: var(--hc-pro-purple-soft);
-    border-color: #e8e4f3;
+    background: #ffffff;
+    border: 1px solid #ebe4df;
 }
 
 .hc-dash-pro .dash-home-search {
     background: #ffffff;
-    border: 1px solid #e8e8e8;
+    border: 1px solid #ebe4df;
 }
 
 .hc-dash-pro .dash-home-search-icon {
@@ -7121,9 +7121,9 @@ body.hc-theme-pro .form-info {
     margin: 1rem 0 0.25rem;
     padding: 1.25rem 1.2rem;
     border-radius: var(--hc-pro-radius);
-    background: #e8e4f3;
-    border: none;
-    box-shadow: 0 8px 24px rgba(138, 121, 175, 0.08);
+    background: #ffffff;
+    border: 1px solid #ebe4df;
+    box-shadow: 0 8px 24px rgba(138, 121, 175, 0.06);
     overflow: hidden;
 }
 
@@ -7169,7 +7169,7 @@ body.hc-theme-pro .form-info {
     background:
         radial-gradient(circle at 30% 30%, rgba(122, 204, 200, 0.35) 0%, transparent 55%),
         radial-gradient(circle at 70% 60%, rgba(249, 199, 79, 0.28) 0%, transparent 50%),
-        linear-gradient(145deg, #f3f0fa 0%, #e8e4f3 100%);
+        linear-gradient(145deg, #ffffff 0%, #f8f8f8 100%);
     opacity: 1;
 }
 
@@ -7186,9 +7186,9 @@ body.hc-theme-pro .form-info {
 .hc-dash-pro .dash-home-cat {
     min-height: 5.25rem;
     border-radius: 18px;
-    background: #e8e4f3;
-    border: none;
-    box-shadow: 0 6px 20px rgba(138, 121, 175, 0.08);
+    background: #ffffff;
+    border: 1px solid #ebe4df;
+    box-shadow: 0 6px 20px rgba(138, 121, 175, 0.06);
     color: var(--hc-pro-ink);
 }
 
@@ -8500,15 +8500,15 @@ body.hc-marketing--spa {
    Dashboard Smartech ? lavande, rose poudr?, cr?me
    ------------------------------------------------------------------------- */
 .hc-dash-smart.dashboard-page {
-    background: #fdfbf9;
+    background: #ffffff;
     color: #6d6d6d;
 }
 
 .hc-dash-smart {
     --dash-sidebar-w: 248px;
-    --hc-smart-bg: #fdfbf9;
+    --hc-smart-bg: #ffffff;
     --hc-smart-sidebar: #f2eae7;
-    --hc-smart-card: #e8e4f3;
+    --hc-smart-card: #ffffff;
     --hc-smart-accent: #8a79af;
     --hc-smart-accent-deep: #9b8fc0;
     --hc-smart-ink: #6d6d6d;
@@ -8549,7 +8549,7 @@ body.hc-marketing--spa {
 }
 
 .hc-dash-smart .dash-sidebar-avatar-fb {
-    background: linear-gradient(135deg, #f3f0fa, var(--hc-smart-card));
+    background: linear-gradient(135deg, #ffffff, #f5f5f5);
     color: var(--hc-smart-accent);
 }
 
@@ -8573,7 +8573,7 @@ body.hc-marketing--spa {
 .hc-dash-smart .dash-sidebar__btn:hover,
 .hc-dash-smart .dash-sidebar__link:hover {
     color: var(--hc-smart-ink);
-    background: rgba(232, 228, 243, 0.55);
+    background: rgba(255, 255, 255, 0.75);
 }
 
 .hc-dash-smart .dash-sidebar__btn.is-active,
@@ -8682,11 +8682,11 @@ body.hc-marketing--spa {
     justify-content: center;
     width: 2.5rem;
     height: 2.5rem;
-    border: none;
+    border: 1px solid #ebe4df;
     border-radius: 50%;
-    background: var(--hc-smart-card);
+    background: #ffffff;
     color: var(--hc-smart-ink);
-    box-shadow: 0 4px 14px rgba(138, 121, 175, 0.1);
+    box-shadow: 0 4px 14px rgba(138, 121, 175, 0.06);
     text-decoration: none;
     cursor: pointer;
     transition: color 0.15s ease, box-shadow 0.15s ease;
@@ -8701,8 +8701,8 @@ body.hc-marketing--spa {
     border-radius: 999px;
     padding: 0.5rem 1rem;
     font-size: 0.82rem;
-    background: var(--hc-smart-card);
-    box-shadow: 0 4px 14px rgba(138, 121, 175, 0.1);
+    background: #ffffff;
+    box-shadow: 0 4px 14px rgba(138, 121, 175, 0.06);
 }
 
 .hc-dash-smart .dash-smart-search {
@@ -8711,8 +8711,9 @@ body.hc-marketing--spa {
     gap: 0.65rem;
     padding: 0.7rem 1.1rem;
     border-radius: 999px;
-    background: var(--hc-smart-card);
-    box-shadow: 0 6px 22px rgba(138, 121, 175, 0.1);
+    background: #ffffff;
+    border: 1px solid #ebe4df;
+    box-shadow: 0 6px 22px rgba(138, 121, 175, 0.06);
 }
 
 .hc-dash-smart .dash-smart-search-icon {
@@ -8759,8 +8760,8 @@ body.hc-marketing--spa {
     margin-top: 0;
     padding: 1.35rem 1.4rem;
     border-radius: var(--hc-pro-radius);
-    background: var(--hc-smart-card);
-    border: none;
+    background: #ffffff;
+    border: 1px solid #ebe4df;
     box-shadow: var(--hc-pro-shadow);
 }
 
@@ -8780,22 +8781,22 @@ body.hc-marketing--spa {
 }
 
 .hc-dash-smart .dash-pro-hero__cta:hover {
-    background: #f3f0fa;
+    background: #fafafa;
 }
 
 .hc-dash-smart .dash-pro-hero__art {
     background:
-        radial-gradient(circle at 30% 30%, rgba(157, 217, 214, 0.4) 0%, transparent 55%),
-        radial-gradient(circle at 70% 60%, rgba(251, 228, 154, 0.35) 0%, transparent 50%),
-        linear-gradient(145deg, #f3f0fa 0%, var(--hc-smart-card) 100%);
+        radial-gradient(circle at 30% 30%, rgba(157, 217, 214, 0.35) 0%, transparent 55%),
+        radial-gradient(circle at 70% 60%, rgba(251, 228, 154, 0.28) 0%, transparent 50%),
+        linear-gradient(145deg, #ffffff 0%, #f8f8f8 100%);
     border-radius: 18px;
 }
 
 .hc-dash-smart .dash-home-cat {
     min-height: 5.5rem;
     border-radius: var(--hc-pro-radius-sm);
-    background: var(--hc-smart-card);
-    border: none;
+    background: #ffffff;
+    border: 1px solid #ebe4df;
     box-shadow: var(--hc-pro-shadow);
 }
 
@@ -8826,14 +8827,14 @@ body.hc-marketing--spa {
 }
 
 .hc-dash-smart .dash-rail__card {
-    border: none;
+    border: 1px solid #ebe4df;
     border-radius: var(--hc-pro-radius);
-    background: var(--hc-smart-card);
+    background: #ffffff;
     box-shadow: var(--hc-pro-shadow);
 }
 
 .hc-dash-smart .dash-rail__stat {
-    background: rgba(253, 251, 249, 0.65);
+    background: #fafafa;
     padding: 0.75rem 0.35rem;
     border-radius: 14px;
 }
@@ -8852,26 +8853,26 @@ body.hc-marketing--spa {
     line-height: 1;
     box-sizing: border-box;
     background:
-        radial-gradient(farthest-side, #fdfbf9 74%, transparent 76%),
-        conic-gradient(var(--hc-smart-accent) 252deg, #e5e0ef 0);
+        radial-gradient(farthest-side, #ffffff 74%, transparent 76%),
+        conic-gradient(var(--hc-smart-accent) 252deg, #ebebeb 0);
 }
 
 .hc-dash-smart .dash-rail__stat:nth-child(1) .dash-rail__stat-num {
     background:
-        radial-gradient(farthest-side, #fdfbf9 74%, transparent 76%),
-        conic-gradient(var(--hc-smart-teal) 216deg, #e5e0ef 0);
+        radial-gradient(farthest-side, #ffffff 74%, transparent 76%),
+        conic-gradient(var(--hc-smart-teal) 216deg, #ebebeb 0);
 }
 
 .hc-dash-smart .dash-rail__stat:nth-child(2) .dash-rail__stat-num {
     background:
-        radial-gradient(farthest-side, #fdfbf9 74%, transparent 76%),
-        conic-gradient(var(--hc-smart-yellow) 324deg, #e5e0ef 0);
+        radial-gradient(farthest-side, #ffffff 74%, transparent 76%),
+        conic-gradient(var(--hc-smart-yellow) 324deg, #ebebeb 0);
 }
 
 .hc-dash-smart .dash-rail__stat:nth-child(3) .dash-rail__stat-num {
     background:
-        radial-gradient(farthest-side, #fdfbf9 74%, transparent 76%),
-        conic-gradient(var(--hc-smart-accent) 270deg, #e5e0ef 0);
+        radial-gradient(farthest-side, #ffffff 74%, transparent 76%),
+        conic-gradient(var(--hc-smart-accent) 270deg, #ebebeb 0);
 }
 
 .hc-dash-smart .dash-rail__stat-label {
@@ -8899,9 +8900,9 @@ body.hc-marketing--spa {
 }
 
 .hc-dash-smart .dash-bottom-nav {
-    background: var(--hc-smart-card);
+    background: #ffffff;
     border-top: 1px solid var(--hc-pro-line);
-    box-shadow: 0 -8px 28px rgba(138, 121, 175, 0.08);
+    box-shadow: 0 -8px 28px rgba(138, 121, 175, 0.06);
 }
 
 .hc-dash-smart .dash-bottom-nav__btn.is-active,
@@ -8915,8 +8916,8 @@ body.hc-marketing--spa {
 .hc-dash-smart .dash-published-photos,
 .hc-dash-smart .dash-pro-feed {
     border-radius: var(--hc-pro-radius);
-    background: var(--hc-smart-card);
-    border: none;
+    background: #ffffff;
+    border: 1px solid #ebe4df;
     box-shadow: var(--hc-pro-shadow);
 }
 
@@ -8970,7 +8971,8 @@ body.hc-marketing--spa {
         margin: 0;
         padding: 0.85rem 1rem;
         border-radius: var(--hc-pro-radius-sm);
-        background: var(--hc-smart-card);
+        background: #ffffff;
+        border: 1px solid #ebe4df;
         box-shadow: var(--hc-pro-shadow);
     }
 
@@ -8979,7 +8981,8 @@ body.hc-marketing--spa {
         margin: 0;
         padding: 0.85rem 1rem;
         border-radius: var(--hc-pro-radius-sm);
-        background: var(--hc-smart-card);
+        background: #ffffff;
+        border: 1px solid #ebe4df;
         box-shadow: var(--hc-pro-shadow);
     }
 }
