@@ -9,7 +9,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="style.css">
 </head>
-<body class="dashboard-page hc-dash-pro hc-theme-pro">
+<body class="dashboard-page hc-dash-pro hc-dash-smart hc-theme-pro">
 
 <div class="dash-shell">
     <aside class="dash-sidebar" id="dashSidebar" aria-label="Navigation application">
@@ -40,25 +40,34 @@
             <p class="dash-sidebar-pro-cta__text">Votre beauté, votre choix — salons et talents près de vous.</p>
             <a href="recherche.html" class="dash-sidebar-pro-cta__btn" data-dash-embed="recherche.html">Découvrir l’annuaire</a>
         </div>
+        <button type="button" class="dash-sidebar-logout" id="logoutSidebar" aria-label="Déconnexion">
+            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.75" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M15.75 9V5.25A2.25 2.25 0 0013.5 3h-6a2.25 2.25 0 00-2.25 2.25v13.5A2.25 2.25 0 007.5 21h6a2.25 2.25 0 002.25-2.25V15m3 0l3-3m0 0l-3-3m3 3H9"/></svg>
+            <span>Déconnexion</span>
+        </button>
     </aside>
     <div class="dash-main-wrap">
     <div class="dash-pro-split">
     <div class="dash-pro-center">
-    <header class="dash-header">
-        <div class="dash-brand">
-            <a href="index.html" class="dash-logo-link" aria-label="Accueil HairConnect">
-                <span class="dash-logo-mark">HC</span>
-            </a>
-            <div>
-                <p class="dash-app-name">HairConnect</p>
-                <p class="dash-welcome" id="dashWelcome">Bonjour</p>
+    <header class="dash-header dash-header--smart">
+        <div class="dash-smart-head">
+            <h1 class="dash-smart-hello" id="dashWelcome">Bonjour</h1>
+            <div class="dash-smart-head__actions">
+                <span class="dash-role-pill" id="dashRolePill" hidden>Rôle</span>
+                <a href="messagerie.html" class="dash-smart-icon-btn" aria-label="Messages" data-dash-embed="messagerie.html">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.75" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M14.857 17.082a23.848 23.848 0 005.454-1.31A8.967 8.967 0 0118 9.75V9A6 6 0 006 9v.75a8.967 8.967 0 01-2.312 6.022c1.733.64 3.56 1.085 5.455 1.31m5.714 0a24.255 24.255 0 01-5.714 0m5.714 0a3 3 0 11-5.714 0"/></svg>
+                </a>
+                <button type="button" class="dash-smart-icon-btn" id="dashHeaderProfil" aria-label="Mon profil">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.75" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z"/></svg>
+                </button>
+                <button type="button" class="dash-logout dash-smart-logout" id="logout">Déconnexion</button>
             </div>
         </div>
-        <div class="dash-header-actions">
-            <button type="button" class="dash-header-link dash-header-link--btn" id="dashHeaderProfil">Mon profil</button>
-            <span class="dash-role-pill" id="dashRolePill" hidden>Rôle</span>
-            <button type="button" class="dash-logout" id="logout">Déconnexion</button>
-        </div>
+        <form class="dash-smart-search" action="recherche.html" method="get" role="search">
+            <span class="dash-smart-search-icon" aria-hidden="true">
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.75" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z"/></svg>
+            </span>
+            <input type="search" name="city" id="dashHeaderSearch" class="dash-smart-search-input" placeholder="Rechercher coiffeurs, services…" autocomplete="off">
+        </form>
     </header>
 
     <main class="dash-main">
@@ -1983,7 +1992,7 @@ onAuthStateChanged(auth, async (user) => {
     if (profErrOk && data) profErrOk.hidden = true;
 
     fillDashSidebarUser(user, data);
-    document.getElementById("dashWelcome").textContent = "Bonjour, " + name;
+    document.getElementById("dashWelcome").textContent = "BONJOUR, " + name.toUpperCase() + " !";
     const heroName = (data && (data.salonName || data.name)) || name;
     const heroCity = data && data.city;
     const heroQuartier = data && data.quartier;
@@ -2074,10 +2083,13 @@ onAuthStateChanged(auth, async (user) => {
     }
 });
 
-document.getElementById("logout").addEventListener("click", async () => {
+const handleDashLogout = async () => {
     await signOut();
     window.location.href = "login.html";
-});
+};
+document.getElementById("logout").addEventListener("click", handleDashLogout);
+const logoutSidebar = document.getElementById("logoutSidebar");
+if (logoutSidebar) logoutSidebar.addEventListener("click", handleDashLogout);
 
 function refreshDashHeroesFromProfileCache() {
     const data = dashProfileCache;
@@ -2090,7 +2102,7 @@ function refreshDashHeroesFromProfileCache() {
     const heroQuartier = data.quartier;
     const heroPhoto = data.photoUrl;
     const rk = resolveUserRole(data);
-    document.getElementById("dashWelcome").textContent = "Bonjour, " + displayPerson;
+    document.getElementById("dashWelcome").textContent = "BONJOUR, " + displayPerson.toUpperCase() + " !";
     if (rk === "client") {
         applyClientHomeUI({ name: displayPerson, city: heroCity, quartier: heroQuartier, photoUrl: heroPhoto });
     } else if (rk === "coiffeur") {
