@@ -5,9 +5,9 @@
     --hc-bg-base: #1a1a1a;
     --hc-surface-raised: #242424;
     --hc-border: rgba(255, 255, 255, 0.08);
-    --hc-accent: #f4846b;
-    --hc-accent-mid: #e86b55;
-    --hc-accent-soft: rgba(244, 132, 107, 0.14);
+    --hc-accent: #c9a090;
+    --hc-accent-mid: #b07d6c;
+    --hc-accent-soft: rgba(201, 160, 144, 0.14);
     --hc-text: #ffffff;
     --hc-text-muted: #b0b0b0;
     --hc-radius-lg: 22px;
@@ -15,8 +15,8 @@
     --hc-shadow-card: 0 24px 56px rgba(0, 0, 0, 0.45), 0 0 0 1px rgba(255, 255, 255, 0.04) inset;
     --hc-font: "Inter", ui-sans-serif, system-ui, "Segoe UI", Roboto, sans-serif;
     /* Th?me ? pro ? ? Beauty Salon (rose p?le, corail, blanc) */
-    --hc-pro-purple: #f4846b;
-    --hc-pro-purple-deep: #e86b55;
+    --hc-pro-purple: #c9a090;
+    --hc-pro-purple-deep: #b07d6c;
     --hc-pro-purple-soft: #fce4e4;
     --hc-pro-rose: #e8a0a0;
     --hc-pro-beige: #ffe8e4;
@@ -27,14 +27,14 @@
     --hc-pro-success: #7accc8;
     --hc-pro-radius: 24px;
     --hc-pro-radius-sm: 16px;
-    --hc-pro-shadow: 0 10px 28px rgba(244, 132, 107, 0.1);
+    --hc-pro-shadow: 0 10px 28px rgba(201, 160, 144, 0.1);
     --hc-pro-line: #f5d6d0;
-    --hc-pro-focus: #f4846b;
-    --hc-pro-focus-ring: rgba(244, 132, 107, 0.22);
-    --hc-pro-gold: #f4846b;
-    --hc-pro-gold-mid: #e86b55;
+    --hc-pro-focus: #c9a090;
+    --hc-pro-focus-ring: rgba(201, 160, 144, 0.22);
+    --hc-pro-gold: #c9a090;
+    --hc-pro-gold-mid: #b07d6c;
     --hc-pro-gold-light: #fce4e4;
-    --hc-pro-gold-soft: rgba(244, 132, 107, 0.12);
+    --hc-pro-gold-soft: rgba(201, 160, 144, 0.12);
     --hc-pro-teal: #7accc8;
     --hc-pro-yellow: #f9c74f;
     --hc-font-serif: "Playfair Display", Georgia, "Times New Roman", serif;
@@ -1760,7 +1760,7 @@ button.dash-home-cat {
     color: #e8a0a0;
     background: #ffffff;
     border: none;
-    box-shadow: 0 4px 14px rgba(244, 132, 107, 0.1);
+    box-shadow: 0 4px 14px rgba(201, 160, 144, 0.1);
     text-decoration: none;
     transition: background 0.15s ease, color 0.15s ease;
 }
@@ -1778,7 +1778,7 @@ button.dash-home-cat {
     border-radius: 999px;
     background: #ffffff;
     border: none;
-    box-shadow: 0 4px 16px rgba(244, 132, 107, 0.1);
+    box-shadow: 0 4px 16px rgba(201, 160, 144, 0.1);
     margin-bottom: 0.75rem;
 }
 
@@ -6751,7 +6751,7 @@ body.hc-theme-pro .form-info {
 .hc-dash-pro .dash-sidebar .dash-logo-mark {
     background: #fff;
     color: #1a1a1a;
-    box-shadow: 0 4px 14px rgba(244, 132, 107, 0.12);
+    box-shadow: 0 4px 14px rgba(201, 160, 144, 0.12);
 }
 
 .hc-dash-pro .dash-header .dash-logo-mark {
@@ -6846,7 +6846,7 @@ body.hc-theme-pro .form-info {
     border: none;
     cursor: pointer;
     transition: transform 0.12s ease, filter 0.15s ease;
-    box-shadow: 0 4px 14px rgba(244, 132, 107, 0.25);
+    box-shadow: 0 4px 14px rgba(201, 160, 144, 0.25);
 }
 
 .hc-dash-pro .dash-sidebar-pro-cta__btn:hover {
@@ -6950,13 +6950,13 @@ body.hc-theme-pro .form-info {
     color: var(--hc-pro-rose);
     background: #ffffff;
     border: none;
-    box-shadow: 0 4px 14px rgba(244, 132, 107, 0.1);
+    box-shadow: 0 4px 14px rgba(201, 160, 144, 0.1);
 }
 
 .hc-dash-pro .dash-home-search {
     background: #ffffff;
     border: none;
-    box-shadow: 0 4px 16px rgba(244, 132, 107, 0.1);
+    box-shadow: 0 4px 16px rgba(201, 160, 144, 0.1);
 }
 
 .hc-dash-pro .dash-home-search-icon {
@@ -7128,7 +7128,7 @@ body.hc-theme-pro .form-info {
     border-radius: var(--hc-pro-radius);
     background: #ffffff;
     border: none;
-    box-shadow: 0 8px 24px rgba(244, 132, 107, 0.1);
+    box-shadow: 0 8px 24px rgba(201, 160, 144, 0.1);
     overflow: hidden;
 }
 
@@ -7166,7 +7166,7 @@ body.hc-theme-pro .form-info {
     text-decoration: none;
     color: #fff;
     background: var(--hc-pro-purple);
-    box-shadow: 0 6px 18px rgba(244, 132, 107, 0.28);
+    box-shadow: 0 6px 18px rgba(201, 160, 144, 0.28);
 }
 
 .hc-dash-pro .dash-pro-hero__art {
@@ -7174,7 +7174,7 @@ body.hc-theme-pro .form-info {
     border-radius: var(--hc-pro-radius-sm);
     background:
         radial-gradient(circle at 30% 30%, rgba(252, 228, 228, 0.7) 0%, transparent 55%),
-        radial-gradient(circle at 70% 60%, rgba(244, 132, 107, 0.25) 0%, transparent 50%),
+        radial-gradient(circle at 70% 60%, rgba(201, 160, 144, 0.25) 0%, transparent 50%),
         linear-gradient(145deg, #fff8f6 0%, #fce4e4 100%);
     opacity: 1;
 }
@@ -7194,7 +7194,7 @@ body.hc-theme-pro .form-info {
     border-radius: 18px;
     background: #ffffff;
     border: none;
-    box-shadow: 0 6px 20px rgba(244, 132, 107, 0.1);
+    box-shadow: 0 6px 20px rgba(201, 160, 144, 0.1);
     color: #1a1a1a;
 }
 
@@ -8521,8 +8521,8 @@ body.hc-marketing--spa {
     --hc-smart-bg: #fff8f6;
     --hc-smart-sidebar: #ffe8e4;
     --hc-smart-card: #ffffff;
-    --hc-smart-accent: #f4846b;
-    --hc-smart-accent-deep: #e86b55;
+    --hc-smart-accent: #c9a090;
+    --hc-smart-accent-deep: #b07d6c;
     --hc-smart-rose: #e8a0a0;
     --hc-smart-rose-soft: #fce4e4;
     --hc-smart-ink: #1a1a1a;
@@ -8550,7 +8550,7 @@ body.hc-marketing--spa {
 .hc-dash-smart .dash-sidebar .dash-logo-mark {
     background: #fff;
     color: #1a1a1a;
-    box-shadow: 0 4px 14px rgba(244, 132, 107, 0.12);
+    box-shadow: 0 4px 14px rgba(201, 160, 144, 0.12);
 }
 
 .hc-dash-smart .dash-sidebar-user {
@@ -8595,7 +8595,7 @@ body.hc-marketing--spa {
     color: #1a1a1a;
     font-weight: 700;
     background: #fff;
-    box-shadow: 0 4px 16px rgba(244, 132, 107, 0.14);
+    box-shadow: 0 4px 16px rgba(201, 160, 144, 0.14);
 }
 
 .hc-dash-smart .dash-sidebar__btn.is-active .dash-sidebar__icon,
@@ -8626,7 +8626,7 @@ body.hc-marketing--spa {
     background: var(--hc-smart-accent);
     color: #fff;
     font-weight: 800;
-    box-shadow: 0 4px 14px rgba(244, 132, 107, 0.25);
+    box-shadow: 0 4px 14px rgba(201, 160, 144, 0.25);
 }
 
 .hc-dash-smart .dash-sidebar-logout {
@@ -8728,7 +8728,7 @@ body.hc-marketing--spa {
     border-radius: 999px;
     background: #ffffff;
     border: none;
-    box-shadow: 0 6px 22px rgba(244, 132, 107, 0.1);
+    box-shadow: 0 6px 22px rgba(201, 160, 144, 0.1);
 }
 
 .hc-dash-smart .dash-smart-search-icon {
@@ -8792,7 +8792,7 @@ body.hc-marketing--spa {
 .hc-dash-smart .dash-pro-hero__cta {
     background: var(--hc-smart-accent);
     color: #fff;
-    box-shadow: 0 6px 18px rgba(244, 132, 107, 0.28);
+    box-shadow: 0 6px 18px rgba(201, 160, 144, 0.28);
 }
 
 .hc-dash-smart .dash-pro-hero__cta:hover {
@@ -8802,7 +8802,7 @@ body.hc-marketing--spa {
 .hc-dash-smart .dash-pro-hero__art {
     background:
         radial-gradient(circle at 30% 30%, rgba(252, 228, 228, 0.7) 0%, transparent 55%),
-        radial-gradient(circle at 70% 60%, rgba(244, 132, 107, 0.25) 0%, transparent 50%),
+        radial-gradient(circle at 70% 60%, rgba(201, 160, 144, 0.25) 0%, transparent 50%),
         linear-gradient(145deg, #fff8f6 0%, #fce4e4 100%);
     border-radius: 18px;
 }
@@ -8918,7 +8918,7 @@ body.hc-marketing--spa {
     background: var(--hc-smart-accent);
     color: #fff;
     font-weight: 800;
-    box-shadow: 0 4px 14px rgba(244, 132, 107, 0.25);
+    box-shadow: 0 4px 14px rgba(201, 160, 144, 0.25);
 }
 
 .hc-dash-smart .dash-bottom-nav {
