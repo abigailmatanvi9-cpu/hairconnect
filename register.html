@@ -6,120 +6,102 @@
     <title>Créer un compte — HairConnect</title>
     <link rel="stylesheet" href="style.css">
 </head>
-<body class="register-page hc-theme-pro auth-galaxy">
+<body class="register-page hc-theme-pro">
 
-<div class="auth-galaxy-page">
-    <a href="login.html" class="auth-galaxy-back" aria-label="Retour">
-        <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M15.75 19.5 8.25 12l7.5-7.5"/></svg>
-    </a>
+<div class="register-container">
+    <h1 class="register-title">Créer un Compte</h1>
 
-    <h1 class="auth-galaxy-page-title">Créez votre compte</h1>
-
-    <div class="auth-galaxy-card register-container">
-        <form id="registerForm" class="auth-galaxy-form">
-            <p id="formError" class="form-error auth-galaxy-error" role="alert" hidden></p>
-
-            <div class="auth-galaxy-roles">
-                <span class="auth-galaxy-roles-label">Je suis…</span>
-                <div class="auth-galaxy-role-cards" role="radiogroup" aria-label="Type de compte">
-                    <label class="auth-galaxy-role-card">
-                        <input type="radio" name="role" value="Client" checked>
-                        <span class="auth-galaxy-role-card__inner">
-                            <span class="auth-galaxy-role-card__icon" aria-hidden="true">
-                                <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z"/></svg>
-                            </span>
-                            Client
-                        </span>
-                    </label>
-                    <label class="auth-galaxy-role-card">
-                        <input type="radio" name="role" value="Coiffeur">
-                        <span class="auth-galaxy-role-card__inner">
-                            <span class="auth-galaxy-role-card__icon" aria-hidden="true">
-                                <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9.813 15.904 9 18.75l-.813-2.846a4.5 4.5 0 0 0-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 0 0 3.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 0 0 3.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 0 0-3.09 3.09Z"/></svg>
-                            </span>
-                            Coiffeur
-                        </span>
-                    </label>
-                    <label class="auth-galaxy-role-card">
-                        <input type="radio" name="role" value="Salon">
-                        <span class="auth-galaxy-role-card__inner">
-                            <span class="auth-galaxy-role-card__icon" aria-hidden="true">
-                                <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M2.25 21h19.5m-18-18v18m10.5-18v18m6-13.5V21M6.75 6.75h.75m-.75 3h.75m-.75 3h.75m3-6h.75m-.75 3h.75m-.75 3h.75M6.75 21v-3.375c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125V21M3 3h12m-.75 4.5H21m-9.75 4.5h9.75"/></svg>
-                            </span>
-                            Salon
-                        </span>
-                    </label>
-                </div>
-            </div>
-
-            <fieldset class="auth-galaxy-metiers" id="registerWrapProMetiers" hidden>
-                <legend class="auth-galaxy-roles-label">Mon activité</legend>
-                <p class="field-hint">Tout ce que vous proposez : les clients qui cherchent ces types vous verront.</p>
-                <div id="registerProMetiersList" class="register-metiers-list"></div>
-            </fieldset>
-
-            <div class="auth-galaxy-field">
-                <label class="auth-galaxy-label" for="name">Nom</label>
-                <div class="auth-galaxy-line">
-                    <input type="text" id="name" name="name" placeholder="Marie Dupont" autocomplete="name" required>
-                    <span class="auth-galaxy-icon" aria-hidden="true">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z"/></svg>
+    <form id="registerForm" class="register-form">
+        <p class="register-role-heading">Je suis...</p>
+        <div class="role-cards" role="radiogroup" aria-label="Type de compte">
+            <label class="role-card">
+                <input type="radio" name="role" value="Client" checked>
+                <span class="role-card__inner">
+                    <span class="role-card__icon" aria-hidden="true">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z"/></svg>
                     </span>
-                </div>
-            </div>
-
-            <div class="auth-galaxy-field">
-                <label class="auth-galaxy-label" for="email">E-mail</label>
-                <div class="auth-galaxy-line">
-                    <input type="email" id="email" name="email" placeholder="votre.email@exemple.com" autocomplete="email" required>
-                    <span class="auth-galaxy-icon" aria-hidden="true">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M21.75 6.75v10.5a2.25 2.25 0 01-2.25 2.25h-15a2.25 2.25 0 01-2.25-2.25V6.75m19.5 0A2.25 2.25 0 0019.5 4.5h-15a2.25 2.25 0 00-2.25 2.25m19.5 0v.243a2.25 2.25 0 01-1.07 1.916l-7.5 4.615a2.25 2.25 0 01-2.36 0L3.32 8.91a2.25 2.25 0 01-1.07-1.916V6.75"/></svg>
-                    </span>
-                </div>
-            </div>
-
-            <div class="auth-galaxy-field">
-                <label class="auth-galaxy-label" for="regPhoneNational">Téléphone <span style="font-weight:400;opacity:.8">(optionnel)</span></label>
-                <div class="auth-galaxy-phone-row">
-                    <select id="regPhoneCountry" class="phone-input-row__country" aria-label="Indicatif pays"></select>
-                    <div class="auth-galaxy-line phone-input-row__number-wrap">
-                        <input type="tel" id="regPhoneNational" name="phoneNational" autocomplete="tel-national" placeholder="90 12 34 56">
-                    </div>
-                </div>
-                <p class="auth-galaxy-hint" id="regPhoneHint"></p>
-            </div>
-
-            <div class="auth-galaxy-field">
-                <label class="auth-galaxy-label" for="password">Mot de passe</label>
-                <div class="auth-galaxy-line">
-                    <input type="password" id="password" name="password" placeholder="••••••••" autocomplete="new-password" minlength="8" required>
-                    <button type="button" class="password-toggle auth-galaxy-toggle" data-target="password" aria-label="Afficher le mot de passe" aria-pressed="false">
-                        <svg class="password-toggle__icon password-toggle__icon--show" xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.75" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M2.036 12.322a1.012 1.012 0 010-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178z"/><path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
-                        <svg class="password-toggle__icon password-toggle__icon--hide" xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.75" viewBox="0 0 24 24" aria-hidden="true" hidden><path stroke-linecap="round" stroke-linejoin="round" d="M3.98 8.223A10.477 10.477 0 001.934 12C3.226 16.338 7.244 19.5 12 19.5c.993 0 1.953-.138 2.863-.395M6.228 6.228A10.45 10.45 0 0112 4.5c4.756 0 8.773 3.162 10.065 7.498a10.523 10.523 0 01-4.293 5.774M6.228 6.228L3 3m3.228 3.228l3.65 3.65m7.894 7.894L21 21m-3.228-3.228l-3.65-3.65m0 0a3 3 0 10-4.243-4.243m4.242 4.242L9.88 9.88"/></svg>
-                    </button>
-                </div>
-            </div>
-
-            <div class="auth-galaxy-field">
-                <label class="auth-galaxy-label" for="confirmPassword">Confirmer le mot de passe</label>
-                <div class="auth-galaxy-line">
-                    <input type="password" id="confirmPassword" name="confirmPassword" placeholder="••••••••" autocomplete="new-password" minlength="8" required>
-                    <span class="auth-galaxy-icon" aria-hidden="true">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M16.5 10.5V6.75a4.5 4.5 0 10-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 002.25-2.25v-6.75a2.25 2.25 0 00-2.25-2.25H6.75a2.25 2.25 0 00-2.25 2.25v6.75a2.25 2.25 0 002.25 2.25z"/></svg>
-                    </span>
-                </div>
-            </div>
-
-            <label class="auth-galaxy-terms">
-                <input type="checkbox" id="acceptTerms" name="acceptTerms" required>
-                <span>J'accepte les conditions générales d'utilisation</span>
+                    <span class="role-card__label">Client</span>
+                </span>
             </label>
+            <label class="role-card">
+                <input type="radio" name="role" value="Coiffeur">
+                <span class="role-card__inner">
+                    <span class="role-card__icon" aria-hidden="true">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9.813 15.904 9 18.75l-.813-2.846a4.5 4.5 0 0 0-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 0 0 3.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 0 0 3.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 0 0-3.09 3.09ZM18.259 8.715 18 9.75l-.259-1.035a3.375 3.375 0 0 0-2.455-2.456L14.25 6l1.036-.259a3.375 3.375 0 0 0 2.455-2.456L18 2.25l.259 1.035a3.375 3.375 0 0 0 2.455 2.456L21.75 6l-1.035.259a3.375 3.375 0 0 0-2.455 2.456L18 9.75l-.259-1.035a3.375 3.375 0 0 0-2.455-2.456L14.25 6l1.036-.259a3.375 3.375 0 0 0 2.455-2.456L18 2.25Z"/></svg>
+                    </span>
+                    <span class="role-card__label">Coiffeur</span>
+                </span>
+            </label>
+            <label class="role-card">
+                <input type="radio" name="role" value="Salon">
+                <span class="role-card__inner">
+                    <span class="role-card__icon" aria-hidden="true">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M2.25 21h19.5m-18-18v18m10.5-18v18m6-13.5V21M6.75 6.75h.75m-.75 3h.75m-.75 3h.75m3-6h.75m-.75 3h.75m-.75 3h.75M6.75 21v-3.375c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125V21M3 3h12m-.75 4.5H21m-9.75 4.5h9.75"/></svg>
+                    </span>
+                    <span class="role-card__label">Salon</span>
+                </span>
+            </label>
+        </div>
 
-            <button type="submit" class="auth-galaxy-submit" id="registerSubmit">S'inscrire</button>
-        </form>
+        <fieldset class="field-group register-metiers-fieldset" id="registerWrapProMetiers" hidden>
+            <legend class="field-label">Mon activité</legend>
+            <p class="field-hint">Tout ce que vous proposez : les clients qui cherchent ces types vous verront.</p>
+            <div id="registerProMetiersList" class="register-metiers-list"></div>
+        </fieldset>
 
-        <p class="auth-galaxy-switch">Déjà un compte ? <a href="login.html">Se connecter</a></p>
-    </div>
+        <p id="formError" class="form-error" role="alert" hidden></p>
+        <div class="field-group">
+            <label class="field-label" for="name">Nom complet</label>
+            <div class="field-input-wrap">
+                <span class="field-input-icon" aria-hidden="true">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z"/></svg>
+                </span>
+                <input type="text" id="name" name="name" placeholder="Marie Dupont" autocomplete="name">
+            </div>
+        </div>
+
+        <div class="field-group">
+            <label class="field-label" for="email">Email</label>
+            <div class="field-input-wrap">
+                <span class="field-input-icon" aria-hidden="true">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M21.75 6.75v10.5a2.25 2.25 0 01-2.25 2.25h-15a2.25 2.25 0 01-2.25-2.25V6.75m19.5 0A2.25 2.25 0 0019.5 4.5h-15a2.25 2.25 0 00-2.25 2.25m19.5 0v.243a2.25 2.25 0 01-1.07 1.916l-7.5 4.615a2.25 2.25 0 01-2.36 0L3.32 8.91a2.25 2.25 0 01-1.07-1.916V6.75"/></svg>
+                </span>
+                <input type="email" id="email" name="email" placeholder="votre.email@exemple.com" autocomplete="email">
+            </div>
+        </div>
+
+        <div class="field-group">
+            <label class="field-label" for="regPhoneNational">Téléphone (optionnel)</label>
+            <div class="phone-input-row">
+                <select id="regPhoneCountry" class="phone-input-row__country" aria-label="Indicatif pays"></select>
+                <div class="field-input-wrap phone-input-row__number-wrap">
+                    <input type="tel" id="regPhoneNational" name="phoneNational" autocomplete="tel-national" placeholder="90 12 34 56">
+                </div>
+            </div>
+            <p class="field-hint" id="regPhoneHint"></p>
+        </div>
+
+        <div class="field-group">
+            <label class="field-label" for="password">Mot de passe</label>
+            <div class="field-input-wrap">
+                <span class="field-input-icon" aria-hidden="true">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M16.5 10.5V6.75a4.5 4.5 0 10-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 002.25-2.25v-6.75a2.25 2.25 0 00-2.25-2.25H6.75a2.25 2.25 0 00-2.25 2.25v6.75a2.25 2.25 0 002.25 2.25z"/></svg>
+                </span>
+                <input type="password" id="password" name="password" placeholder="••••••••" autocomplete="new-password" minlength="8" required>
+                <button type="button" class="password-toggle" data-target="password" aria-label="Afficher le mot de passe" aria-pressed="false">
+                    <svg class="password-toggle__icon password-toggle__icon--show" xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.75" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M2.036 12.322a1.012 1.012 0 010-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178z"/><path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+                    <svg class="password-toggle__icon password-toggle__icon--hide" xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.75" viewBox="0 0 24 24" aria-hidden="true" hidden><path stroke-linecap="round" stroke-linejoin="round" d="M3.98 8.223A10.477 10.477 0 001.934 12C3.226 16.338 7.244 19.5 12 19.5c.993 0 1.953-.138 2.863-.395M6.228 6.228A10.45 10.45 0 0112 4.5c4.756 0 8.773 3.162 10.065 7.498a10.523 10.523 0 01-4.293 5.774M6.228 6.228L3 3m3.228 3.228l3.65 3.65m7.894 7.894L21 21m-3.228-3.228l-3.65-3.65m0 0a3 3 0 10-4.243-4.243m4.242 4.242L9.88 9.88"/></svg>
+                </button>
+            </div>
+            <p class="field-hint">Minimum 8 caractères avec 1 majuscule, 1 minuscule, 1 chiffre et 1 caractère spécial.</p>
+        </div>
+
+        <button type="submit" class="register-submit" id="registerSubmit">Créer un Compte</button>
+    </form>
+
+    <p class="register-footer">
+        Vous avez déjà un compte ? <a href="login.html">Se Connecter</a>
+    </p>
 </div>
 
 <script type="module">
@@ -158,11 +140,12 @@ function setupPasswordToggle(btn) {
         if (iconShow) iconShow.hidden = show;
         if (iconHide) iconHide.hidden = !show;
     };
-    btn.addEventListener("click", (e) => {
+    const onToggle = (e) => {
         e.preventDefault();
         e.stopPropagation();
         setVisible(input.getAttribute("type") === "password");
-    });
+    };
+    btn.addEventListener("click", onToggle);
     btn.addEventListener("mousedown", (e) => e.preventDefault());
 }
 
@@ -208,26 +191,15 @@ form.addEventListener("submit", async (e) => {
     const name = document.getElementById("name").value.trim();
     const email = document.getElementById("email").value.trim();
     const password = document.getElementById("password").value;
-    const confirmPassword = document.getElementById("confirmPassword").value;
     const role = form.querySelector('input[name="role"]:checked')?.value ?? "Client";
 
-    if (!name || !email || !password || !confirmPassword) {
-        formError.textContent = "Veuillez remplir tous les champs obligatoires.";
-        formError.hidden = false;
-        return;
-    }
-    if (password !== confirmPassword) {
-        formError.textContent = "Les mots de passe ne correspondent pas.";
+    if (!name || !email || !password) {
+        formError.textContent = "Veuillez remplir tous les champs.";
         formError.hidden = false;
         return;
     }
     if (!PASSWORD_POLICY.test(password)) {
         formError.textContent = "Mot de passe trop faible : utilisez au moins 8 caractères, avec majuscule, minuscule, chiffre et caractère spécial.";
-        formError.hidden = false;
-        return;
-    }
-    if (!document.getElementById("acceptTerms").checked) {
-        formError.textContent = "Veuillez accepter les conditions générales.";
         formError.hidden = false;
         return;
     }
