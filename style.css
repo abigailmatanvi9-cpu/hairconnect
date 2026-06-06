@@ -4968,7 +4968,7 @@ body.hc-theme-pro .agenda-pro__pricing-total strong {
 body.login-page.hc-theme-pro,
 body.register-page.hc-theme-pro {
     font-family: var(--hc-font);
-    background: linear-gradient(165deg, #ffffff 0%, #ffffff 50%, #ffffff 100%);
+    background: var(--hc-pro-surface);
     color: var(--hc-pro-ink);
 }
 
@@ -6721,7 +6721,7 @@ body.hc-theme-pro .form-info {
    HairConnect — tableau de bord « pro » (sidebar violette, centre clair, rail)
    ------------------------------------------------------------------------- */
 .hc-dash-pro.dashboard-page {
-    background: linear-gradient(165deg, #ffffff 0%, #ffffff 45%, #ffffff 100%);
+    background: var(--hc-pro-surface);
     color: var(--hc-pro-ink);
 }
 
