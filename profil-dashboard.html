@@ -26,7 +26,7 @@
         <div class="profil-hero-main">
             <div class="profil-hero-avatar-wrap">
                 <label class="profil-hero-avatar-label" for="dpPhotoFile">
-                    <img id="dpHubAvatar" class="profil-hero-avatar" alt="">
+                    <img id="dpHubAvatar" class="profil-hero-avatar" alt="" hidden>
                     <span id="dpHubAvatarFb" class="profil-hero-avatar-fb">?</span>
                     <span class="profil-hero-avatar-edit" aria-hidden="true">
                         <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M6.827 16.95 3 20.776V18a2.25 2.25 0 012.25-2.25h2.577M15.75 7.5l-7.5 7.5M18 3l3 3-9.75 9.75H8.25V12L18 3z"/></svg>
@@ -138,7 +138,7 @@ import {
 } from "./firebase.js";
 import { initPhoneField, readPhoneFromField } from "./phone-utils.js";
 import { initLocationFields, readLocationFromFields } from "./location-utils.js";
-import { compressImageFile } from "./image-utils.js";
+import { compressImageFile, PROFILE_AVATAR_COMPRESS } from "./image-utils.js";
 import { parseServicesTarifs, serializeServicesTarifs } from "./services-tarifs-utils.js";
 
 const dpPhoneCountry = document.getElementById("dpPhoneCountry");
@@ -229,22 +229,34 @@ function applyHubAvatar(name, url) {
     const fb = document.getElementById("dpHubAvatarFb");
     if (!img || !fb) return;
     const u = String(url || "").trim();
-    img.onerror = () => {
-        img.hidden = true;
-        fb.hidden = false;
-        fb.textContent = initialsFromName(name);
-        img.onerror = null;
-    };
-    if (u) {
-        img.src = u;
-        img.hidden = false;
-        fb.hidden = true;
-    } else {
+    const showFallback = () => {
+        img.onload = null;
         img.onerror = null;
         img.removeAttribute("src");
         img.hidden = true;
         fb.hidden = false;
         fb.textContent = initialsFromName(name);
+    };
+    if (!u) {
+        showFallback();
+        return;
+    }
+    img.onerror = showFallback;
+    img.onload = () => {
+        img.hidden = false;
+        fb.hidden = true;
+        img.onerror = null;
+        img.onload = null;
+    };
+    img.hidden = true;
+    fb.hidden = false;
+    fb.textContent = initialsFromName(name);
+    img.src = u;
+    if (img.complete && img.naturalWidth > 0) {
+        img.hidden = false;
+        fb.hidden = true;
+        img.onerror = null;
+        img.onload = null;
     }
 }
 
@@ -400,17 +412,20 @@ document.getElementById("dpPhotoFile")?.addEventListener("change", async (e) => 
         return;
     }
     try {
-        photoUrl = await compressImageFile(file);
+        photoUrl = await compressImageFile(file, PROFILE_AVATAR_COMPRESS);
         const displayName =
             document.getElementById("dpSalonName")?.value.trim() ||
             document.getElementById("dpName")?.value.trim() ||
             profileCache?.name ||
             "Utilisateur";
         applyHubAvatar(displayName, photoUrl);
-        await updateUserProfile(profileUid, { photoUrl });
-        const fresh = await fetchUserProfile(profileUid);
-        profileCache = fresh || profileCache;
-        notifyParentProfileUpdated();
+        const saved = await updateUserProfile(profileUid, { photoUrl });
+        const fresh = (await fetchUserProfile(profileUid)) || saved || null;
+        const savedPhoto = String((fresh && fresh.photoUrl) || (saved && saved.photoUrl) || photoUrl || "").trim();
+        photoUrl = savedPhoto;
+        profileCache = { ...(fresh || profileCache || {}), photoUrl: savedPhoto };
+        applyHubAvatar(displayName, savedPhoto);
+        notifyParentProfileUpdated(savedPhoto);
         if (formError) formError.hidden = true;
         if (formOk) {
             formOk.textContent = "Photo de profil enregistrée.";
@@ -433,11 +448,14 @@ document.getElementById("dpAddServiceBtn")?.addEventListener("click", () => {
     if (last) last.focus();
 });
 
-function notifyParentProfileUpdated() {
+function notifyParentProfileUpdated(photoUrlHint) {
     try {
         if (!window.parent || window.parent === window) return;
         const o = window.location.origin;
-        window.parent.postMessage({ type: "hc-profile-updated" }, o && o !== "null" ? o : "*");
+        const msg = { type: "hc-profile-updated" };
+        const hint = String(photoUrlHint || "").trim();
+        if (hint) msg.photoUrl = hint;
+        window.parent.postMessage(msg, o && o !== "null" ? o : "*");
     } catch (_) {
         /* ignore */
     }
@@ -540,12 +558,13 @@ document.getElementById("dpForm").addEventListener("submit", async (e) => {
 
     if (saveBtn) saveBtn.disabled = true;
     try {
-        await updateUserProfile(profileUid, payload);
-        photoUrl = payload.photoUrl;
-        const fresh = await fetchUserProfile(profileUid);
-        profileCache = fresh || profileCache;
+        const saved = await updateUserProfile(profileUid, payload);
+        const fresh = (await fetchUserProfile(profileUid)) || saved || null;
+        const savedPhoto = String((fresh && fresh.photoUrl) || (saved && saved.photoUrl) || payload.photoUrl || "").trim();
+        photoUrl = savedPhoto;
+        profileCache = { ...(fresh || profileCache || {}), photoUrl: savedPhoto };
         syncFormFromCache();
-        notifyParentProfileUpdated();
+        notifyParentProfileUpdated(savedPhoto);
         if (formOk) {
             formOk.textContent = "Profil enregistré.";
             formOk.hidden = false;

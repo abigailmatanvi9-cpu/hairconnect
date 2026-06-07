@@ -2852,7 +2852,11 @@ window.addEventListener("message", async (ev) => {
     if (!u) return;
     try {
         const fresh = await fetchUserProfile(u.uid);
+        const hint = String(ev.data.photoUrl || "").trim();
         dashProfileCache = fresh || dashProfileCache;
+        if (hint) {
+            dashProfileCache = { ...(dashProfileCache || {}), photoUrl: hint };
+        }
         fillDashSidebarUser(u, dashProfileCache);
         refreshDashHeroesFromProfileCache();
         if (dashActiveRoleKey === "client") {
@@ -2869,6 +2873,7 @@ window.addEventListener("message", async (ev) => {
                 quartier: dashProfileCache?.quartier,
                 photoUrl: dashProfileCache?.photoUrl
             });
+            renderCoiffeurProfileCompletion(dashProfileCache, 0);
             try {
                 await loadCoiffeurStats(u.uid);
             } catch {

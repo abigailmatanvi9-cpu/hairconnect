@@ -1,3 +1,11 @@
+/** Paramètres adaptés aux photos de profil (petit avatar, data URL fiable dans <img>). */
+export const PROFILE_AVATAR_COMPRESS = {
+    maxWidth: 512,
+    maxHeight: 512,
+    maxBytes: 320_000,
+    quality: 0.85
+};
+
 /**
  * Redimensionne et compresse une image avant envoi (data URL) — limite la taille côté API.
  */

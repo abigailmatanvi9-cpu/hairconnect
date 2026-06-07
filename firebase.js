@@ -179,10 +179,11 @@ export async function fetchUserProfile(uid) {
 }
 
 export async function updateUserProfile(uid, partial) {
-    await apiFetch(`/users/${encodeURIComponent(uid)}`, {
+    const payload = await apiFetch(`/users/${encodeURIComponent(uid)}`, {
         method: "PUT",
         body: JSON.stringify({ ...partial, updatedAt: new Date().toISOString() })
     });
+    return payload.user ? { id: payload.user.id, ...payload.user } : null;
 }
 
 export async function listUsers() {
