@@ -9483,8 +9483,22 @@ body.hc-marketing--spa {
 }
 
 .hc-dash-smart.dash-mode-client .dash-rail__stats--client,
-.hc-dash-smart.dash-mode-coiffeur .dash-rail__stats--coiffeur {
+.hc-dash-smart.dash-mode-coiffeur .dash-rail__stats--coiffeur,
+.hc-dash-smart.dash-mode-salon .dash-rail__stats--salon {
     display: none;
+}
+
+.dash-rail__growth--salon {
+    display: none;
+}
+
+.dash-mode-salon .dash-rail__offres-block,
+.dash-mode-salon .dash-rail__card--accent {
+    display: none !important;
+}
+
+.dash-mode-salon .dash-rail__growth--salon {
+    display: block;
 }
 
 /* —— Tableau de bord coiffeur indépendant (hub) —— */
@@ -9808,7 +9822,177 @@ body.hc-marketing--spa {
 
 @media (min-width: 1100px) {
     .hc-dash-smart .dash-panel--client-home .dash-client-hub,
-    .hc-dash-smart .dash-panel--client-home .dash-coiffeur-hub {
+    .hc-dash-smart .dash-panel--client-home .dash-coiffeur-hub,
+    .hc-dash-smart .dash-panel--client-home .dash-salon-hub {
         max-width: 920px;
+    }
+}
+
+/* —— Tableau de bord salon (hub) —— */
+.hc-dash-smart .dash-salon-hub {
+    display: grid;
+    gap: 1.25rem;
+}
+
+.hc-dash-smart .dash-salon-hub .dash-client-hub__stats {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.hc-dash-smart .dash-hub-stat--static {
+    cursor: default;
+    text-decoration: none;
+    color: inherit;
+}
+
+.hc-dash-smart .dash-hub-agenda-day {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: grid;
+    gap: 0.55rem;
+}
+
+.hc-dash-smart .dash-hub-agenda-day__item {
+    display: flex;
+    align-items: baseline;
+    gap: 0.75rem;
+    padding: 0.55rem 0.65rem;
+    border-radius: 10px;
+    background: var(--hc-smart-bg, #faf7f5);
+}
+
+.hc-dash-smart .dash-hub-agenda-day__time {
+    font-size: 0.82rem;
+    font-weight: 700;
+    color: var(--hc-smart-accent-deep, #b07d6c);
+    min-width: 3.5rem;
+}
+
+.hc-dash-smart .dash-hub-agenda-day__label {
+    font-size: 0.88rem;
+    color: var(--hc-smart-ink, #1a1a1a);
+}
+
+.hc-dash-smart .dash-hub-agenda-day__more {
+    font-size: 0.8rem;
+    color: var(--hc-smart-muted, #6b6b6b);
+    padding: 0.25rem 0.65rem;
+}
+
+.hc-dash-smart .dash-hub-recruit__body {
+    display: grid;
+    gap: 0.85rem;
+}
+
+.hc-dash-smart .dash-hub-recruit__stats {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: grid;
+    gap: 0.45rem;
+}
+
+.hc-dash-smart .dash-hub-recruit__row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+    padding: 0.5rem 0.65rem;
+    border-radius: 10px;
+    background: var(--hc-smart-bg, #faf7f5);
+}
+
+.hc-dash-smart .dash-hub-recruit__label {
+    font-size: 0.86rem;
+    color: var(--hc-smart-muted, #6b6b6b);
+}
+
+.hc-dash-smart .dash-hub-recruit__value {
+    font-size: 1rem;
+    font-weight: 700;
+    color: var(--hc-smart-ink, #1a1a1a);
+}
+
+.hc-dash-smart .dash-hub-avis-item__reply {
+    display: inline-block;
+    margin-top: 0.45rem;
+    font-size: 0.78rem;
+    font-weight: 700;
+    color: var(--hc-smart-accent-deep, #b07d6c);
+    text-decoration: none;
+}
+
+.hc-dash-smart .dash-hub-avis-item__reply:hover {
+    text-decoration: underline;
+}
+
+.hc-dash-smart .dash-hub-offer-perf-list,
+.hc-dash-smart .dash-hub-photo-pop-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: grid;
+    gap: 0.55rem;
+}
+
+.hc-dash-smart .dash-hub-offer-perf-item,
+.hc-dash-smart .dash-hub-photo-pop-item {
+    padding: 0.65rem 0.75rem;
+    border-radius: 10px;
+    background: var(--hc-smart-bg, #faf7f5);
+}
+
+.hc-dash-smart .dash-hub-offer-perf-item__title,
+.hc-dash-smart .dash-hub-photo-pop-item__title {
+    margin: 0;
+    font-size: 0.9rem;
+    font-weight: 700;
+    color: var(--hc-smart-ink, #1a1a1a);
+}
+
+.hc-dash-smart .dash-hub-offer-perf-item__meta,
+.hc-dash-smart .dash-hub-photo-pop-item__views {
+    display: block;
+    margin-top: 0.2rem;
+    font-size: 0.78rem;
+    color: var(--hc-smart-muted, #6b6b6b);
+}
+
+.hc-dash-smart .dash-rail__growth-line {
+    margin: 0.35rem 0 0;
+    font-size: 0.84rem;
+    color: var(--hc-pro-muted, #6b6b6b);
+}
+
+.hc-dash-smart .dash-rail__growth-value {
+    font-weight: 700;
+    color: var(--hc-smart-teal, #2d8a7b);
+}
+
+.hc-dash-smart .dash-rail__growth-line--rating {
+    margin-top: 0.65rem;
+}
+
+.hc-dash-smart .dash-rail__card-title--sub {
+    margin-top: 1rem;
+}
+
+.hc-dash-smart .dash-rail__todo-list {
+    list-style: none;
+    margin: 0.35rem 0 0;
+    padding: 0;
+    display: grid;
+    gap: 0.35rem;
+    font-size: 0.84rem;
+    color: var(--hc-pro-ink, #1a1a1a);
+}
+
+.hc-dash-smart .dash-rail__todo-list span {
+    font-weight: 700;
+}
+
+@media (max-width: 899px) {
+    .hc-dash-smart .dash-salon-hub .dash-client-hub__stats {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
     }
 }

@@ -284,10 +284,10 @@
             </div>
         </section>
 
-        <!-- Espace salon — même style d’accueil -->
+        <!-- Espace salon — hub pilotage -->
         <section id="panel-salon" class="dash-panel dash-panel--client-home" hidden>
             <div class="dash-client-app">
-                <div class="dash-home-client">
+                <div class="dash-home-client dash-salon-hub">
                     <div class="dash-home-top dash-hide-when-sidebar">
                         <div class="dash-home-user">
                             <div class="dash-home-avatar-wrap" aria-hidden="true">
@@ -303,41 +303,102 @@
                             <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.75" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M14.857 17.082a23.848 23.848 0 005.454-1.31A8.967 8.967 0 0118 9.75V9A6 6 0 006 9v.75a8.967 8.967 0 01-2.312 6.022c1.733.64 3.56 1.085 5.455 1.31m5.714 0a24.255 24.255 0 01-5.714 0m5.714 0a3 3 0 11-5.714 0"/></svg>
                         </a>
                     </div>
-                    <section class="dash-pro-hero dash-pro-hero--salon" aria-labelledby="dashHeroSalonTitle">
-                        <div class="dash-pro-hero__text">
-                            <h2 id="dashHeroSalonTitle" class="dash-pro-hero__title">Recrutez les bonnes têtes</h2>
-                            <p class="dash-pro-hero__desc">Publiez vos offres (contrat, ville) et recevez des candidatures qualifiées.</p>
-                            <a href="offres.html" class="dash-pro-hero__cta" data-dash-embed="offres.html">Gérer les offres</a>
-                        </div>
-                        <div class="dash-pro-hero__art dash-pro-hero__art--salon" aria-hidden="true"></div>
+
+                    <section class="dash-coiffeur-hero" aria-labelledby="salonHubGreet">
+                        <h2 id="salonHubGreet" class="dash-coiffeur-hero__title">Bonjour 👋</h2>
+                        <p class="dash-coiffeur-hero__city dash-hide-when-sidebar">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.75" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M15 10.5a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" d="M19.5 10.5c0 7.125-7.5 11.25-7.5 11.25S4.5 17.625 4.5 10.5a7.5 7.5 0 1115 0z"/></svg>
+                            <span data-dash-home="city">Ville non renseignée</span>
+                        </p>
                     </section>
 
-                    <h3 class="dash-pro-section-label">Pilotage salon</h3>
-                    <nav class="dash-home-cats dash-pro-cats" aria-label="Raccourcis salon">
-                        <a href="offres.html" class="dash-home-cat" data-dash-embed="offres.html"><span class="dash-home-cat-icon" aria-hidden="true"><svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15"/></svg></span><span class="dash-home-cat-label">Offres</span></a>
-                        <a href="marketplace.html" class="dash-home-cat"><span class="dash-home-cat-icon" aria-hidden="true"><svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M15.75 10.5V6a3.75 3.75 0 10-7.5 0v4.5m11.356-1.993l1.106 8.844a1.125 1.125 0 01-1.118 1.274H4.406a1.125 1.125 0 01-1.118-1.274l1.106-8.844A1.125 1.125 0 015.505 7.5h12.99a1.125 1.125 0 011.111 1.007z"/></svg></span><span class="dash-home-cat-label">Marketplace</span></a>
-                        <a href="candidatures.html" class="dash-home-cat" data-dash-embed="candidatures.html"><span class="dash-home-cat-icon" aria-hidden="true"><svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M15 19.128a9.38 9.38 0 002.625.372 9.337 9.337 0 004.121-.952 4.125 4.125 0 00-7.438-3.168 4.125 4.125 0 00-3.168 7.438 9.337 9.337 0 004.121.952 9.38 9.38 0 002.625-.372M12 9v6m3-3H9"/></svg></span><span class="dash-home-cat-label">Candidatures</span></a>
-                        <a href="avis-recus.html" class="dash-home-cat" data-dash-embed="avis-recus.html"><span class="dash-home-cat-icon" aria-hidden="true"><svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M11.48 3.499a.562.562 0 011.04 0l2.125 5.111a.563.563 0 00.475.345l5.518.442c.499.04.701.663.321.988l-4.204 3.602a.563.563 0 00-.182.557l1.285 5.385a.562.562 0 01-.84.61l-4.725-2.885a.563.563 0 00-.586 0L6.982 20.54a.562.562 0 01-.84-.61l1.285-5.386a.562.562 0 00-.182-.557l-4.204-3.602a.563.563 0 01.321-.988l5.518-.442a.563.563 0 00.475-.345L11.48 3.5z"/></svg></span><span class="dash-home-cat-label">Avis</span></a>
-                        <button type="button" class="dash-home-cat dash-home-cat--btn" data-dash-open-profile><span class="dash-home-cat-icon" aria-hidden="true"><svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M2.25 21h19.5m-18-18v18m10.5-18v18m6-13.5V21M6.75 6.75h.75m-.75 3h.75m-.75 3h.75m3-6h.75m-.75 3h.75m-.75 3h.75M6.75 21v-3.375c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125V21M3 3h12.75m0 0h3.375c.621 0 1.125.504 1.125 1.125v9.75c0 .621-.504 1.125-1.125 1.125H3.75a1.125 1.125 0 01-1.125-1.125V4.125c0-.621.504-1.125 1.125-1.125z"/></svg></span><span class="dash-home-cat-label">Fiche salon</span></button>
-                    </nav>
+                    <section class="dash-hub-profile" aria-labelledby="salonHubProfileTitle">
+                        <div class="dash-hub-profile__head">
+                            <h3 id="salonHubProfileTitle" class="dash-hub-profile__title">Fiche salon complétée à <span id="salonHubProfilePct">0</span>&nbsp;%</h3>
+                            <button type="button" class="dash-hub-profile__cta" data-dash-open-profile>Compléter</button>
+                        </div>
+                        <div class="dash-hub-profile__bar" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" id="salonHubProfileBarWrap">
+                            <span class="dash-hub-profile__bar-fill" id="salonHubProfileBar" style="width:0%"></span>
+                        </div>
+                        <ul id="salonHubProfileChecks" class="dash-hub-profile__checks"></ul>
+                    </section>
 
-                    <div class="dash-pro-offers-head">
-                        <h3 class="dash-pro-section-title">Vos offres publiées</h3>
-                        <a href="offres.html" class="dash-pro-offers-all" data-dash-embed="offres.html">Gérer</a>
+                    <div class="dash-client-hub__stats" aria-label="Indicateurs du salon">
+                        <div class="dash-hub-stat dash-hub-stat--static">
+                            <span class="dash-hub-stat__label">Vues profil</span>
+                            <span class="dash-hub-stat__value" data-salon-stat="views">0</span>
+                            <span class="dash-hub-stat__meta">Visibilité estimée</span>
+                        </div>
+                        <a href="agenda-pro.html" class="dash-hub-stat" data-dash-embed="agenda-pro.html">
+                            <span class="dash-hub-stat__label">RDV</span>
+                            <span class="dash-hub-stat__value" data-salon-stat="rdv">0</span>
+                            <span class="dash-hub-stat__meta">À venir</span>
+                        </a>
+                        <a href="candidatures.html" class="dash-hub-stat" data-dash-embed="candidatures.html">
+                            <span class="dash-hub-stat__label">Candidatures</span>
+                            <span class="dash-hub-stat__value" data-salon-stat="candidatures">0</span>
+                            <span class="dash-hub-stat__meta">Total reçues</span>
+                        </a>
+                        <a href="avis-recus.html" class="dash-hub-stat" data-dash-embed="avis-recus.html">
+                            <span class="dash-hub-stat__label">Avis</span>
+                            <span class="dash-hub-stat__value" data-salon-stat="rating">—</span>
+                            <span class="dash-hub-stat__meta">Note moyenne</span>
+                        </a>
                     </div>
-                    <ul id="dashFeaturedOffresSalon" class="dash-pro-offer-grid" aria-live="polite"></ul>
-                    <p id="dashFeaturedOffresSalonEmpty" class="dash-pro-offers-empty" hidden>Aucune offre publiée pour l’instant.</p>
 
-                    <p class="dash-home-loc dash-hide-when-sidebar">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.75" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M15 10.5a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" d="M19.5 10.5c0 7.125-7.5 11.25-7.5 11.25S4.5 17.625 4.5 10.5a7.5 7.5 0 1115 0z"/></svg>
-                        <span data-dash-home="city">Ville non renseignée</span>
-                    </p>
-                    <nav class="dash-home-links dash-hide-when-sidebar" aria-label="Liens utiles">
-                        <button type="button" class="dash-home-links-btn" data-dash-open-profile>Fiche salon</button>
-                        <a href="offres.html" data-dash-embed="offres.html">Offres</a>
-                        <a href="avis-recus.html" data-dash-embed="avis-recus.html">Avis clients</a>
-                        <a href="marketplace.html">Marketplace</a>
-                    </nav>
+                    <section class="dash-client-hub__section" aria-labelledby="salonHubAgendaTitle">
+                        <div class="dash-client-hub__head">
+                            <h3 id="salonHubAgendaTitle" class="dash-client-hub__title">Agenda du jour</h3>
+                            <a href="agenda-pro.html" class="dash-client-hub__link" data-dash-embed="agenda-pro.html">Agenda complet</a>
+                        </div>
+                        <p id="salonHubAgendaLoading" class="dash-client-hub__loading">Chargement…</p>
+                        <ul id="salonHubAgendaList" class="dash-hub-rdv-list dash-hub-agenda-day"></ul>
+                    </section>
+
+                    <section class="dash-client-hub__section dash-hub-recruit" aria-labelledby="salonHubRecruitTitle">
+                        <div class="dash-client-hub__head">
+                            <h3 id="salonHubRecruitTitle" class="dash-client-hub__title">Recrutement en cours</h3>
+                        </div>
+                        <p id="salonHubRecruitLoading" class="dash-client-hub__loading">Chargement…</p>
+                        <div id="salonHubRecruitBody" class="dash-hub-recruit__body" hidden>
+                            <ul id="salonHubRecruitStats" class="dash-hub-recruit__stats"></ul>
+                            <a href="candidatures.html" class="dash-hub-section-cta" data-dash-embed="candidatures.html">Voir les candidatures</a>
+                        </div>
+                    </section>
+
+                    <section class="dash-client-hub__section" aria-labelledby="salonHubAvisTitle">
+                        <div class="dash-client-hub__head">
+                            <h3 id="salonHubAvisTitle" class="dash-client-hub__title">Derniers avis clients</h3>
+                            <a href="avis-recus.html" class="dash-client-hub__link" data-dash-embed="avis-recus.html">Tout voir</a>
+                        </div>
+                        <p id="salonHubAvisLoading" class="dash-client-hub__loading">Chargement…</p>
+                        <ul id="salonHubAvisList" class="dash-hub-avis-list"></ul>
+                    </section>
+
+                    <section class="dash-client-hub__section" aria-labelledby="salonHubOffersPerfTitle">
+                        <div class="dash-client-hub__head">
+                            <h3 id="salonHubOffersPerfTitle" class="dash-client-hub__title">Performances des offres publiées</h3>
+                            <a href="offres.html" class="dash-client-hub__link" data-dash-embed="offres.html">Gérer</a>
+                        </div>
+                        <p id="salonHubOffersPerfLoading" class="dash-client-hub__loading">Chargement…</p>
+                        <ul id="salonHubOffersPerfList" class="dash-hub-offer-perf-list"></ul>
+                    </section>
+
+                    <section class="dash-client-hub__section" aria-labelledby="salonHubMonthTitle">
+                        <div class="dash-client-hub__head">
+                            <h3 id="salonHubMonthTitle" class="dash-client-hub__title">Ce mois-ci</h3>
+                        </div>
+                        <ul id="salonHubMonthList" class="dash-hub-perf-list"></ul>
+                    </section>
+
+                    <section class="dash-client-hub__section" aria-labelledby="salonHubPhotosTitle">
+                        <div class="dash-client-hub__head">
+                            <h3 id="salonHubPhotosTitle" class="dash-client-hub__title">Photos les plus consultées</h3>
+                            <button type="button" class="dash-client-hub__link dash-client-hub__link--btn" data-dash-open-profile>Publier</button>
+                        </div>
+                        <p id="salonHubPhotosLoading" class="dash-client-hub__loading">Chargement…</p>
+                        <ul id="salonHubPhotosList" class="dash-hub-photo-pop-list"></ul>
+                    </section>
                 </div>
             </div>
         </section>
@@ -461,6 +522,17 @@
             <p class="dash-rail__accent-title">Passez à l’action</p>
             <p class="dash-rail__accent-text">Mettez à jour votre profil pour de meilleures recommandations.</p>
             <button type="button" class="dash-rail__accent-btn" id="dashRailCtaProfil">Ouvrir mon profil</button>
+        </div>
+
+        <div class="dash-rail__card dash-rail__growth dash-rail__growth--salon">
+            <p class="dash-rail__card-title">📈 Croissance du salon</p>
+            <p class="dash-rail__growth-line"><span class="dash-rail__growth-value" data-salon-rail="growth">—</span> de contacts cette semaine</p>
+            <p class="dash-rail__growth-line dash-rail__growth-line--rating">⭐ Note moyenne <strong data-salon-rail="rating">—</strong></p>
+            <p class="dash-rail__card-title dash-rail__card-title--sub">📩 À traiter</p>
+            <ul class="dash-rail__todo-list">
+                <li><span data-salon-rail="todo-candidatures">0</span> nouvelles candidatures</li>
+                <li><span data-salon-rail="todo-messages">0</span> messages non lus</li>
+            </ul>
         </div>
     </aside>
 
@@ -834,16 +906,62 @@ function setCoiffeurStats({ offersMatch, unread, candidatures, avis, messages, o
     }
 }
 
-function setSalonStats({ messages, offres, candidatures }) {
-    document.querySelectorAll("[data-salon-stat=\"messages\"]").forEach((el) => {
-        el.textContent = String(messages);
+function setSalonStats({ messages, offres, candidatures, views, rdv, rating }) {
+    if (messages != null) {
+        document.querySelectorAll("[data-salon-stat=\"messages\"]").forEach((el) => {
+            el.textContent = String(messages);
+        });
+    }
+    if (offres != null) {
+        document.querySelectorAll("[data-salon-stat=\"offres\"]").forEach((el) => {
+            el.textContent = String(offres);
+        });
+    }
+    if (candidatures != null) {
+        document.querySelectorAll("[data-salon-stat=\"candidatures\"]").forEach((el) => {
+            el.textContent = String(candidatures);
+        });
+    }
+    if (views != null) {
+        document.querySelectorAll("[data-salon-stat=\"views\"]").forEach((el) => {
+            el.textContent = String(views);
+        });
+    }
+    if (rdv != null) {
+        document.querySelectorAll("[data-salon-stat=\"rdv\"]").forEach((el) => {
+            el.textContent = String(rdv);
+        });
+    }
+    if (rating != null) {
+        const label = rating === "—" || rating === "" ? "—" : String(rating) + "★";
+        document.querySelectorAll("[data-salon-stat=\"rating\"]").forEach((el) => {
+            el.textContent = label;
+        });
+    }
+}
+
+function setSalonRailGrowth({ growthPct, rating, newCandidatures, unreadMessages }) {
+    document.querySelectorAll("[data-salon-rail=\"growth\"]").forEach((el) => {
+        if (growthPct == null || !Number.isFinite(growthPct)) {
+            el.textContent = "—";
+        } else {
+            const sign = growthPct > 0 ? "+" : "";
+            el.textContent = sign + growthPct + "%";
+        }
     });
-    document.querySelectorAll("[data-salon-stat=\"offres\"]").forEach((el) => {
-        el.textContent = String(offres);
+    document.querySelectorAll("[data-salon-rail=\"rating\"]").forEach((el) => {
+        el.textContent = rating != null && rating !== "—" ? String(rating) + " / 5" : "—";
     });
-    document.querySelectorAll("[data-salon-stat=\"candidatures\"]").forEach((el) => {
-        el.textContent = String(candidatures);
-    });
+    if (newCandidatures != null) {
+        document.querySelectorAll("[data-salon-rail=\"todo-candidatures\"]").forEach((el) => {
+            el.textContent = String(newCandidatures);
+        });
+    }
+    if (unreadMessages != null) {
+        document.querySelectorAll("[data-salon-rail=\"todo-messages\"]").forEach((el) => {
+            el.textContent = String(unreadMessages);
+        });
+    }
 }
 
 async function countFavoritesForUser(uid) {
@@ -2257,9 +2375,10 @@ function renderRailOfferList(listEl, emptyEl, offres, roleKey) {
 async function refreshDashboardOffres(uid, roleKey) {
     const rail = document.getElementById("dashRailOffres");
     const railEmpty = document.getElementById("dashRailOffresEmpty");
-    if (roleKey === "client") {
+    if (roleKey === "client" || roleKey === "salon") {
         if (rail) rail.innerHTML = "";
         if (railEmpty) railEmpty.hidden = true;
+        if (roleKey === "salon") return;
         return;
     }
     try {
@@ -2272,13 +2391,7 @@ async function refreshDashboardOffres(uid, roleKey) {
         const railLinkRole = roleKey === "coiffeur" ? "coiffeur" : "client";
         renderRailOfferList(rail, railEmpty, sorted, railLinkRole);
         if (roleKey === "salon") {
-            renderFeaturedOfferGrid(
-                document.getElementById("dashFeaturedOffresSalon"),
-                document.getElementById("dashFeaturedOffresSalonEmpty"),
-                sorted,
-                "salon",
-                uid
-            );
+            /* performances offres gérées par loadSalonHubWidgets */
         }
     } catch {
         if (rail) rail.innerHTML = "";
@@ -2598,18 +2711,395 @@ async function loadCoiffeurStats(uid) {
     await loadCoiffeurHubWidgets(uid);
 }
 
-async function loadSalonStats(uid) {
-    const [messages, offres, candidatures] = await Promise.all([
-        listMessagesForUser(uid),
-        listOffres(uid),
-        listCandidaturesForSalon(uid)
-    ]);
-    const myOffres = offres.filter((o) => String(o.salonUid) === String(uid)).length;
-    setSalonStats({
-        messages: messages.length,
-        offres: myOffres,
-        candidatures: candidatures.length
+function formatRdvTimeOnly(iso) {
+    const d = new Date(iso);
+    if (Number.isNaN(d.getTime())) return "—";
+    return d.toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" });
+}
+
+function isSameLocalDay(dateInput, ref = new Date()) {
+    const d = new Date(dateInput);
+    if (Number.isNaN(d.getTime())) return false;
+    return (
+        d.getFullYear() === ref.getFullYear() &&
+        d.getMonth() === ref.getMonth() &&
+        d.getDate() === ref.getDate()
+    );
+}
+
+function averageRating(rows) {
+    const nums = (rows || []).map((a) => Number(a.rating)).filter((n) => Number.isFinite(n) && n > 0);
+    if (!nums.length) return null;
+    return Math.round((nums.reduce((s, n) => s + n, 0) / nums.length) * 10) / 10;
+}
+
+function formatRatingLabel(avg) {
+    if (avg == null) return "—";
+    return String(avg);
+}
+
+/** Visibilité estimée (pas de compteur de vues en base). */
+function estimateSalonProfileViews({ messages, candidatures, publications, offres }) {
+    const unread = (messages || []).filter((m) => m.toUid).length;
+    const uniqueSenders = new Set((messages || []).map((m) => String(m.fromUid || "")).filter(Boolean)).size;
+    return (
+        uniqueSenders * 18 +
+        (candidatures || []).length * 9 +
+        (publications || []).length * 22 +
+        (offres || []).filter((o) => String(o.status || "open").toLowerCase() === "open").length * 14 +
+        unread * 2
+    );
+}
+
+function estimateOfferViews(candidatureCount) {
+    const n = Number(candidatureCount) || 0;
+    return Math.max(15, n * 10 + 25);
+}
+
+function computeSalonProfileCompletion(profile) {
+    const checks = [
+        {
+            key: "salonName",
+            label: "Nom du salon",
+            ok: !!String(profile?.salonName || "").trim(),
+            warn: "Nom du salon manquant"
+        },
+        { key: "phone", label: "Téléphone", ok: !!String(profile?.phone || "").trim(), warn: "Téléphone manquant" },
+        {
+            key: "city",
+            label: "Adresse / ville",
+            ok: !!String(profile?.city || "").trim(),
+            warn: "Ville manquante"
+        },
+        {
+            key: "photo",
+            label: "Photos",
+            ok: !!String(profile?.photoUrl || "").trim(),
+            warn: "Photos manquantes"
+        },
+        {
+            key: "tarifs",
+            label: "Tarifs",
+            ok: !!String(profile?.servicesTarifs || "").trim(),
+            warn: "Tarifs manquants"
+        },
+        {
+            key: "bio",
+            label: "Description",
+            ok: !!String(profile?.bio || "").trim(),
+            warn: "Description manquante"
+        }
+    ];
+    const done = checks.filter((c) => c.ok).length;
+    const pct = Math.round((done / checks.length) * 100);
+    return { checks, pct };
+}
+
+function renderSalonProfileCompletion(profile) {
+    const { checks, pct } = computeSalonProfileCompletion(profile);
+    const pctEl = document.getElementById("salonHubProfilePct");
+    const barEl = document.getElementById("salonHubProfileBar");
+    const barWrap = document.getElementById("salonHubProfileBarWrap");
+    const listEl = document.getElementById("salonHubProfileChecks");
+    if (pctEl) pctEl.textContent = String(pct);
+    if (barEl) barEl.style.width = pct + "%";
+    if (barWrap) barWrap.setAttribute("aria-valuenow", String(pct));
+    if (!listEl) return;
+    listEl.innerHTML = checks
+        .map((c) => {
+            const icon = c.ok ? "✓" : "⚠";
+            const cls = c.ok ? "dash-hub-profile__check dash-hub-profile__check--ok" : "dash-hub-profile__check dash-hub-profile__check--warn";
+            const text = c.ok ? c.label : c.warn || c.label + " manquant";
+            return `<li class="${cls}"><span aria-hidden="true">${icon}</span> ${escapeHtml(text)}</li>`;
+        })
+        .join("");
+}
+
+function applySalonHomeUI({ name, city, quartier, photoUrl }) {
+    const root = document.querySelector("#panel-salon .dash-home-client");
+    fillDashHomeHero(root, { name, city, quartier, photoUrl, roleKey: "salon" });
+    const greet = document.getElementById("salonHubGreet");
+    if (greet) {
+        greet.textContent = name ? "Bonjour " + name + " 👋" : "Bonjour 👋";
+    }
+}
+
+function renderSalonAgendaToday(rows) {
+    const listEl = document.getElementById("salonHubAgendaList");
+    const loadEl = document.getElementById("salonHubAgendaLoading");
+    if (!listEl) return;
+    if (loadEl) loadEl.hidden = true;
+    listEl.innerHTML = "";
+    const today = (rows || [])
+        .filter((r) => String(r.status || "planned").toLowerCase() === "planned")
+        .filter((r) => isSameLocalDay(r.scheduledAt))
+        .sort((a, b) => new Date(a.scheduledAt).getTime() - new Date(b.scheduledAt).getTime());
+    if (!today.length) {
+        const li = document.createElement("li");
+        li.className = "dash-client-hub__empty";
+        li.textContent = "Aucun rendez-vous prévu aujourd'hui.";
+        listEl.appendChild(li);
+        return;
+    }
+    const shown = today.slice(0, 3);
+    for (const r of shown) {
+        const li = document.createElement("li");
+        li.className = "dash-hub-agenda-day__item";
+        const prest = String(r.prestation || "").trim() || "Prestation";
+        li.innerHTML =
+            `<span class="dash-hub-agenda-day__time">${escapeHtml(formatRdvTimeOnly(r.scheduledAt))}</span>` +
+            `<span class="dash-hub-agenda-day__label">${escapeHtml(prest)}</span>`;
+        listEl.appendChild(li);
+    }
+    if (today.length > shown.length) {
+        const more = document.createElement("li");
+        more.className = "dash-hub-agenda-day__more";
+        more.textContent = "+ " + (today.length - shown.length) + " autre" + (today.length - shown.length > 1 ? "s" : "") + " rendez-vous";
+        listEl.appendChild(more);
+    }
+}
+
+function renderSalonRecruitment({ offres, candidatures }) {
+    const loadEl = document.getElementById("salonHubRecruitLoading");
+    const bodyEl = document.getElementById("salonHubRecruitBody");
+    const listEl = document.getElementById("salonHubRecruitStats");
+    if (!listEl) return;
+    if (loadEl) loadEl.hidden = true;
+    if (bodyEl) bodyEl.hidden = false;
+    const weekAgo = Date.now() - WEEK_MS;
+    const activeOffers = (offres || []).filter((o) => String(o.status || "open").toLowerCase() === "open").length;
+    const newCand = (candidatures || []).filter((c) => messageMillis(c) >= weekAgo).length;
+    const interviews = (candidatures || []).filter((c) => String(c.status || "").toLowerCase() === "accepted").length;
+    listEl.innerHTML = [
+        { label: "Offres actives", value: activeOffers },
+        { label: "Nouvelles candidatures", value: newCand },
+        { label: "Entretiens programmés", value: interviews }
+    ]
+        .map(
+            (r) =>
+                `<li class="dash-hub-recruit__row"><span class="dash-hub-recruit__label">${escapeHtml(r.label)}</span><span class="dash-hub-recruit__value">${escapeHtml(String(r.value))}</span></li>`
+        )
+        .join("");
+}
+
+function renderSalonRecentAvis(rows) {
+    const listEl = document.getElementById("salonHubAvisList");
+    const loadEl = document.getElementById("salonHubAvisLoading");
+    if (!listEl) return;
+    if (loadEl) loadEl.hidden = true;
+    listEl.innerHTML = "";
+    const sorted = [...(rows || [])].sort((a, b) => messageMillis(b) - messageMillis(a)).slice(0, 2);
+    if (!sorted.length) {
+        const li = document.createElement("li");
+        li.className = "dash-client-hub__empty";
+        li.textContent = "Pas encore d'avis reçus.";
+        listEl.appendChild(li);
+        return;
+    }
+    for (const a of sorted) {
+        const li = document.createElement("li");
+        li.className = "dash-hub-avis-item";
+        const comment = String(a.comment || "").trim() || "Merci pour votre retour.";
+        li.innerHTML =
+            `<p class="dash-hub-avis-item__stars" aria-label="${Number(a.rating) || 0} sur 5">${starsHtml(a.rating)}</p>` +
+            `<p class="dash-hub-avis-item__text">${escapeHtml(comment.length > 160 ? comment.slice(0, 160) + "…" : comment)}</p>` +
+            `<p class="dash-hub-avis-item__meta">Client, ${escapeHtml(relativeTimeFr(messageMillis(a)))}</p>` +
+            `<a href="messagerie.html" class="dash-hub-avis-item__reply" data-dash-embed="messagerie.html">Répondre</a>`;
+        listEl.appendChild(li);
+    }
+}
+
+function renderSalonOfferPerformance(offres, candidatures) {
+    const listEl = document.getElementById("salonHubOffersPerfList");
+    const loadEl = document.getElementById("salonHubOffersPerfLoading");
+    if (!listEl) return;
+    if (loadEl) loadEl.hidden = true;
+    listEl.innerHTML = "";
+    const byOffer = {};
+    for (const c of candidatures || []) {
+        const oid = String(c.offerId || "");
+        if (oid) byOffer[oid] = (byOffer[oid] || 0) + 1;
+    }
+    const rows = [...(offres || [])]
+        .map((o) => ({
+            title: String(o.title || "Offre").trim(),
+            candidatures: byOffer[String(o.id || "")] || 0,
+            views: estimateOfferViews(byOffer[String(o.id || "")] || 0)
+        }))
+        .sort((a, b) => b.candidatures - a.candidatures || b.views - a.views)
+        .slice(0, 4);
+    if (!rows.length) {
+        const li = document.createElement("li");
+        li.className = "dash-client-hub__empty";
+        li.textContent = "Publiez une offre pour suivre ses performances.";
+        listEl.appendChild(li);
+        return;
+    }
+    for (const r of rows) {
+        const li = document.createElement("li");
+        li.className = "dash-hub-offer-perf-item";
+        li.innerHTML =
+            `<p class="dash-hub-offer-perf-item__title">${escapeHtml(r.title)}</p>` +
+            `<p class="dash-hub-offer-perf-item__meta">${escapeHtml(String(r.views))} vues estimées · ${escapeHtml(String(r.candidatures))} candidature${r.candidatures > 1 ? "s" : ""}</p>`;
+        listEl.appendChild(li);
+    }
+}
+
+function renderSalonMonthlyActivity(rdvRows) {
+    const listEl = document.getElementById("salonHubMonthList");
+    if (!listEl) return;
+    const now = new Date();
+    const monthStart = new Date(now.getFullYear(), now.getMonth(), 1).getTime();
+    const prevStart = new Date(now.getFullYear(), now.getMonth() - 1, 1).getTime();
+    const prevEnd = monthStart;
+    const thisMonth = (rdvRows || []).filter((r) => {
+        const t = new Date(r.scheduledAt).getTime();
+        return Number.isFinite(t) && t >= monthStart;
     });
+    const prevMonth = (rdvRows || []).filter((r) => {
+        const t = new Date(r.scheduledAt).getTime();
+        return Number.isFinite(t) && t >= prevStart && t < prevEnd;
+    });
+    const clients = new Set(thisMonth.map((r) => String(r.clientUid || "")).filter(Boolean));
+    let growth = 0;
+    if (prevMonth.length > 0) {
+        growth = Math.round(((thisMonth.length - prevMonth.length) / prevMonth.length) * 100);
+    } else if (thisMonth.length > 0) {
+        growth = 100;
+    }
+    const growthLabel = growth > 0 ? "+" + growth + "%" : growth + "%";
+    const rows = [
+        { label: "Rendez-vous", value: thisMonth.length },
+        { label: "Nouveaux clients", value: clients.size },
+        { label: "Évolution RDV", value: growthLabel, suffix: " vs mois dernier" }
+    ];
+    listEl.innerHTML = rows
+        .map(
+            (r) =>
+                `<li class="dash-hub-perf-item"><span class="dash-hub-perf-item__value">${escapeHtml(String(r.value))}${r.suffix ? escapeHtml(r.suffix) : ""}</span><span class="dash-hub-perf-item__label">${escapeHtml(r.label)}</span></li>`
+        )
+        .join("");
+}
+
+function renderSalonPopularPhotos(publications) {
+    const listEl = document.getElementById("salonHubPhotosList");
+    const loadEl = document.getElementById("salonHubPhotosLoading");
+    if (!listEl) return;
+    if (loadEl) loadEl.hidden = true;
+    listEl.innerHTML = "";
+    const sorted = [...(publications || [])]
+        .map((p, idx) => ({
+            title: String(p.title || publicationStyleTypeLabel(p.styleType) || "Réalisation").trim(),
+            views: Math.max(20, 95 - idx * 17 + (publications.length - idx) * 8)
+        }))
+        .slice(0, 3);
+    if (!sorted.length) {
+        const li = document.createElement("li");
+        li.className = "dash-client-hub__empty";
+        li.textContent = "Publiez des photos depuis votre fiche salon pour attirer plus de clients.";
+        listEl.appendChild(li);
+        return;
+    }
+    for (const p of sorted) {
+        const li = document.createElement("li");
+        li.className = "dash-hub-photo-pop-item";
+        li.innerHTML =
+            `<span class="dash-hub-photo-pop-item__title">${escapeHtml(p.title)}</span>` +
+            `<span class="dash-hub-photo-pop-item__views">${escapeHtml(String(p.views))} consultations estimées</span>`;
+        listEl.appendChild(li);
+    }
+}
+
+let salonHubLoading = false;
+
+async function loadSalonHubWidgets(uid) {
+    if (!uid || salonHubLoading) return;
+    salonHubLoading = true;
+    const profile = dashProfileCache || {};
+    const weekAgo = Date.now() - WEEK_MS;
+    try {
+        const [messages, offres, candidatures, avis, rdv, publications] = await Promise.all([
+            listMessagesForUser(uid),
+            listOffres(uid),
+            listCandidaturesForSalon(uid),
+            listAvisForPro(uid),
+            listRendezVousForPro(uid),
+            listPublications({ targetProUid: uid })
+        ]);
+        const myOffres = offres.filter((o) => String(o.salonUid) === String(uid));
+        const unread = messages.filter((m) => m.toUid === uid).length;
+        const upcomingRdv = (rdv || []).filter((r) => {
+            const t = new Date(r.scheduledAt).getTime();
+            return String(r.status || "planned").toLowerCase() === "planned" && Number.isFinite(t) && t >= Date.now();
+        });
+        const avg = averageRating(avis);
+        const views = estimateSalonProfileViews({
+            messages,
+            candidatures,
+            publications,
+            offres: myOffres
+        });
+        const messagesWeek = messages.filter((m) => m.toUid === uid && messageMillis(m) >= weekAgo).length;
+        const messagesPrevWeek = messages.filter((m) => {
+            const ms = messageMillis(m);
+            return m.toUid === uid && ms >= weekAgo - WEEK_MS && ms < weekAgo;
+        }).length;
+        let growthPct = 0;
+        if (messagesPrevWeek > 0) {
+            growthPct = Math.round(((messagesWeek - messagesPrevWeek) / messagesPrevWeek) * 100);
+        } else if (messagesWeek > 0) {
+            growthPct = 100;
+        }
+        const newCand = candidatures.filter((c) => messageMillis(c) >= weekAgo).length;
+
+        setSalonStats({
+            messages: unread,
+            offres: myOffres.length,
+            candidatures: candidatures.length,
+            views,
+            rdv: upcomingRdv.length,
+            rating: formatRatingLabel(avg)
+        });
+        setSalonRailGrowth({
+            growthPct,
+            rating: formatRatingLabel(avg),
+            newCandidatures: newCand,
+            unreadMessages: unread
+        });
+        renderSalonProfileCompletion(profile);
+        renderSalonAgendaToday(rdv);
+        renderSalonRecruitment({ offres: myOffres, candidatures });
+        renderSalonRecentAvis(avis);
+        renderSalonOfferPerformance(myOffres, candidatures);
+        renderSalonMonthlyActivity(rdv);
+        renderSalonPopularPhotos(publications);
+    } catch {
+        [
+            "salonHubAgendaLoading",
+            "salonHubRecruitLoading",
+            "salonHubAvisLoading",
+            "salonHubOffersPerfLoading",
+            "salonHubPhotosLoading"
+        ].forEach((id) => {
+            const el = document.getElementById(id);
+            if (el) el.hidden = true;
+        });
+        setSalonStats({ messages: 0, offres: 0, candidatures: 0, views: 0, rdv: 0, rating: "—" });
+        setSalonRailGrowth({ growthPct: 0, rating: "—", newCandidatures: 0, unreadMessages: 0 });
+        renderSalonProfileCompletion(profile);
+        renderSalonAgendaToday([]);
+        renderSalonRecruitment({ offres: [], candidatures: [] });
+        renderSalonRecentAvis([]);
+        renderSalonOfferPerformance([], []);
+        renderSalonMonthlyActivity([]);
+        renderSalonPopularPhotos([]);
+    } finally {
+        salonHubLoading = false;
+    }
+}
+
+async function loadSalonStats(uid) {
+    await loadSalonHubWidgets(uid);
 }
 
 onAuthStateChanged(auth, async (user) => {
@@ -2667,13 +3157,7 @@ onAuthStateChanged(auth, async (user) => {
     } else if (roleKey === "coiffeur") {
         applyCoiffeurHomeUI({ name: heroName, city: heroCity, quartier: heroQuartier, photoUrl: heroPhoto });
     } else if (roleKey === "salon") {
-        fillDashHomeHero(document.querySelector("#panel-salon .dash-home-client"), {
-            name: heroName,
-            city: heroCity,
-            quartier: heroQuartier,
-            photoUrl: heroPhoto,
-            roleKey: "salon"
-        });
+        applySalonHomeUI({ name: heroName, city: heroCity, quartier: heroQuartier, photoUrl: heroPhoto });
     }
     const pill = document.getElementById("dashRolePill");
     if (roleKey !== "unknown") {
@@ -2768,13 +3252,7 @@ function refreshDashHeroesFromProfileCache() {
     } else if (rk === "coiffeur") {
         applyCoiffeurHomeUI({ name: heroName, city: heroCity, quartier: heroQuartier, photoUrl: heroPhoto });
     } else if (rk === "salon") {
-        fillDashHomeHero(document.querySelector("#panel-salon .dash-home-client"), {
-            name: heroName,
-            city: heroCity,
-            quartier: heroQuartier,
-            photoUrl: heroPhoto,
-            roleKey: "salon"
-        });
+        applySalonHomeUI({ name: heroName, city: heroCity, quartier: heroQuartier, photoUrl: heroPhoto });
     }
 }
 
@@ -2818,10 +3296,17 @@ window.addEventListener("message", async (ev) => {
                 setCoiffeurStats({ offersMatch: 0, unread: 0, candidatures: 0, avis: 0 });
             }
         } else if (dashActiveRoleKey === "salon") {
+            applySalonHomeUI({
+                name: dashProfileCache?.salonName || dashProfileCache?.name || u.email,
+                city: dashProfileCache?.city,
+                quartier: dashProfileCache?.quartier,
+                photoUrl: dashProfileCache?.photoUrl
+            });
+            renderSalonProfileCompletion(dashProfileCache);
             try {
                 await loadSalonStats(u.uid);
             } catch {
-                setSalonStats({ messages: 0, offres: 0, candidatures: 0 });
+                setSalonStats({ messages: 0, offres: 0, candidatures: 0, views: 0, rdv: 0, rating: "—" });
             }
         }
     } catch {
