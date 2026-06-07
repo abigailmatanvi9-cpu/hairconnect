@@ -23,7 +23,7 @@
         <p class="public-meta" id="pubCity"></p>
         <p class="public-bio" id="pubBio"></p>
         <h3 class="public-publications__title" id="pubTarifsTitle" hidden>Services et tarifs</h3>
-        <pre class="public-services" id="pubServices" hidden></pre>
+        <ul class="public-services-list" id="pubServices" hidden></ul>
         <figure id="pubTarifMenuWrap" class="public-tarif-menu" hidden>
             <img id="pubTarifMenuImg" class="public-tarif-menu__img" alt="Menu tarifs">
         </figure>
@@ -126,6 +126,7 @@ import {
     PUBLICATION_STYLE_TYPES
 } from "./firebase.js";
 import { compressImageFile } from "./image-utils.js";
+import { parseServicesTarifs, formatServicePriceFcfa } from "./services-tarifs-utils.js";
 
 const pubClientStyleSelect = document.getElementById("pubClientStyle");
 if (pubClientStyleSelect) {
@@ -250,11 +251,26 @@ if (!uid) {
                 .trim()
                 .toLowerCase() !== "client";
         if (pubServicesEl && pubTarifsTitle) {
-            if (textTarifs && isProProfile) {
-                pubServicesEl.textContent = textTarifs;
+            const services = parseServicesTarifs(textTarifs);
+            if (services.length && isProProfile) {
+                pubServicesEl.innerHTML = services
+                    .map((s) => {
+                        const price = formatServicePriceFcfa(s.price);
+                        const priceHtml = price
+                            ? `<span class="public-services-list__price">${escapeHtml(price)}</span>`
+                            : "";
+                        return (
+                            `<li class="public-services-list__item">` +
+                            `<span class="public-services-list__name">${escapeHtml(s.name)}</span>` +
+                            priceHtml +
+                            `</li>`
+                        );
+                    })
+                    .join("");
                 pubServicesEl.hidden = false;
                 pubTarifsTitle.hidden = false;
             } else {
+                pubServicesEl.innerHTML = "";
                 pubServicesEl.hidden = true;
                 pubTarifsTitle.hidden = true;
             }

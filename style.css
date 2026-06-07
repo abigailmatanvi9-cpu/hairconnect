@@ -2915,16 +2915,115 @@ button.dash-home-cat {
     color: #ccc;
 }
 
-.public-services {
+.public-services,
+.public-services-list {
     margin: 1rem 0 0;
-    padding: 0.85rem;
+    padding: 0;
+    list-style: none;
+}
+
+.public-services-list__item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+    padding: 0.65rem 0.85rem;
     border-radius: 10px;
     background: #6b6b6b;
     border: 1px solid #4a4a4a;
-    white-space: pre-wrap;
-    font-family: inherit;
-    font-size: 0.85rem;
+    font-size: 0.88rem;
     color: #e8e4f3;
+}
+
+.public-services-list__item + .public-services-list__item {
+    margin-top: 0.45rem;
+}
+
+.public-services-list__name {
+    font-weight: 600;
+}
+
+.public-services-list__price {
+    font-weight: 700;
+    white-space: nowrap;
+    color: #f5d0c8;
+}
+
+.profil-services-list {
+    list-style: none;
+    margin: 0.5rem 0 0.75rem;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.55rem;
+}
+
+.profil-service-row {
+    display: grid;
+    grid-template-columns: 1fr minmax(7rem, 9rem) auto;
+    gap: 0.5rem;
+    align-items: center;
+}
+
+.profil-service-row__name,
+.profil-service-row__price {
+    width: 100%;
+    min-width: 0;
+}
+
+.profil-service-row__remove {
+    width: 2.25rem;
+    height: 2.25rem;
+    border: 1px solid var(--hc-pro-line, #ebe4df);
+    border-radius: 10px;
+    background: #fff;
+    color: #9a3412;
+    font-size: 1.15rem;
+    line-height: 1;
+    cursor: pointer;
+}
+
+.profil-service-row__remove:hover {
+    background: #fff5f5;
+}
+
+.profil-services-add {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    padding: 0.55rem 1rem;
+    border: 1px dashed var(--hc-smart-accent, #c9a090);
+    border-radius: 999px;
+    background: transparent;
+    color: var(--hc-smart-accent-deep, #b07d6c);
+    font-size: 0.88rem;
+    font-weight: 700;
+    cursor: pointer;
+}
+
+.profil-services-add:hover {
+    background: var(--hc-pro-gold-soft, #fff8f6);
+}
+
+@media (max-width: 560px) {
+    .profil-service-row {
+        grid-template-columns: 1fr auto;
+        grid-template-areas:
+            "name remove"
+            "price price";
+    }
+
+    .profil-service-row__name {
+        grid-area: name;
+    }
+
+    .profil-service-row__price {
+        grid-area: price;
+    }
+
+    .profil-service-row__remove {
+        grid-area: remove;
+    }
 }
 
 .public-tarif-menu {
@@ -6356,10 +6455,14 @@ body.hc-theme-pro .public-bio {
     color: #475569;
 }
 
-body.hc-theme-pro .public-services {
+body.hc-theme-pro .public-services-list__item {
     color: #334155;
     background: #ffffff;
     border: 1px solid var(--hc-pro-line);
+}
+
+body.hc-theme-pro .public-services-list__price {
+    color: var(--hc-smart-accent-deep, #b07d6c);
 }
 
 body.hc-theme-pro .public-badge {

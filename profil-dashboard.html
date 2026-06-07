@@ -97,9 +97,12 @@
                     <textarea id="dpBio" name="bio" class="field-textarea" rows="4" placeholder="Présentez-vous ou décrivez votre établissement…"></textarea>
                 </div>
                 <div class="field-group" id="dpWrapServicesTarifs" hidden>
-                    <label class="field-label" for="dpServicesTarifs">Services et tarifs</label>
-                    <textarea id="dpServicesTarifs" name="servicesTarifs" class="field-textarea" rows="6" maxlength="4000" placeholder="Ex.&#10;Coupe homme : 5 000 FCFA&#10;Tressage : 15 000 FCFA&#10;Brushing : 3 500 FCFA"></textarea>
-                    <p class="field-hint">Une ligne par prestation. Visible sur votre fiche publique pour les clients.</p>
+                    <label class="field-label">Services et tarifs</label>
+                    <p class="field-hint">Ajoutez vos prestations une par une. Elles sont visibles sur votre fiche publique.</p>
+                    <ul id="dpServicesList" class="profil-services-list" aria-label="Liste des services"></ul>
+                    <button type="button" class="profil-services-add" id="dpAddServiceBtn">
+                        <span aria-hidden="true">+</span> Ajouter un service
+                    </button>
                 </div>
                 <div class="field-group" id="dpWrapTarifMenuPhoto" hidden>
                     <label class="field-label" for="dpTarifMenuPhotoFile">Photo du menu tarifs (optionnel)</label>
@@ -136,6 +139,7 @@ import {
 import { initPhoneField, readPhoneFromField } from "./phone-utils.js";
 import { initLocationFields, readLocationFromFields } from "./location-utils.js";
 import { compressImageFile } from "./image-utils.js";
+import { parseServicesTarifs, serializeServicesTarifs } from "./services-tarifs-utils.js";
 
 const dpPhoneCountry = document.getElementById("dpPhoneCountry");
 const dpPhoneNational = document.getElementById("dpPhoneNational");
@@ -302,12 +306,81 @@ function syncFormFromCache() {
         storedPhone: data.phone || ""
     });
     if (bio) bio.value = roleDisplay === "Client" ? "" : data.bio || "";
-    const st = document.getElementById("dpServicesTarifs");
-    if (st) st.value = isPro ? String(data.servicesTarifs || "") : "";
+    if (isPro) {
+        renderServicesEditor(parseServicesTarifs(data.servicesTarifs || ""));
+    } else {
+        renderServicesEditor([]);
+    }
     tarifMenuPhotoUrl = isPro ? String(data.tarifMenuPhotoUrl || "").trim() : "";
     applyTarifMenuPreview(tarifMenuPhotoUrl);
     setMetierChecks("dpProMetiersList", parseMetiersFromProfile(data.proMetiers));
 }
+
+function readServicesFromEditor() {
+    const listEl = document.getElementById("dpServicesList");
+    if (!listEl) return [];
+    return [...listEl.querySelectorAll(".profil-service-row")].map((row) => {
+        const name = row.querySelector(".profil-service-row__name")?.value.trim() || "";
+        const priceRaw = row.querySelector(".profil-service-row__price")?.value;
+        const price = priceRaw === "" || priceRaw == null ? null : Number(priceRaw);
+        return { name, price: Number.isFinite(price) ? price : null };
+    });
+}
+
+function buildServiceRow({ name = "", price = null } = {}) {
+    const li = document.createElement("li");
+    li.className = "profil-service-row";
+    const nameInput = document.createElement("input");
+    nameInput.type = "text";
+    nameInput.className = "profil-service-row__name field-input";
+    nameInput.placeholder = "Nom du service";
+    nameInput.maxLength = 120;
+    nameInput.value = name;
+    const priceInput = document.createElement("input");
+    priceInput.type = "number";
+    priceInput.className = "profil-service-row__price field-input";
+    priceInput.placeholder = "Prix (FCFA)";
+    priceInput.min = "0";
+    priceInput.step = "1";
+    priceInput.inputMode = "numeric";
+    if (price != null && Number.isFinite(Number(price))) {
+        priceInput.value = String(price);
+    }
+    const removeBtn = document.createElement("button");
+    removeBtn.type = "button";
+    removeBtn.className = "profil-service-row__remove";
+    removeBtn.setAttribute("aria-label", "Retirer ce service");
+    removeBtn.textContent = "×";
+    removeBtn.addEventListener("click", () => {
+        li.remove();
+        const listEl = document.getElementById("dpServicesList");
+        if (listEl && !listEl.children.length) {
+            listEl.appendChild(buildServiceRow());
+        }
+    });
+    li.appendChild(nameInput);
+    li.appendChild(priceInput);
+    li.appendChild(removeBtn);
+    return li;
+}
+
+function renderServicesEditor(rows) {
+    const listEl = document.getElementById("dpServicesList");
+    if (!listEl) return;
+    listEl.innerHTML = "";
+    const data = rows && rows.length ? rows : [{ name: "", price: null }];
+    for (const row of data) {
+        listEl.appendChild(buildServiceRow(row));
+    }
+}
+
+document.getElementById("dpAddServiceBtn")?.addEventListener("click", () => {
+    const listEl = document.getElementById("dpServicesList");
+    if (!listEl) return;
+    listEl.appendChild(buildServiceRow());
+    const last = listEl.lastElementChild?.querySelector(".profil-service-row__name");
+    if (last) last.focus();
+});
 
 function applyTarifMenuPreview(url) {
     const wrap = document.getElementById("dpTarifMenuPreviewWrap");
@@ -438,7 +511,17 @@ document.getElementById("dpForm").addEventListener("submit", async (e) => {
     }
     if (roleDisplay === "Coiffeur" || roleDisplay === "Salon") {
         payload.proMetiers = readMetierChecks("dpProMetier");
-        payload.servicesTarifs = document.getElementById("dpServicesTarifs")?.value.trim() || "";
+        const serviceRows = readServicesFromEditor().filter((r) => r.name);
+        for (const row of serviceRows) {
+            if (row.price == null || !Number.isFinite(row.price) || row.price < 0) {
+                if (formError) {
+                    formError.textContent = `Indiquez un prix valide pour « ${row.name} ».`;
+                    formError.hidden = false;
+                }
+                return;
+            }
+        }
+        payload.servicesTarifs = serializeServicesTarifs(serviceRows);
         payload.tarifMenuPhotoUrl = tarifMenuPhotoUrl || null;
     }
 
