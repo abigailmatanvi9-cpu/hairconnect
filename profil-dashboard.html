@@ -98,7 +98,7 @@
                 </div>
                 <div class="field-group" id="dpWrapServicesTarifs" hidden>
                     <label class="field-label">Services et tarifs</label>
-                    <p class="field-hint">Ajoutez vos prestations une par une. Elles sont visibles sur votre fiche publique.</p>
+                    <p class="field-hint">Ajoutez vos prestations une par une. Cochez «&nbsp;À partir de&nbsp;» si le tarif varie selon la longueur, le style ou la complexité.</p>
                     <ul id="dpServicesList" class="profil-services-list" aria-label="Liste des services"></ul>
                     <button type="button" class="profil-services-add" id="dpAddServiceBtn">
                         <span aria-hidden="true">+</span> Ajouter un service
@@ -309,11 +309,12 @@ function readServicesFromEditor() {
         const name = row.querySelector(".profil-service-row__name")?.value.trim() || "";
         const priceRaw = row.querySelector(".profil-service-row__price")?.value;
         const price = priceRaw === "" || priceRaw == null ? null : Number(priceRaw);
-        return { name, price: Number.isFinite(price) ? price : null };
+        const fromPrice = !!row.querySelector(".profil-service-row__from")?.checked;
+        return { name, price: Number.isFinite(price) ? price : null, fromPrice };
     });
 }
 
-function buildServiceRow({ name = "", price = null } = {}) {
+function buildServiceRow({ name = "", price = null, fromPrice = true } = {}) {
     const li = document.createElement("li");
     li.className = "profil-service-row";
     const nameInput = document.createElement("input");
@@ -322,16 +323,30 @@ function buildServiceRow({ name = "", price = null } = {}) {
     nameInput.placeholder = "Nom du service";
     nameInput.maxLength = 120;
     nameInput.value = name;
+
+    const priceWrap = document.createElement("div");
+    priceWrap.className = "profil-service-row__price-wrap";
     const priceInput = document.createElement("input");
     priceInput.type = "number";
     priceInput.className = "profil-service-row__price field-input";
-    priceInput.placeholder = "Prix (FCFA)";
+    priceInput.placeholder = "Montant (FCFA)";
     priceInput.min = "0";
     priceInput.step = "1";
     priceInput.inputMode = "numeric";
     if (price != null && Number.isFinite(Number(price))) {
         priceInput.value = String(price);
     }
+    const fromLabel = document.createElement("label");
+    fromLabel.className = "profil-service-row__from-label";
+    const fromCheck = document.createElement("input");
+    fromCheck.type = "checkbox";
+    fromCheck.className = "profil-service-row__from";
+    fromCheck.checked = fromPrice !== false;
+    fromLabel.appendChild(fromCheck);
+    fromLabel.appendChild(document.createTextNode(" À partir de"));
+    priceWrap.appendChild(priceInput);
+    priceWrap.appendChild(fromLabel);
+
     const removeBtn = document.createElement("button");
     removeBtn.type = "button";
     removeBtn.className = "profil-service-row__remove";
@@ -345,7 +360,7 @@ function buildServiceRow({ name = "", price = null } = {}) {
         }
     });
     li.appendChild(nameInput);
-    li.appendChild(priceInput);
+    li.appendChild(priceWrap);
     li.appendChild(removeBtn);
     return li;
 }
@@ -354,7 +369,7 @@ function renderServicesEditor(rows) {
     const listEl = document.getElementById("dpServicesList");
     if (!listEl) return;
     listEl.innerHTML = "";
-    const data = rows && rows.length ? rows : [{ name: "", price: null }];
+    const data = rows && rows.length ? rows : [{ name: "", price: null, fromPrice: true }];
     for (const row of data) {
         listEl.appendChild(buildServiceRow(row));
     }

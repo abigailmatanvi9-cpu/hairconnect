@@ -2960,15 +2960,43 @@ button.dash-home-cat {
 
 .profil-service-row {
     display: grid;
-    grid-template-columns: 1fr minmax(7rem, 9rem) auto;
+    grid-template-columns: 1fr minmax(10rem, 13rem) auto;
     gap: 0.5rem;
-    align-items: center;
+    align-items: start;
 }
 
-.profil-service-row__name,
+.profil-service-row__name {
+    width: 100%;
+    min-width: 0;
+}
+
+.profil-service-row__price-wrap {
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+    min-width: 0;
+}
+
 .profil-service-row__price {
     width: 100%;
     min-width: 0;
+}
+
+.profil-service-row__from-label {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+    font-size: 0.78rem;
+    font-weight: 600;
+    color: var(--hc-smart-muted, #6b7280);
+    cursor: pointer;
+    user-select: none;
+}
+
+.profil-service-row__from {
+    width: 0.95rem;
+    height: 0.95rem;
+    accent-color: var(--hc-smart-accent, #c9a090);
 }
 
 .profil-service-row__remove {
@@ -3017,7 +3045,7 @@ button.dash-home-cat {
         grid-area: name;
     }
 
-    .profil-service-row__price {
+    .profil-service-row__price-wrap {
         grid-area: price;
     }
 

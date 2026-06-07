@@ -251,7 +251,7 @@ if (!uid) {
             if (services.length && isProProfile) {
                 pubServicesEl.innerHTML = services
                     .map((s) => {
-                        const price = formatServicePriceFcfa(s.price);
+                        const price = formatServicePriceFcfa(s.price, s.fromPrice);
                         const priceHtml = price
                             ? `<span class="public-services-list__price">${escapeHtml(price)}</span>`
                             : "";
