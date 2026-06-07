@@ -2868,17 +2868,25 @@ function renderSalonRecruitment({ offres, candidatures }) {
     if (bodyEl) bodyEl.hidden = false;
     const weekAgo = Date.now() - WEEK_MS;
     const activeOffers = (offres || []).filter((o) => String(o.status || "open").toLowerCase() === "open").length;
-    const newCand = (candidatures || []).filter((c) => messageMillis(c) >= weekAgo).length;
-    const interviews = (candidatures || []).filter((c) => String(c.status || "").toLowerCase() === "accepted").length;
+    const pending = (candidatures || []).filter((c) => String(c.status || "pending").toLowerCase() === "pending").length;
+    const accepted = (candidatures || []).filter((c) => String(c.status || "").toLowerCase() === "accepted").length;
+    const newPending = (candidatures || []).filter(
+        (c) => String(c.status || "pending").toLowerCase() === "pending" && messageMillis(c) >= weekAgo
+    ).length;
     listEl.innerHTML = [
         { label: "Offres actives", value: activeOffers },
-        { label: "Nouvelles candidatures", value: newCand },
-        { label: "Entretiens programmés", value: interviews }
+        { label: "En attente de réponse", value: pending },
+        { label: "Candidatures acceptées", value: accepted, hint: newPending > 0 ? newPending + " cette semaine" : "" }
     ]
-        .map(
-            (r) =>
-                `<li class="dash-hub-recruit__row"><span class="dash-hub-recruit__label">${escapeHtml(r.label)}</span><span class="dash-hub-recruit__value">${escapeHtml(String(r.value))}</span></li>`
-        )
+        .map((r) => {
+            const hint = r.hint ? `<span class="dash-hub-recruit__hint">${escapeHtml(r.hint)}</span>` : "";
+            return (
+                `<li class="dash-hub-recruit__row">` +
+                `<span class="dash-hub-recruit__label">${escapeHtml(r.label)}${hint}</span>` +
+                `<span class="dash-hub-recruit__value">${escapeHtml(String(r.value))}</span>` +
+                `</li>`
+            );
+        })
         .join("");
 }
 
@@ -3050,7 +3058,9 @@ async function loadSalonHubWidgets(uid) {
         } else if (messagesWeek > 0) {
             growthPct = 100;
         }
-        const newCand = candidatures.filter((c) => messageMillis(c) >= weekAgo).length;
+        const newCand = candidatures.filter(
+            (c) => String(c.status || "pending").toLowerCase() === "pending" && messageMillis(c) >= weekAgo
+        ).length;
 
         setSalonStats({
             messages: unread,

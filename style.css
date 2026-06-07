@@ -9903,8 +9903,17 @@ body.hc-marketing--spa {
 }
 
 .hc-dash-smart .dash-hub-recruit__label {
+    display: flex;
+    flex-direction: column;
+    gap: 0.15rem;
     font-size: 0.86rem;
     color: var(--hc-smart-muted, #6b6b6b);
+}
+
+.hc-dash-smart .dash-hub-recruit__hint {
+    font-size: 0.72rem;
+    font-weight: 500;
+    color: var(--hc-smart-accent-deep, #b07d6c);
 }
 
 .hc-dash-smart .dash-hub-recruit__value {
