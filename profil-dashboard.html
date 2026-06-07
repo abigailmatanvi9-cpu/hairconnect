@@ -24,14 +24,23 @@
 
     <section class="profil-hero" aria-labelledby="dpProfilHeroName">
         <div class="profil-hero-main">
-            <div class="profil-hero-avatar-wrap" aria-hidden="true">
-                <img id="dpHubAvatar" class="profil-hero-avatar" alt="">
-                <span id="dpHubAvatarFb" class="profil-hero-avatar-fb">?</span>
+            <div class="profil-hero-avatar-wrap">
+                <label class="profil-hero-avatar-label" for="dpPhotoFile">
+                    <img id="dpHubAvatar" class="profil-hero-avatar" alt="">
+                    <span id="dpHubAvatarFb" class="profil-hero-avatar-fb">?</span>
+                    <span class="profil-hero-avatar-edit" aria-hidden="true">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M6.827 16.95 3 20.776V18a2.25 2.25 0 012.25-2.25h2.577M15.75 7.5l-7.5 7.5M18 3l3 3-9.75 9.75H8.25V12L18 3z"/></svg>
+                    </span>
+                </label>
+                <input type="file" id="dpPhotoFile" class="profil-hero-avatar-input" accept="image/jpeg,image/png,image/webp,image/gif" hidden>
             </div>
             <div class="profil-hero-text">
                 <h2 class="profil-hero-name" id="dpProfilHeroName">—</h2>
                 <p class="profil-hero-email" id="dpHubEmail">—</p>
                 <span class="profil-hero-role" id="dpHubRolePill">—</span>
+                <p class="profil-hero-photo-hint">
+                    <label for="dpPhotoFile" class="profil-hero-photo-link">Ajouter ou changer votre photo de profil</label>
+                </p>
             </div>
         </div>
     </section>
@@ -376,6 +385,45 @@ function renderServicesEditor(rows) {
         listEl.appendChild(buildServiceRow(row));
     }
 }
+
+document.getElementById("dpPhotoFile")?.addEventListener("change", async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const formError = document.getElementById("dpFormError");
+    const formOk = document.getElementById("dpFormOk");
+    if (formOk) formOk.hidden = true;
+    if (!profileUid) {
+        if (formError) {
+            formError.textContent = "Session non prête, patientez une seconde.";
+            formError.hidden = false;
+        }
+        return;
+    }
+    try {
+        photoUrl = await compressImageFile(file);
+        const displayName =
+            document.getElementById("dpSalonName")?.value.trim() ||
+            document.getElementById("dpName")?.value.trim() ||
+            profileCache?.name ||
+            "Utilisateur";
+        applyHubAvatar(displayName, photoUrl);
+        await updateUserProfile(profileUid, { photoUrl });
+        const fresh = await fetchUserProfile(profileUid);
+        profileCache = fresh || profileCache;
+        notifyParentProfileUpdated();
+        if (formError) formError.hidden = true;
+        if (formOk) {
+            formOk.textContent = "Photo de profil enregistrée.";
+            formOk.hidden = false;
+        }
+    } catch (err) {
+        if (formError) {
+            formError.textContent = getFirebaseErrorMessage(err) || "Impossible d'enregistrer la photo.";
+            formError.hidden = false;
+        }
+        e.target.value = "";
+    }
+});
 
 document.getElementById("dpAddServiceBtn")?.addEventListener("click", () => {
     const listEl = document.getElementById("dpServicesList");

@@ -526,6 +526,49 @@ body.hc-marketing--beauty .marketing-footer {
     flex-shrink: 0;
 }
 
+.profil-hero-avatar-label {
+    position: relative;
+    display: block;
+    width: 100%;
+    height: 100%;
+    cursor: pointer;
+    border-radius: 50%;
+}
+
+.profil-hero-avatar-label:hover .profil-hero-avatar-edit {
+    opacity: 1;
+}
+
+.profil-hero-avatar-edit {
+    position: absolute;
+    right: -2px;
+    bottom: -2px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 1.55rem;
+    height: 1.55rem;
+    border-radius: 50%;
+    background: #fff;
+    color: var(--hc-smart-accent-deep, #b07d6c);
+    border: 1px solid var(--hc-pro-line, #ebe4df);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
+    opacity: 0.95;
+    pointer-events: none;
+}
+
+.profil-hero-photo-hint {
+    margin: 0.5rem 0 0;
+    font-size: 0.78rem;
+}
+
+.profil-hero-photo-link {
+    color: var(--hc-smart-accent-deep, #b07d6c);
+    font-weight: 600;
+    text-decoration: underline;
+    cursor: pointer;
+}
+
 .profil-hero-avatar {
     width: 100%;
     height: 100%;

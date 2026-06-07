@@ -562,6 +562,27 @@ app.put("/api/users/:id", async (req, res) => {
       }
     }
 
+    if (Object.prototype.hasOwnProperty.call(data, "photoUrl")) {
+      const raw = data.photoUrl;
+      if (raw === null || raw === undefined || String(raw).trim() === "") {
+        data.photoUrl = null;
+      } else {
+        const v = String(raw).trim();
+        if (v.length > MARKETPLACE_PHOTO_URL_MAX_LEN) {
+          return res.status(400).json({
+            message: "Photo de profil trop volumineuse (réduisez la taille ou compressez l’image)."
+          });
+        }
+        if (!/^https?:\/\//i.test(v) && !/^data:image\/(png|jpe?g|webp|gif);base64,/i.test(v)) {
+          return res.status(400).json({
+            message:
+              "Photo de profil : image PNG, JPEG, WebP ou GIF (import depuis l’appareil), ou URL https."
+          });
+        }
+        data.photoUrl = v;
+      }
+    }
+
     await prisma.user.update({
       where: { id },
       data

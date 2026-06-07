@@ -2410,9 +2410,10 @@ function computeCoiffeurProfileCompletion(profile, publicationCount) {
         { key: "name", label: "Nom", ok: !!String(profile?.name || "").trim() },
         { key: "phone", label: "Téléphone", ok: !!String(profile?.phone || "").trim() },
         {
-            key: "photos",
-            label: "Photos",
-            ok: !!String(profile?.photoUrl || "").trim() || Number(publicationCount || 0) > 0
+            key: "photo",
+            label: "Photo de profil",
+            ok: !!String(profile?.photoUrl || "").trim(),
+            warn: "Photo de profil manquante"
         },
         { key: "city", label: "Ville", ok: !!String(profile?.city || "").trim(), warn: "Ville manquante" },
         {
