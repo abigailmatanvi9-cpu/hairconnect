@@ -3000,15 +3000,26 @@ button.dash-home-cat {
 }
 
 .profil-service-row__remove {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    align-self: center;
     width: 2.25rem;
     height: 2.25rem;
+    padding: 0;
     border: 1px solid var(--hc-pro-line, #ebe4df);
     border-radius: 10px;
     background: #fff;
     color: #9a3412;
-    font-size: 1.15rem;
-    line-height: 1;
     cursor: pointer;
+}
+
+.profil-service-row__remove svg {
+    display: block;
+    width: 1rem;
+    height: 1rem;
+    pointer-events: none;
 }
 
 .profil-service-row__remove:hover {
