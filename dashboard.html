@@ -7,7 +7,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Playfair+Display:wght@500;600;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="style.css?v=client-hub">
+    <link rel="stylesheet" href="style.css?v=coiffeur-hub">
 </head>
 <body class="dashboard-page hc-dash-pro hc-dash-smart hc-dash-beauty hc-theme-pro">
 
@@ -175,10 +175,10 @@
             </div>
         </section>
 
-        <!-- Espace coiffeur(se) indépendant(e) — même style d’accueil que le client -->
+        <!-- Espace coiffeur(se) indépendant(e) — hub personnalisé -->
         <section id="panel-coiffeur" class="dash-panel dash-panel--client-home" hidden>
             <div class="dash-client-app">
-                <div class="dash-home-client">
+                <div class="dash-home-client dash-coiffeur-hub">
                     <div class="dash-home-top dash-hide-when-sidebar">
                         <div class="dash-home-user">
                             <div class="dash-home-avatar-wrap" aria-hidden="true">
@@ -194,39 +194,92 @@
                             <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.75" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M14.857 17.082a23.848 23.848 0 005.454-1.31A8.967 8.967 0 0118 9.75V9A6 6 0 006 9v.75a8.967 8.967 0 01-2.312 6.022c1.733.64 3.56 1.085 5.455 1.31m5.714 0a24.255 24.255 0 01-5.714 0m5.714 0a3 3 0 11-5.714 0"/></svg>
                         </a>
                     </div>
-                    <section class="dash-pro-hero dash-pro-hero--coiffeur" aria-labelledby="dashHeroCoiffTitle">
-                        <div class="dash-pro-hero__text">
-                            <h2 id="dashHeroCoiffTitle" class="dash-pro-hero__title">Postulez aux salons qui recrutent</h2>
-                            <p class="dash-pro-hero__desc">CDI, CDD, temps plein ou partiel — les offres HairConnect sont triées par ville.</p>
-                            <a href="offres.html" class="dash-pro-hero__cta" data-dash-embed="offres.html">Voir les offres</a>
-                        </div>
-                        <div class="dash-pro-hero__art dash-pro-hero__art--coiffeur" aria-hidden="true"></div>
+
+                    <section class="dash-coiffeur-hero" aria-labelledby="coiffeurHubGreet">
+                        <h2 id="coiffeurHubGreet" class="dash-coiffeur-hero__title">Bonjour 👋</h2>
+                        <p class="dash-coiffeur-hero__city dash-hide-when-sidebar">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.75" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M15 10.5a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" d="M19.5 10.5c0 7.125-7.5 11.25-7.5 11.25S4.5 17.625 4.5 10.5a7.5 7.5 0 1115 0z"/></svg>
+                            <span data-dash-home="city">Ville non renseignée</span>
+                        </p>
                     </section>
 
-                    <h3 class="dash-pro-section-label">Accès rapide</h3>
-                    <nav class="dash-home-cats dash-pro-cats" aria-label="Raccourcis coiffeur">
-                        <a href="offres.html" class="dash-home-cat" data-dash-embed="offres.html"><span class="dash-home-cat-icon" aria-hidden="true"><svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M20.25 14.15v4.125c0 .621-.504 1.125-1.125 1.125H4.875c-.621 0-1.125-.504-1.125-1.125v-4.125M19.5 7.125l-7.5 4.875-7.5-4.875M3.375 7.125h17.25c.621 0 1.125.504 1.125 1.125v.75c0 .621-.504 1.125-1.125 1.125H3.375a1.125 1.125 0 01-1.125-1.125v-.75c0-.621.504-1.125 1.125-1.125z"/></svg></span><span class="dash-home-cat-label">Offres</span></a>
-                        <a href="marketplace.html" class="dash-home-cat"><span class="dash-home-cat-icon" aria-hidden="true"><svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M15.75 10.5V6a3.75 3.75 0 10-7.5 0v4.5m11.356-1.993l1.106 8.844a1.125 1.125 0 01-1.118 1.274H4.406a1.125 1.125 0 01-1.118-1.274l1.106-8.844A1.125 1.125 0 015.505 7.5h12.99a1.125 1.125 0 011.111 1.007z"/></svg></span><span class="dash-home-cat-label">Marketplace</span></a>
-                        <a href="messagerie.html" class="dash-home-cat" data-dash-embed="messagerie.html"><span class="dash-home-cat-icon" aria-hidden="true"><svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M8.625 12a.375.375 0 11-.75 0 .375.375 0 01.75 0zm0 0H8.25m4.125 0a.375.375 0 11-.75 0 .375.375 0 01.75 0zm0 0H12m4.125 0a.375.375 0 11-.75 0 .375.375 0 01.75 0zm0 0h-.375M21 12c0 4.556-4.03 8.25-9 8.25a9.764 9.764 0 01-2.555-.337A5.972 5.972 0 015.41 20.97a5.969 5.969 0 01-.474-.065 4.48 4.48 0 00.978-2.025c.09-.457-.133-.901-.467-1.226C3.93 16.178 3 14.189 3 12c0-4.556 4.03-8.25 9-8.25s9 3.694 9 8.25z"/></svg></span><span class="dash-home-cat-label">Messages</span></a>
-                        <button type="button" class="dash-home-cat dash-home-cat--btn" data-dash-open-profile><span class="dash-home-cat-icon" aria-hidden="true"><svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z"/></svg></span><span class="dash-home-cat-label">Profil &amp; tarifs</span></button>
-                    </nav>
+                    <section class="dash-hub-profile" aria-labelledby="coiffeurHubProfileTitle">
+                        <div class="dash-hub-profile__head">
+                            <h3 id="coiffeurHubProfileTitle" class="dash-hub-profile__title">Profil complété à <span id="coiffeurHubProfilePct">0</span>&nbsp;%</h3>
+                            <button type="button" class="dash-hub-profile__cta" data-dash-open-profile>Compléter</button>
+                        </div>
+                        <div class="dash-hub-profile__bar" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" id="coiffeurHubProfileBarWrap">
+                            <span class="dash-hub-profile__bar-fill" id="coiffeurHubProfileBar" style="width:0%"></span>
+                        </div>
+                        <ul id="coiffeurHubProfileChecks" class="dash-hub-profile__checks"></ul>
+                    </section>
 
-                    <div class="dash-pro-offers-head">
-                        <h3 class="dash-pro-section-title">Offres pour vous</h3>
-                        <a href="offres.html" class="dash-pro-offers-all" data-dash-embed="offres.html">Tout voir</a>
+                    <div class="dash-client-hub__stats" aria-label="Votre activité aujourd'hui">
+                        <a href="offres.html" class="dash-hub-stat" data-dash-embed="offres.html">
+                            <span class="dash-hub-stat__label">Offres pour vous</span>
+                            <span class="dash-hub-stat__value" data-coiffeur-stat="offers-match">0</span>
+                            <span class="dash-hub-stat__meta">Dans votre ville</span>
+                        </a>
+                        <a href="messagerie.html" class="dash-hub-stat" data-dash-embed="messagerie.html">
+                            <span class="dash-hub-stat__label">Messages non lus</span>
+                            <span class="dash-hub-stat__value" data-coiffeur-stat="unread">0</span>
+                            <span class="dash-hub-stat__meta">Ouvrir la messagerie</span>
+                        </a>
+                        <a href="offres.html" class="dash-hub-stat" data-dash-embed="offres.html">
+                            <span class="dash-hub-stat__label">Candidatures envoyées</span>
+                            <span class="dash-hub-stat__value" data-coiffeur-stat="candidatures">0</span>
+                            <span class="dash-hub-stat__meta">Suivre vos postulations</span>
+                        </a>
+                        <a href="avis-recus.html" class="dash-hub-stat" data-dash-embed="avis-recus.html">
+                            <span class="dash-hub-stat__label">Avis reçus</span>
+                            <span class="dash-hub-stat__value" data-coiffeur-stat="avis">0</span>
+                            <span class="dash-hub-stat__meta">Voir tous les avis</span>
+                        </a>
                     </div>
-                    <ul id="dashFeaturedOffresCoiffeur" class="dash-pro-offer-grid" aria-live="polite"></ul>
-                    <p id="dashFeaturedOffresCoiffeurEmpty" class="dash-pro-offers-empty" hidden>Aucune offre pour le moment.</p>
 
-                    <p class="dash-home-loc dash-hide-when-sidebar">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.75" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M15 10.5a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" d="M19.5 10.5c0 7.125-7.5 11.25-7.5 11.25S4.5 17.625 4.5 10.5a7.5 7.5 0 1115 0z"/></svg>
-                        <span data-dash-home="city">Ville non renseignée</span>
-                    </p>
-                    <nav class="dash-home-links dash-hide-when-sidebar" aria-label="Liens utiles">
-                        <button type="button" class="dash-home-links-btn" data-dash-open-profile>Profil &amp; tarifs</button>
-                        <a href="messagerie.html" data-dash-embed="messagerie.html">Messagerie</a>
-                        <a href="marketplace.html">Marketplace</a>
-                    </nav>
+                    <section class="dash-client-hub__section" aria-labelledby="coiffeurHubOppTitle">
+                        <div class="dash-client-hub__head">
+                            <h3 id="coiffeurHubOppTitle" class="dash-client-hub__title">Opportunités près de vous</h3>
+                        </div>
+                        <p id="coiffeurHubOppLoading" class="dash-client-hub__loading">Chargement…</p>
+                        <ul id="coiffeurHubOppList" class="dash-hub-opp-list"></ul>
+                        <a href="offres.html" class="dash-hub-section-cta" data-dash-embed="offres.html">Voir toutes les offres</a>
+                    </section>
+
+                    <section class="dash-client-hub__section" aria-labelledby="coiffeurHubPerfTitle">
+                        <div class="dash-client-hub__head">
+                            <h3 id="coiffeurHubPerfTitle" class="dash-client-hub__title">Performance du profil</h3>
+                            <span class="dash-client-hub__link dash-client-hub__link--muted">Cette semaine</span>
+                        </div>
+                        <ul id="coiffeurHubPerfList" class="dash-hub-perf-list"></ul>
+                    </section>
+
+                    <section class="dash-client-hub__section" aria-labelledby="coiffeurHubRdvTitle">
+                        <div class="dash-client-hub__head">
+                            <h3 id="coiffeurHubRdvTitle" class="dash-client-hub__title">Mes prochains rendez-vous</h3>
+                            <a href="agenda-pro.html" class="dash-client-hub__link" data-dash-embed="agenda-pro.html">Agenda</a>
+                        </div>
+                        <p id="coiffeurHubRdvLoading" class="dash-client-hub__loading">Chargement…</p>
+                        <ul id="coiffeurHubRdvList" class="dash-hub-rdv-list"></ul>
+                    </section>
+
+                    <section class="dash-client-hub__section" aria-labelledby="coiffeurHubAvisTitle">
+                        <div class="dash-client-hub__head">
+                            <h3 id="coiffeurHubAvisTitle" class="dash-client-hub__title">Mes derniers avis</h3>
+                            <a href="avis-recus.html" class="dash-client-hub__link" data-dash-embed="avis-recus.html">Tout voir</a>
+                        </div>
+                        <p id="coiffeurHubAvisLoading" class="dash-client-hub__loading">Chargement…</p>
+                        <ul id="coiffeurHubAvisList" class="dash-hub-avis-list"></ul>
+                    </section>
+
+                    <section class="dash-client-hub__section" aria-labelledby="coiffeurHubPhotosTitle">
+                        <div class="dash-client-hub__head">
+                            <h3 id="coiffeurHubPhotosTitle" class="dash-client-hub__title">Photos récentes</h3>
+                            <button type="button" class="dash-client-hub__link dash-client-hub__link--btn" data-dash-open-profile>Publier</button>
+                        </div>
+                        <p id="coiffeurHubPhotosLoading" class="dash-client-hub__loading">Chargement…</p>
+                        <ul id="coiffeurHubPhotosList" class="dash-hub-photos-list"></ul>
+                    </section>
                 </div>
             </div>
         </section>
@@ -429,6 +482,8 @@ import {
     listProfessionals,
     listAllAvis,
     listRendezVousForClient,
+    listRendezVousForPro,
+    listCandidaturesForCoiffeur,
     listMarketplaceProducts,
     listMarketplaceOrders,
     listAvisForPro,
@@ -746,13 +801,37 @@ function setClientStats({ unread, favorites, reviews }) {
     });
 }
 
-function setCoiffeurStats({ messages, offers }) {
-    document.querySelectorAll("[data-coiffeur-stat=\"messages\"]").forEach((el) => {
-        el.textContent = String(messages);
-    });
-    document.querySelectorAll("[data-coiffeur-stat=\"offers\"]").forEach((el) => {
-        el.textContent = String(offers);
-    });
+function setCoiffeurStats({ offersMatch, unread, candidatures, avis, messages, offers }) {
+    if (offersMatch != null) {
+        document.querySelectorAll("[data-coiffeur-stat=\"offers-match\"]").forEach((el) => {
+            el.textContent = String(offersMatch);
+        });
+    }
+    if (unread != null) {
+        document.querySelectorAll("[data-coiffeur-stat=\"unread\"]").forEach((el) => {
+            el.textContent = String(unread);
+        });
+    }
+    if (candidatures != null) {
+        document.querySelectorAll("[data-coiffeur-stat=\"candidatures\"]").forEach((el) => {
+            el.textContent = String(candidatures);
+        });
+    }
+    if (avis != null) {
+        document.querySelectorAll("[data-coiffeur-stat=\"avis\"]").forEach((el) => {
+            el.textContent = String(avis);
+        });
+    }
+    if (messages != null) {
+        document.querySelectorAll("[data-coiffeur-stat=\"messages\"]").forEach((el) => {
+            el.textContent = String(messages);
+        });
+    }
+    if (offers != null) {
+        document.querySelectorAll("[data-coiffeur-stat=\"offers\"]").forEach((el) => {
+            el.textContent = String(offers);
+        });
+    }
 }
 
 function setSalonStats({ messages, offres, candidatures }) {
@@ -2254,15 +2333,7 @@ async function refreshDashboardOffres(uid, roleKey) {
         });
         const railLinkRole = roleKey === "coiffeur" ? "coiffeur" : "client";
         renderRailOfferList(rail, railEmpty, sorted, railLinkRole);
-        if (roleKey === "coiffeur") {
-            renderFeaturedOfferGrid(
-                document.getElementById("dashFeaturedOffresCoiffeur"),
-                document.getElementById("dashFeaturedOffresCoiffeurEmpty"),
-                sorted,
-                "coiffeur",
-                null
-            );
-        } else if (roleKey === "salon") {
+        if (roleKey === "salon") {
             renderFeaturedOfferGrid(
                 document.getElementById("dashFeaturedOffresSalon"),
                 document.getElementById("dashFeaturedOffresSalonEmpty"),
@@ -2296,12 +2367,296 @@ function fileToDataUrlDp(file) {
     });
 }
 
-async function loadCoiffeurStats(uid) {
-    const [messages, offres] = await Promise.all([listMessagesForUser(uid), listOffres()]);
-    setCoiffeurStats({
-        messages: messages.length,
-        offers: offres.length
+const WEEK_MS = 7 * 24 * 60 * 60 * 1000;
+
+function relativeTimeFr(ms) {
+    if (!ms) return "";
+    const diff = Date.now() - ms;
+    const days = Math.floor(diff / 86400000);
+    if (days <= 0) return "aujourd'hui";
+    if (days === 1) return "hier";
+    return "il y a " + days + " jours";
+}
+
+function starsHtml(n) {
+    const x = Math.min(5, Math.max(0, Math.round(Number(n) || 0)));
+    return "★".repeat(x) + "☆".repeat(5 - x);
+}
+
+function offresMatchingCoiffeurCity(offres, profile) {
+    const city = normalizeCityValue(profile?.city);
+    if (!city) return offres || [];
+    return (offres || []).filter((o) => normalizeCityValue(o.city) === city);
+}
+
+function groupOffresByCity(offres, profile) {
+    const map = {};
+    for (const o of offres || []) {
+        const c = String(o.city || "").trim() || "Autre";
+        map[c] = (map[c] || 0) + 1;
+    }
+    const proCity = String(profile?.city || "").trim();
+    return Object.entries(map).sort((a, b) => {
+        if (proCity) {
+            if (a[0] === proCity && b[0] !== proCity) return -1;
+            if (b[0] === proCity && a[0] !== proCity) return 1;
+        }
+        return b[1] - a[1] || a[0].localeCompare(b[0], "fr");
     });
+}
+
+function computeCoiffeurProfileCompletion(profile, publicationCount) {
+    const checks = [
+        { key: "name", label: "Nom", ok: !!String(profile?.name || "").trim() },
+        { key: "phone", label: "Téléphone", ok: !!String(profile?.phone || "").trim() },
+        {
+            key: "photos",
+            label: "Photos",
+            ok: !!String(profile?.photoUrl || "").trim() || Number(publicationCount || 0) > 0
+        },
+        { key: "city", label: "Ville", ok: !!String(profile?.city || "").trim(), warn: "Ville manquante" },
+        {
+            key: "tarifs",
+            label: "Tarifs",
+            ok: !!String(profile?.servicesTarifs || "").trim(),
+            warn: "Tarifs manquants"
+        },
+        { key: "bio", label: "Description", ok: !!String(profile?.bio || "").trim(), warn: "Description manquante" }
+    ];
+    const done = checks.filter((c) => c.ok).length;
+    const pct = Math.round((done / checks.length) * 100);
+    return { checks, pct };
+}
+
+function renderCoiffeurProfileCompletion(profile, publicationCount) {
+    const { checks, pct } = computeCoiffeurProfileCompletion(profile, publicationCount);
+    const pctEl = document.getElementById("coiffeurHubProfilePct");
+    const barEl = document.getElementById("coiffeurHubProfileBar");
+    const barWrap = document.getElementById("coiffeurHubProfileBarWrap");
+    const listEl = document.getElementById("coiffeurHubProfileChecks");
+    if (pctEl) pctEl.textContent = String(pct);
+    if (barEl) barEl.style.width = pct + "%";
+    if (barWrap) barWrap.setAttribute("aria-valuenow", String(pct));
+    if (!listEl) return;
+    listEl.innerHTML = checks
+        .map((c) => {
+            const icon = c.ok ? "✓" : "⚠";
+            const cls = c.ok ? "dash-hub-profile__check dash-hub-profile__check--ok" : "dash-hub-profile__check dash-hub-profile__check--warn";
+            const text = c.ok ? c.label : c.warn || c.label + " manquant";
+            return `<li class="${cls}"><span aria-hidden="true">${icon}</span> ${escapeHtml(text)}</li>`;
+        })
+        .join("");
+}
+
+function applyCoiffeurHomeUI({ name, city, quartier, photoUrl }) {
+    const root = document.querySelector("#panel-coiffeur .dash-home-client");
+    fillDashHomeHero(root, { name, city, quartier, photoUrl, roleKey: "coiffeur" });
+    const greet = document.getElementById("coiffeurHubGreet");
+    if (greet) {
+        greet.textContent = name ? "Bonjour " + name + " 👋" : "Bonjour 👋";
+    }
+}
+
+function renderCoiffeurOpportunities(offres, profile) {
+    const listEl = document.getElementById("coiffeurHubOppList");
+    const loadEl = document.getElementById("coiffeurHubOppLoading");
+    if (!listEl) return;
+    if (loadEl) loadEl.hidden = true;
+    listEl.innerHTML = "";
+    const grouped = groupOffresByCity(offres, profile);
+    if (!grouped.length) {
+        const li = document.createElement("li");
+        li.className = "dash-client-hub__empty";
+        li.textContent = "Aucune offre publiée pour le moment.";
+        listEl.appendChild(li);
+        return;
+    }
+    for (const [city, count] of grouped.slice(0, 5)) {
+        const li = document.createElement("li");
+        li.className = "dash-hub-opp-item";
+        li.textContent =
+            count +
+            " salon" +
+            (count > 1 ? "s recrutent" : " recrute") +
+            " à " +
+            city;
+        listEl.appendChild(li);
+    }
+}
+
+function renderCoiffeurPerformance({ messagesWeek, avisWeek, candidaturesWeek, photosTotal }) {
+    const listEl = document.getElementById("coiffeurHubPerfList");
+    if (!listEl) return;
+    const rows = [
+        { label: "Messages reçus", value: messagesWeek },
+        { label: "Nouveaux avis", value: avisWeek },
+        { label: "Candidatures envoyées", value: candidaturesWeek },
+        { label: "Photos publiées", value: photosTotal, suffix: " au total" }
+    ];
+    listEl.innerHTML = rows
+        .map(
+            (r) =>
+                `<li class="dash-hub-perf-item"><span class="dash-hub-perf-item__value">${escapeHtml(String(r.value))}${r.suffix ? escapeHtml(r.suffix) : ""}</span><span class="dash-hub-perf-item__label">${escapeHtml(r.label)}</span></li>`
+        )
+        .join("");
+}
+
+function renderCoiffeurUpcomingRdv(rows) {
+    const listEl = document.getElementById("coiffeurHubRdvList");
+    const loadEl = document.getElementById("coiffeurHubRdvLoading");
+    if (!listEl) return;
+    if (loadEl) loadEl.hidden = true;
+    listEl.innerHTML = "";
+    const now = Date.now();
+    const upcoming = (rows || [])
+        .filter((r) => String(r.status || "planned").toLowerCase() === "planned")
+        .filter((r) => {
+            const t = new Date(r.scheduledAt).getTime();
+            return Number.isFinite(t) && t >= now;
+        })
+        .sort((a, b) => new Date(a.scheduledAt).getTime() - new Date(b.scheduledAt).getTime())
+        .slice(0, 3);
+    if (!upcoming.length) {
+        const li = document.createElement("li");
+        li.className = "dash-client-hub__empty";
+        li.textContent = "Aucun rendez-vous à venir.";
+        listEl.appendChild(li);
+        return;
+    }
+    for (const r of upcoming) {
+        const li = document.createElement("li");
+        li.className = "dash-hub-rdv-item";
+        const client = r.client || {};
+        const clientName = client.name || client.email || "Client";
+        const prest = String(r.prestation || "").trim() || "Prestation";
+        li.innerHTML =
+            `<p class="dash-hub-rdv-item__when">${escapeHtml(formatRdvWhen(r.scheduledAt))}</p>` +
+            `<p class="dash-hub-rdv-item__title">${escapeHtml(prest)}</p>` +
+            `<p class="dash-hub-rdv-item__sub">${escapeHtml(clientName)}</p>`;
+        listEl.appendChild(li);
+    }
+}
+
+function renderCoiffeurRecentAvis(rows) {
+    const listEl = document.getElementById("coiffeurHubAvisList");
+    const loadEl = document.getElementById("coiffeurHubAvisLoading");
+    if (!listEl) return;
+    if (loadEl) loadEl.hidden = true;
+    listEl.innerHTML = "";
+    const sorted = [...(rows || [])].sort((a, b) => messageMillis(b) - messageMillis(a)).slice(0, 3);
+    if (!sorted.length) {
+        const li = document.createElement("li");
+        li.className = "dash-client-hub__empty";
+        li.textContent = "Pas encore d’avis reçus.";
+        listEl.appendChild(li);
+        return;
+    }
+    for (const a of sorted) {
+        const li = document.createElement("li");
+        li.className = "dash-hub-avis-item";
+        const comment = String(a.comment || "").trim() || "Merci pour votre retour.";
+        li.innerHTML =
+            `<p class="dash-hub-avis-item__stars" aria-label="${Number(a.rating) || 0} sur 5">${starsHtml(a.rating)}</p>` +
+            `<p class="dash-hub-avis-item__text">${escapeHtml(comment.length > 140 ? comment.slice(0, 140) + "…" : comment)}</p>` +
+            `<p class="dash-hub-avis-item__meta">— Client, ${escapeHtml(relativeTimeFr(messageMillis(a)))}</p>`;
+        listEl.appendChild(li);
+    }
+}
+
+function renderCoiffeurRecentPhotos(rows) {
+    const listEl = document.getElementById("coiffeurHubPhotosList");
+    const loadEl = document.getElementById("coiffeurHubPhotosLoading");
+    if (!listEl) return;
+    if (loadEl) loadEl.hidden = true;
+    listEl.innerHTML = "";
+    const sorted = [...(rows || [])].sort((a, b) => messageMillis(b) - messageMillis(a)).slice(0, 4);
+    if (!sorted.length) {
+        const li = document.createElement("li");
+        li.className = "dash-client-hub__empty";
+        li.textContent = "Publiez vos réalisations depuis Mon profil pour gagner en visibilité.";
+        listEl.appendChild(li);
+        return;
+    }
+    for (const p of sorted) {
+        const li = document.createElement("li");
+        li.className = "dash-hub-photo-item";
+        const title = String(p.title || "Réalisation").trim();
+        const style = publicationStyleTypeLabel(p.styleType) || String(p.styleType || "").trim();
+        const photo = String(p.photoUrl || "").trim();
+        const thumb = photo
+            ? `<img src="${escapeHtml(photo)}" alt="" class="dash-hub-photo-item__img" loading="lazy" decoding="async">`
+            : `<span class="dash-hub-photo-item__fb" aria-hidden="true">📷</span>`;
+        li.innerHTML =
+            `<span class="dash-hub-photo-item__thumb">${thumb}</span>` +
+            `<span class="dash-hub-photo-item__body">` +
+            `<span class="dash-hub-photo-item__title">${escapeHtml(title)}</span>` +
+            (style ? `<span class="dash-hub-photo-item__meta">${escapeHtml(style)} · ${escapeHtml(relativeTimeFr(messageMillis(p)))}</span>` : `<span class="dash-hub-photo-item__meta">${escapeHtml(relativeTimeFr(messageMillis(p)))}</span>`) +
+            `</span>`;
+        listEl.appendChild(li);
+    }
+}
+
+let coiffeurHubLoading = false;
+
+async function loadCoiffeurHubWidgets(uid) {
+    if (!uid || coiffeurHubLoading) return;
+    coiffeurHubLoading = true;
+    const profile = dashProfileCache || {};
+    const weekAgo = Date.now() - WEEK_MS;
+    try {
+        const [messages, offres, candidatures, avis, rdv, publications] = await Promise.all([
+            listMessagesForUser(uid),
+            listOffres(),
+            listCandidaturesForCoiffeur(uid),
+            listAvisForPro(uid),
+            listRendezVousForPro(uid),
+            listPublications({ targetProUid: uid })
+        ]);
+        const unread = messages.filter((m) => m.toUid === uid).length;
+        const matched = offresMatchingCoiffeurCity(offres, profile);
+        setCoiffeurStats({
+            offersMatch: matched.length,
+            unread,
+            candidatures: candidatures.length,
+            avis: avis.length,
+            messages: messages.length,
+            offers: offres.length
+        });
+        renderCoiffeurProfileCompletion(profile, publications.length);
+        renderCoiffeurOpportunities(offres, profile);
+        const messagesWeek = messages.filter((m) => m.toUid === uid && messageMillis(m) >= weekAgo).length;
+        const avisWeek = avis.filter((a) => messageMillis(a) >= weekAgo).length;
+        const candidaturesWeek = candidatures.filter((c) => messageMillis(c) >= weekAgo).length;
+        renderCoiffeurPerformance({
+            messagesWeek,
+            avisWeek,
+            candidaturesWeek,
+            photosTotal: publications.length
+        });
+        renderCoiffeurUpcomingRdv(rdv);
+        renderCoiffeurRecentAvis(avis);
+        renderCoiffeurRecentPhotos(publications);
+    } catch {
+        ["coiffeurHubOppLoading", "coiffeurHubRdvLoading", "coiffeurHubAvisLoading", "coiffeurHubPhotosLoading"].forEach(
+            (id) => {
+                const el = document.getElementById(id);
+                if (el) el.hidden = true;
+            }
+        );
+        setCoiffeurStats({ offersMatch: 0, unread: 0, candidatures: 0, avis: 0 });
+        renderCoiffeurProfileCompletion(profile, 0);
+        renderCoiffeurOpportunities([], profile);
+        renderCoiffeurPerformance({ messagesWeek: 0, avisWeek: 0, candidaturesWeek: 0, photosTotal: 0 });
+        renderCoiffeurUpcomingRdv([]);
+        renderCoiffeurRecentAvis([]);
+        renderCoiffeurRecentPhotos([]);
+    } finally {
+        coiffeurHubLoading = false;
+    }
+}
+
+async function loadCoiffeurStats(uid) {
+    await loadCoiffeurHubWidgets(uid);
 }
 
 async function loadSalonStats(uid) {
@@ -2371,13 +2726,7 @@ onAuthStateChanged(auth, async (user) => {
             photoUrl: heroPhoto
         });
     } else if (roleKey === "coiffeur") {
-        fillDashHomeHero(document.querySelector("#panel-coiffeur .dash-home-client"), {
-            name: heroName,
-            city: heroCity,
-            quartier: heroQuartier,
-            photoUrl: heroPhoto,
-            roleKey: "coiffeur"
-        });
+        applyCoiffeurHomeUI({ name: heroName, city: heroCity, quartier: heroQuartier, photoUrl: heroPhoto });
     } else if (roleKey === "salon") {
         fillDashHomeHero(document.querySelector("#panel-salon .dash-home-client"), {
             name: heroName,
@@ -2429,7 +2778,7 @@ onAuthStateChanged(auth, async (user) => {
         try {
             await loadCoiffeurStats(user.uid);
         } catch {
-            setCoiffeurStats({ messages: 0, offers: 0 });
+            setCoiffeurStats({ offersMatch: 0, unread: 0, candidatures: 0, avis: 0 });
         }
     } else if (roleKey === "salon") {
         try {
@@ -2478,13 +2827,7 @@ function refreshDashHeroesFromProfileCache() {
     if (rk === "client") {
         applyClientHomeUI({ name: displayPerson, city: heroCity, quartier: heroQuartier, photoUrl: heroPhoto });
     } else if (rk === "coiffeur") {
-        fillDashHomeHero(document.querySelector("#panel-coiffeur .dash-home-client"), {
-            name: heroName,
-            city: heroCity,
-            quartier: heroQuartier,
-            photoUrl: heroPhoto,
-            roleKey: "coiffeur"
-        });
+        applyCoiffeurHomeUI({ name: heroName, city: heroCity, quartier: heroQuartier, photoUrl: heroPhoto });
     } else if (rk === "salon") {
         fillDashHomeHero(document.querySelector("#panel-salon .dash-home-client"), {
             name: heroName,
@@ -2519,10 +2862,16 @@ window.addEventListener("message", async (ev) => {
             }
             refreshClientHubAfterProfileChange(u.uid);
         } else if (dashActiveRoleKey === "coiffeur") {
+            applyCoiffeurHomeUI({
+                name: dashProfileCache?.name || u.email,
+                city: dashProfileCache?.city,
+                quartier: dashProfileCache?.quartier,
+                photoUrl: dashProfileCache?.photoUrl
+            });
             try {
                 await loadCoiffeurStats(u.uid);
             } catch {
-                setCoiffeurStats({ messages: 0, offers: 0 });
+                setCoiffeurStats({ offersMatch: 0, unread: 0, candidatures: 0, avis: 0 });
             }
         } else if (dashActiveRoleKey === "salon") {
             try {

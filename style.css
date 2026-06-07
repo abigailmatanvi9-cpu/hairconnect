@@ -9275,12 +9275,305 @@ body.hc-marketing--spa {
     color: var(--hc-smart-muted);
 }
 
-.hc-dash-smart.dash-mode-client .dash-rail__stats--client {
+.hc-dash-smart.dash-mode-client .dash-rail__stats--client,
+.hc-dash-smart.dash-mode-coiffeur .dash-rail__stats--coiffeur {
     display: none;
 }
 
+/* —— Tableau de bord coiffeur indépendant (hub) —— */
+.hc-dash-smart .dash-coiffeur-hub {
+    display: grid;
+    gap: 1.25rem;
+}
+
+.hc-dash-smart .dash-coiffeur-hero {
+    padding: 1.1rem 1.2rem;
+    border-radius: var(--hc-pro-radius);
+    background: #ffffff;
+    box-shadow: var(--hc-pro-shadow);
+}
+
+.hc-dash-smart .dash-coiffeur-hero__title {
+    margin: 0;
+    font-family: "Playfair Display", Georgia, serif;
+    font-size: 1.35rem;
+    font-weight: 600;
+    color: var(--hc-smart-ink);
+}
+
+.hc-dash-smart .dash-coiffeur-hero__city {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    margin: 0.45rem 0 0;
+    font-size: 0.82rem;
+    color: var(--hc-smart-muted);
+}
+
+.hc-dash-smart .dash-hub-profile {
+    padding: 1.1rem 1.15rem;
+    border-radius: var(--hc-pro-radius);
+    background: #ffffff;
+    box-shadow: var(--hc-pro-shadow);
+}
+
+.hc-dash-smart .dash-hub-profile__head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+    margin-bottom: 0.65rem;
+}
+
+.hc-dash-smart .dash-hub-profile__title {
+    margin: 0;
+    font-size: 0.95rem;
+    font-weight: 700;
+    color: var(--hc-smart-ink);
+}
+
+.hc-dash-smart .dash-hub-profile__cta {
+    border: none;
+    border-radius: 999px;
+    padding: 0.45rem 0.9rem;
+    background: var(--hc-smart-accent);
+    color: #fff;
+    font-size: 0.78rem;
+    font-weight: 700;
+    cursor: pointer;
+}
+
+.hc-dash-smart .dash-hub-profile__cta:hover {
+    background: var(--hc-smart-accent-deep);
+}
+
+.hc-dash-smart .dash-hub-profile__bar {
+    height: 8px;
+    border-radius: 999px;
+    background: var(--hc-smart-bg);
+    overflow: hidden;
+    margin-bottom: 0.75rem;
+}
+
+.hc-dash-smart .dash-hub-profile__bar-fill {
+    display: block;
+    height: 100%;
+    border-radius: inherit;
+    background: linear-gradient(90deg, var(--hc-smart-accent), var(--hc-smart-teal));
+    transition: width 0.25s ease;
+}
+
+.hc-dash-smart .dash-hub-profile__checks {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.35rem 0.75rem;
+}
+
+.hc-dash-smart .dash-hub-profile__check {
+    font-size: 0.8rem;
+    color: var(--hc-smart-muted);
+}
+
+.hc-dash-smart .dash-hub-profile__check--ok {
+    color: var(--hc-smart-ink);
+}
+
+.hc-dash-smart .dash-hub-profile__check--warn {
+    color: #9a3412;
+}
+
+.hc-dash-smart .dash-coiffeur-hub .dash-client-hub__stats {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.hc-dash-smart .dash-hub-opp-list,
+.hc-dash-smart .dash-hub-perf-list,
+.hc-dash-smart .dash-hub-rdv-list,
+.hc-dash-smart .dash-hub-avis-list,
+.hc-dash-smart .dash-hub-photos-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.55rem;
+}
+
+.hc-dash-smart .dash-hub-opp-item {
+    padding: 0.65rem 0.75rem;
+    border-radius: 12px;
+    background: var(--hc-smart-bg);
+    font-size: 0.88rem;
+    font-weight: 600;
+    color: var(--hc-smart-ink);
+}
+
+.hc-dash-smart .dash-hub-section-cta {
+    display: inline-flex;
+    margin-top: 0.75rem;
+    padding: 0.55rem 1rem;
+    border-radius: 999px;
+    background: var(--hc-smart-accent);
+    color: #fff;
+    font-size: 0.82rem;
+    font-weight: 700;
+    text-decoration: none;
+}
+
+.hc-dash-smart .dash-hub-section-cta:hover {
+    background: var(--hc-smart-accent-deep);
+}
+
+.hc-dash-smart .dash-hub-perf-list {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 0.65rem;
+}
+
+.hc-dash-smart .dash-hub-perf-item {
+    padding: 0.75rem 0.65rem;
+    border-radius: 12px;
+    background: var(--hc-smart-bg);
+    text-align: center;
+}
+
+.hc-dash-smart .dash-hub-perf-item__value {
+    display: block;
+    font-size: 1.2rem;
+    font-weight: 800;
+    color: var(--hc-smart-ink);
+    line-height: 1.2;
+}
+
+.hc-dash-smart .dash-hub-perf-item__label {
+    display: block;
+    margin-top: 0.2rem;
+    font-size: 0.72rem;
+    color: var(--hc-smart-muted);
+}
+
+.hc-dash-smart .dash-hub-rdv-item {
+    padding: 0.75rem 0.85rem;
+    border-radius: 12px;
+    background: var(--hc-smart-bg);
+}
+
+.hc-dash-smart .dash-hub-rdv-item__when {
+    margin: 0;
+    font-size: 0.78rem;
+    font-weight: 700;
+    color: var(--hc-smart-accent-deep);
+}
+
+.hc-dash-smart .dash-hub-rdv-item__title {
+    margin: 0.2rem 0 0;
+    font-size: 0.9rem;
+    font-weight: 700;
+    color: var(--hc-smart-ink);
+}
+
+.hc-dash-smart .dash-hub-rdv-item__sub {
+    margin: 0.15rem 0 0;
+    font-size: 0.78rem;
+    color: var(--hc-smart-muted);
+}
+
+.hc-dash-smart .dash-hub-avis-item {
+    padding: 0.85rem;
+    border-radius: 12px;
+    background: var(--hc-smart-bg);
+}
+
+.hc-dash-smart .dash-hub-avis-item__stars {
+    margin: 0;
+    color: #d97706;
+    letter-spacing: 0.05em;
+    font-size: 0.95rem;
+}
+
+.hc-dash-smart .dash-hub-avis-item__text {
+    margin: 0.35rem 0 0;
+    font-size: 0.88rem;
+    color: var(--hc-smart-ink);
+    line-height: 1.45;
+}
+
+.hc-dash-smart .dash-hub-avis-item__meta {
+    margin: 0.35rem 0 0;
+    font-size: 0.75rem;
+    color: var(--hc-smart-muted);
+}
+
+.hc-dash-smart .dash-hub-photo-item {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.65rem 0.75rem;
+    border-radius: 12px;
+    background: var(--hc-smart-bg);
+}
+
+.hc-dash-smart .dash-hub-photo-item__thumb {
+    flex-shrink: 0;
+    width: 3.5rem;
+    height: 3.5rem;
+    border-radius: 10px;
+    overflow: hidden;
+    background: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.hc-dash-smart .dash-hub-photo-item__img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.hc-dash-smart .dash-hub-photo-item__fb {
+    font-size: 1.25rem;
+    opacity: 0.5;
+}
+
+.hc-dash-smart .dash-hub-photo-item__body {
+    display: flex;
+    flex-direction: column;
+    gap: 0.15rem;
+    min-width: 0;
+}
+
+.hc-dash-smart .dash-hub-photo-item__title {
+    font-size: 0.88rem;
+    font-weight: 700;
+    color: var(--hc-smart-ink);
+}
+
+.hc-dash-smart .dash-hub-photo-item__meta {
+    font-size: 0.75rem;
+    color: var(--hc-smart-muted);
+}
+
+.hc-dash-smart .dash-client-hub__link--muted {
+    color: var(--hc-smart-muted);
+    font-weight: 500;
+    pointer-events: none;
+}
+
+.hc-dash-smart .dash-client-hub__link--btn {
+    border: none;
+    background: none;
+    padding: 0;
+    cursor: pointer;
+    font: inherit;
+}
+
 @media (max-width: 720px) {
-    .hc-dash-smart .dash-client-hub__stats {
+    .hc-dash-smart .dash-client-hub__stats,
+    .hc-dash-smart .dash-coiffeur-hub .dash-client-hub__stats {
         grid-template-columns: 1fr;
     }
 
@@ -9292,10 +9585,23 @@ body.hc-marketing--spa {
     .hc-dash-smart .dash-hub-activity__when {
         display: none;
     }
+
+    .hc-dash-smart .dash-hub-profile__checks,
+    .hc-dash-smart .dash-hub-perf-list {
+        grid-template-columns: 1fr 1fr;
+    }
+}
+
+@media (min-width: 900px) and (max-width: 1100px) {
+    .hc-dash-smart .dash-coiffeur-hub .dash-client-hub__stats,
+    .hc-dash-smart .dash-hub-perf-list {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
 }
 
 @media (min-width: 1100px) {
-    .hc-dash-smart .dash-panel--client-home .dash-client-hub {
+    .hc-dash-smart .dash-panel--client-home .dash-client-hub,
+    .hc-dash-smart .dash-panel--client-home .dash-coiffeur-hub {
         max-width: 920px;
     }
 }
