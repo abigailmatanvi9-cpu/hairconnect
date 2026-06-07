@@ -63,6 +63,49 @@ export function applyAvatarElements(img, fb, displayName, url) {
     }
 }
 
+/** Résout une photo pro pour affichage liste (gère les anciennes data URL trop longues). */
+export async function resolveProPhotoUrl(raw) {
+    const u = String(raw || "").trim();
+    if (!u) return "";
+    if (!/^data:image\//i.test(u)) return u;
+    if (u.length <= DISPLAYABLE_DATA_URL_MAX_LEN) return u;
+    try {
+        const blob = await fetch(u).then((res) => res.blob());
+        return URL.createObjectURL(blob);
+    } catch {
+        return "";
+    }
+}
+
+export async function mountProAvatar(img, fb, displayName, rawUrl) {
+    const url = await resolveProPhotoUrl(rawUrl);
+    applyAvatarElements(img, fb, displayName, url);
+}
+
+export function createProAvatarMedia(
+    displayName,
+    photoUrl,
+    {
+        wrapClass = "dash-near-card__media",
+        imgClass = "dash-near-card__img",
+        fbClass = "dash-near-card__fb"
+    } = {}
+) {
+    const imgWrap = document.createElement("div");
+    imgWrap.className = wrapClass;
+    const img = document.createElement("img");
+    img.className = imgClass;
+    img.alt = "";
+    img.hidden = true;
+    const fb = document.createElement("span");
+    fb.className = fbClass;
+    fb.textContent = initialsFromName(displayName);
+    imgWrap.appendChild(img);
+    imgWrap.appendChild(fb);
+    mountProAvatar(img, fb, displayName, photoUrl);
+    return imgWrap;
+}
+
 /**
  * Redimensionne et compresse une image avant envoi (data URL) — limite la taille côté API.
  */

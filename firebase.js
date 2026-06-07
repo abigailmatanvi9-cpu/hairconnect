@@ -361,7 +361,7 @@ export async function listProfessionals(options = {}) {
             const role = String(u?.role || "").trim().toLowerCase();
             return role === "salon" || role === "coiffeur" || role === "coiffeuse" || role === "coiffeur indépendant" || role === "coiffeuse indépendante";
         })
-        .map((u) => ({ id: u.id, ...u }));
+        .map((u) => normalizeUserProfileRow({ id: u.id, ...u }));
 }
 
 export async function sendMessage(fromUid, toUid, text) {

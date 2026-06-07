@@ -66,6 +66,7 @@ import {
     HAIRCONNECT_METIERS
 } from "./firebase.js";
 import { onAuthStateChanged } from "./firebase.js";
+import { createProAvatarMedia } from "./image-utils.js";
 
 const ANNUAIRE_METIERS_STORAGE = "hairconnect_annuaire_metiers";
 
@@ -197,7 +198,16 @@ function render() {
         const quartLine = String(p.quartier || "").trim()
             ? "<p class=\"pro-card-quartier\">Quartier : " + escapeHtml(String(p.quartier).trim()) + "</p>"
             : "";
-        li.innerHTML =
+        li.appendChild(
+            createProAvatarMedia(title, p.photoUrl, {
+                wrapClass: "pro-card__media",
+                imgClass: "pro-card__img",
+                fbClass: "pro-card__fb"
+            })
+        );
+        const body = document.createElement("div");
+        body.className = "pro-card__body";
+        body.innerHTML =
             "<strong>" +
             escapeHtml(title) +
             "</strong> <span class=\"pro-card-role\">" +
@@ -223,6 +233,7 @@ function render() {
             "\">Laisser un avis</a>" +
             favHtml +
             "</div>";
+        li.appendChild(body);
         listEl.appendChild(li);
     }
 

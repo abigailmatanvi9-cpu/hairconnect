@@ -566,7 +566,12 @@ import {
     PUBLICATION_STYLE_TYPES,
     publicationStyleTypeLabel
 } from "./firebase.js";
-import { compressImageFile, applyAvatarElements, initialsFromName } from "./image-utils.js";
+import {
+    compressImageFile,
+    applyAvatarElements,
+    initialsFromName,
+    createProAvatarMedia
+} from "./image-utils.js";
 import { normalizeRole as normalizeRoleShared, resolveUserRole, authUserId } from "./role-utils.js";
 
 const panels = ["panel-client", "panel-coiffeur", "panel-salon", "panel-unknown"];
@@ -1550,31 +1555,8 @@ function buildNearCard(p, ratings, profileRet) {
             : "";
     a.href = "profil-public.html?uid=" + uidEnc + retSuffix;
 
-    const imgWrap = document.createElement("div");
-    imgWrap.className = "dash-near-card__media";
-    const img = document.createElement("img");
-    img.className = "dash-near-card__img";
-    img.alt = "";
-    const fb = document.createElement("span");
-    fb.className = "dash-near-card__fb";
     const title = p.salonName || p.name || "Sans nom";
-    fb.textContent = initialsFromName(title);
-    const photo = String(p.photoUrl || "").trim();
-    if (photo) {
-        img.src = photo;
-        img.hidden = false;
-        fb.hidden = true;
-        img.onerror = () => {
-            img.hidden = true;
-            fb.hidden = false;
-            img.onerror = null;
-        };
-    } else {
-        img.hidden = true;
-        fb.hidden = false;
-    }
-    imgWrap.appendChild(img);
-    imgWrap.appendChild(fb);
+    const imgWrap = createProAvatarMedia(title, p.photoUrl);
 
     const body = document.createElement("div");
     body.className = "dash-near-card__body";
