@@ -7,7 +7,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Playfair+Display:wght@500;600;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="style.css?v=beauty-soft">
+    <link rel="stylesheet" href="style.css?v=client-hub">
 </head>
 <body class="dashboard-page hc-dash-pro hc-dash-smart hc-dash-beauty hc-theme-pro">
 
@@ -77,7 +77,7 @@
         <section id="panel-client" class="dash-panel dash-panel--client-home" hidden>
             <div class="dash-client-app">
             <div class="dash-client-view" id="clientViewHome" data-client-view="home">
-            <div class="dash-home-client">
+            <div class="dash-home-client dash-client-hub">
                 <div class="dash-home-top dash-hide-when-sidebar">
                     <div class="dash-home-user">
                         <div class="dash-home-avatar-wrap" aria-hidden="true">
@@ -94,43 +94,68 @@
                     </a>
                 </div>
 
-                <form class="dash-home-search dash-hide-when-sidebar" action="recherche.html" method="get" role="search">
-                    <span class="dash-home-search-icon" aria-hidden="true">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.75" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z"/></svg>
-                    </span>
-                    <input type="search" name="city" id="clientHomeSearch" class="dash-home-search-input" data-dash-home="search" placeholder="Rechercher coiffeurs, services…" autocomplete="off">
-                </form>
-
-                <section class="dash-pro-hero dash-pro-hero--client" aria-labelledby="dashHeroClientTitle">
-                    <div class="dash-pro-hero__text">
-                        <h2 id="dashHeroClientTitle" class="dash-pro-hero__title">Trouvez votre pro idéal</h2>
-                        <p class="dash-pro-hero__desc">Annuaire de salons et de coiffeurs, messagerie, rendez-vous et avis — les offres d’emploi sont réservées aux professionnels.</p>
-                        <a href="recherche.html" class="dash-pro-hero__cta" data-dash-embed="recherche.html">Trouver un salon ou un coiffeur</a>
+                <section class="dash-client-hero" aria-labelledby="dashClientHubTitle">
+                    <div class="dash-client-hero__text">
+                        <h2 id="dashClientHubTitle" class="dash-client-hero__title">Votre tableau de bord</h2>
+                        <p class="dash-client-hero__sub" id="clientHubGreet">Bienvenue sur HairConnect</p>
+                        <p class="dash-client-hero__loc dash-hide-when-sidebar">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.75" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M15 10.5a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" d="M19.5 10.5c0 7.125-7.5 11.25-7.5 11.25S4.5 17.625 4.5 10.5a7.5 7.5 0 1115 0z"/></svg>
+                            <span id="clientHomeCity" data-dash-home="city">Ville non renseignée</span>
+                        </p>
                     </div>
-                    <div class="dash-pro-hero__art" aria-hidden="true"></div>
+                    <form class="dash-client-hero__search dash-hide-when-sidebar" action="recherche.html" method="get" role="search">
+                        <span class="dash-client-hero__search-icon" aria-hidden="true">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.75" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z"/></svg>
+                        </span>
+                        <input type="search" name="city" id="clientHomeSearch" class="dash-client-hero__search-input" data-dash-home="search" placeholder="Rechercher coiffeurs, services…" autocomplete="off">
+                    </form>
+                    <a href="recherche.html" class="dash-client-hero__cta" data-dash-embed="recherche.html">Trouver un salon</a>
                 </section>
 
-                <h3 class="dash-pro-section-label">Par où commencer ?</h3>
-                <nav class="dash-home-cats dash-pro-cats" aria-label="Raccourcis thématiques">
-                    <a href="recherche.html" class="dash-home-cat" data-dash-embed="recherche.html"><span class="dash-home-cat-icon" aria-hidden="true"><svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M15 19.128a9.38 9.38 0 002.625.372 9.337 9.337 0 004.121-.952 4.125 4.125 0 00-7.438-3.168 4.125 4.125 0 00-3.168 7.438 9.337 9.337 0 004.121.952 9.38 9.38 0 002.625-.372M12 9v6m3-3H9"/></svg></span><span class="dash-home-cat-label">Annuaire</span></a>
-                    <a href="mes-rdv-client.html" class="dash-home-cat" data-dash-embed="mes-rdv-client.html"><span class="dash-home-cat-icon" aria-hidden="true"><svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 012.25-2.25h13.5A2.25 2.25 0 0121 7.5v11.25m-18 0A2.25 2.25 0 005.25 21h13.5a2.25 2.25 0 002.25-2.25m-18 0v-7.5a2.25 2.25 0 012.25-2.25h13.5a2.25 2.25 0 012.25 2.25v7.5"/></svg></span><span class="dash-home-cat-label">Mes RDV</span></a>
-                    <a href="favoris.html" class="dash-home-cat" data-dash-embed="favoris.html"><span class="dash-home-cat-icon" aria-hidden="true"><svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M11.48 3.499a.562.562 0 011.04 0l2.125 5.111a.563.563 0 00.475.345l5.518.442c.499.04.701.663.321.988l-4.204 3.602a.563.563 0 00-.182.557l1.285 5.385a.562.562 0 01-.84.61l-4.725-2.885a.563.563 0 00-.586 0L6.982 20.54a.562.562 0 01-.84-.61l1.285-5.386a.562.562 0 00-.182-.557l-4.204-3.602a.563.563 0 01.321-.988l5.518-.442a.563.563 0 00.475-.345L11.48 3.5z"/></svg></span><span class="dash-home-cat-label">Favoris</span></a>
-                    <a href="messagerie.html" class="dash-home-cat" data-dash-embed="messagerie.html"><span class="dash-home-cat-icon" aria-hidden="true"><svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M8.625 12a.375.375 0 11-.75 0 .375.375 0 01.75 0zm0 0H8.25m4.125 0a.375.375 0 11-.75 0 .375.375 0 01.75 0zm0 0H12m4.125 0a.375.375 0 11-.75 0 .375.375 0 01.75 0zm0 0h-.375M21 12c0 4.556-4.03 8.25-9 8.25a9.764 9.764 0 01-2.555-.337A5.972 5.972 0 015.41 20.97a5.969 5.969 0 01-.474-.065 4.48 4.48 0 00.978-2.025c.09-.457-.133-.901-.467-1.226C3.93 16.178 3 14.189 3 12c0-4.556 4.03-8.25 9-8.25s9 3.694 9 8.25z"/></svg></span><span class="dash-home-cat-label">Messages</span></a>
-                    <a href="marketplace.html" class="dash-home-cat"><span class="dash-home-cat-icon" aria-hidden="true"><svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M15.75 10.5V6a3.75 3.75 0 10-7.5 0v4.5m11.356-1.993l1.106 8.844a1.125 1.125 0 01-1.118 1.274H4.406a1.125 1.125 0 01-1.118-1.274l1.106-8.844A1.125 1.125 0 015.505 7.5h12.99a1.125 1.125 0 011.111 1.007z"/></svg></span><span class="dash-home-cat-label">Marketplace</span></a>
-                </nav>
+                <div class="dash-client-hub__stats" aria-label="Aperçu rapide">
+                    <a href="mes-rdv-client.html" class="dash-hub-stat" data-dash-embed="mes-rdv-client.html">
+                        <span class="dash-hub-stat__label">Prochain RDV</span>
+                        <span class="dash-hub-stat__value dash-hub-stat__value--text" id="clientHubNextRdv">—</span>
+                        <span class="dash-hub-stat__meta" id="clientHubNextRdvMeta">Chargement…</span>
+                    </a>
+                    <a href="messagerie.html" class="dash-hub-stat" data-dash-embed="messagerie.html">
+                        <span class="dash-hub-stat__label">Messages non lus</span>
+                        <span class="dash-hub-stat__value" data-client-stat="unread">0</span>
+                        <span class="dash-hub-stat__meta">Ouvrir la messagerie</span>
+                    </a>
+                    <a href="favoris.html" class="dash-hub-stat" data-dash-embed="favoris.html">
+                        <span class="dash-hub-stat__label">Favoris</span>
+                        <span class="dash-hub-stat__value" data-client-stat="favorites">0</span>
+                        <span class="dash-hub-stat__meta">Salons enregistrés</span>
+                    </a>
+                </div>
 
-                <p class="dash-home-loc dash-hide-when-sidebar">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.75" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M15 10.5a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" d="M19.5 10.5c0 7.125-7.5 11.25-7.5 11.25S4.5 17.625 4.5 10.5a7.5 7.5 0 1115 0z"/></svg>
-                    <span id="clientHomeCity" data-dash-home="city">Ville non renseignée</span>
-                </p>
+                <section class="dash-client-hub__section" aria-labelledby="clientHubRecTitle">
+                    <div class="dash-client-hub__head">
+                        <h3 id="clientHubRecTitle" class="dash-client-hub__title">Salons recommandés</h3>
+                        <a href="recherche.html" class="dash-client-hub__link" data-dash-embed="recherche.html">Voir l’annuaire</a>
+                    </div>
+                    <p id="clientHubRecLoading" class="dash-client-hub__loading">Chargement…</p>
+                    <p id="clientHubRecError" class="dash-client-hub__error" role="alert" hidden></p>
+                    <ul id="clientHubRecList" class="dash-client-hub__reco-list"></ul>
+                </section>
 
-                <nav class="dash-home-links dash-hide-when-sidebar" aria-label="Accès rapide">
-                    <a href="recherche.html" data-dash-embed="recherche.html">Annuaire</a>
-                    <a href="messagerie.html" data-dash-embed="messagerie.html">Messagerie</a>
-                    <a href="favoris.html" data-dash-embed="favoris.html">Favoris</a>
-                    <a href="avis.html" data-dash-embed="avis.html">Avis</a>
-                    <a href="marketplace.html">Marketplace</a>
-                </nav>
+                <section class="dash-client-hub__section" aria-labelledby="clientHubActTitle">
+                    <div class="dash-client-hub__head">
+                        <h3 id="clientHubActTitle" class="dash-client-hub__title">Activité récente</h3>
+                    </div>
+                    <p id="clientHubActLoading" class="dash-client-hub__loading">Chargement…</p>
+                    <ul id="clientHubActList" class="dash-client-hub__activity"></ul>
+                </section>
+
+                <section class="dash-client-hub__section" aria-labelledby="clientHubMarketTitle">
+                    <div class="dash-client-hub__head">
+                        <h3 id="clientHubMarketTitle" class="dash-client-hub__title">Offres Marketplace récentes</h3>
+                        <a href="marketplace.html" class="dash-client-hub__link">Tout voir</a>
+                    </div>
+                    <p id="clientHubMarketLoading" class="dash-client-hub__loading">Chargement…</p>
+                    <ul id="clientHubMarketList" class="dash-client-hub__market-list"></ul>
+                </section>
             </div>
             </div>
 
@@ -403,6 +428,9 @@ import {
     listCandidaturesForSalon,
     listProfessionals,
     listAllAvis,
+    listRendezVousForClient,
+    listMarketplaceProducts,
+    listMarketplaceOrders,
     listAvisForPro,
     createPublication,
     listPublications,
@@ -826,6 +854,359 @@ function applyClientHomeUI({ name, city, quartier, photoUrl }) {
     clientDashQuartier = String(quartier || "").trim();
     const root = document.querySelector("#panel-client .dash-home-client");
     fillDashHomeHero(root, { name, city, quartier, photoUrl, roleKey: "client" });
+    const greet = document.getElementById("clientHubGreet");
+    if (greet) {
+        greet.textContent = name ? "Bienvenue, " + name : "Bienvenue sur HairConnect";
+    }
+    const hdrSearch = document.getElementById("dashHeaderSearch");
+    if (hdrSearch) {
+        const c = String(city || "").trim();
+        hdrSearch.placeholder = c ? "Rechercher à " + c + "…" : "Rechercher coiffeurs, services…";
+    }
+}
+
+const fmtFcfa = new Intl.NumberFormat("fr-FR", { maximumFractionDigits: 0 });
+
+function moneyFcfa(n) {
+    const v = Number(n);
+    if (!Number.isFinite(v)) return "—";
+    return fmtFcfa.format(v) + " FCFA";
+}
+
+function formatRdvWhen(iso) {
+    const d = new Date(iso);
+    if (Number.isNaN(d.getTime())) return "—";
+    return d.toLocaleString("fr-FR", {
+        weekday: "short",
+        day: "2-digit",
+        month: "short",
+        hour: "2-digit",
+        minute: "2-digit"
+    });
+}
+
+function formatActivityWhen(iso) {
+    const d = new Date(iso);
+    if (Number.isNaN(d.getTime())) return "";
+    return d.toLocaleString("fr-FR", {
+        day: "2-digit",
+        month: "short",
+        hour: "2-digit",
+        minute: "2-digit"
+    });
+}
+
+function proDisplayLabel(p) {
+    if (!p) return "Professionnel";
+    const s = String(p.salonName || "").trim();
+    if (s) return s;
+    const n = String(p.name || "").trim();
+    if (n) return n;
+    return "Professionnel";
+}
+
+function messageMillis(m) {
+    try {
+        return m.createdAt && typeof m.createdAt.toMillis === "function"
+            ? m.createdAt.toMillis()
+            : new Date(m.createdAt).getTime();
+    } catch {
+        return 0;
+    }
+}
+
+async function getSortedProsForClient() {
+    const [pros, avis] = await Promise.all([listProfessionals(), listAllAvis()]);
+    const ratings = ratingMapFromAvis(avis);
+    const clientCityNormalized = normalizeCityValue(clientDashCity);
+    const clientQuartierRaw = String(clientDashQuartier || "").trim().toLowerCase();
+    let sorted = [];
+    if (clientQuartierRaw) {
+        sorted = sortProsForClient(
+            pros.filter((p) =>
+                String(p.quartier || "")
+                    .toLowerCase()
+                    .includes(clientQuartierRaw)
+            ),
+            clientDashCity
+        );
+    } else if (clientCityNormalized) {
+        sorted = sortProsForClient(
+            pros.filter((p) => normalizeCityValue(p.city) === clientCityNormalized),
+            clientDashCity
+        );
+    }
+    return { sorted, ratings, clientQuartierRaw, clientCityNormalized };
+}
+
+function renderClientHubNextRdv(rows) {
+    const valueEl = document.getElementById("clientHubNextRdv");
+    const metaEl = document.getElementById("clientHubNextRdvMeta");
+    if (!valueEl || !metaEl) return;
+    const now = Date.now();
+    const upcoming = rows
+        .filter((r) => String(r.status || "planned").toLowerCase() === "planned")
+        .filter((r) => {
+            const t = new Date(r.scheduledAt).getTime();
+            return Number.isFinite(t) && t >= now;
+        })
+        .sort((a, b) => new Date(a.scheduledAt).getTime() - new Date(b.scheduledAt).getTime());
+    if (!upcoming.length) {
+        valueEl.textContent = "Aucun";
+        metaEl.textContent = "Réserver un rendez-vous";
+        return;
+    }
+    const next = upcoming[0];
+    const pro = next.pro || {};
+    valueEl.textContent = formatRdvWhen(next.scheduledAt);
+    const prest = String(next.prestation || "").trim();
+    metaEl.textContent = proDisplayLabel(pro) + (prest ? " · " + prest : "");
+}
+
+async function loadClientHubNextRdv(uid) {
+    try {
+        const rows = await listRendezVousForClient(uid);
+        renderClientHubNextRdv(rows);
+    } catch {
+        const valueEl = document.getElementById("clientHubNextRdv");
+        const metaEl = document.getElementById("clientHubNextRdvMeta");
+        if (valueEl) valueEl.textContent = "—";
+        if (metaEl) metaEl.textContent = "Impossible de charger";
+    }
+}
+
+async function loadClientHubRecommendations() {
+    const listEl = document.getElementById("clientHubRecList");
+    const loadEl = document.getElementById("clientHubRecLoading");
+    const errEl = document.getElementById("clientHubRecError");
+    if (!listEl) return;
+    if (errEl) {
+        errEl.hidden = true;
+        errEl.textContent = "";
+    }
+    if (loadEl) loadEl.hidden = false;
+    listEl.innerHTML = "";
+    try {
+        const { sorted, ratings, clientQuartierRaw, clientCityNormalized } = await getSortedProsForClient();
+        if (loadEl) loadEl.hidden = true;
+        if (!clientQuartierRaw && !clientCityNormalized) {
+            const li = document.createElement("li");
+            li.className = "dash-client-hub__empty";
+            li.textContent =
+                "Indiquez votre ville et quartier dans Mon profil pour des recommandations personnalisées.";
+            listEl.appendChild(li);
+            return;
+        }
+        if (!sorted.length) {
+            const li = document.createElement("li");
+            li.className = "dash-client-hub__empty";
+            li.textContent = clientQuartierRaw
+                ? "Aucun salon ne correspond à votre quartier pour le moment."
+                : "Aucun salon trouvé dans votre ville pour le moment.";
+            listEl.appendChild(li);
+            return;
+        }
+        for (const p of sorted.slice(0, 6)) {
+            listEl.appendChild(buildNearCard(p, ratings, "nearby-home"));
+        }
+    } catch (e) {
+        if (loadEl) loadEl.hidden = true;
+        if (errEl) {
+            errEl.textContent = getFirebaseErrorMessage(e);
+            errEl.hidden = false;
+        }
+    }
+}
+
+function buildHubActivityItem({ icon, title, subtitle, when, href, embed }) {
+    const li = document.createElement("li");
+    const a = document.createElement("a");
+    a.className = "dash-hub-activity";
+    a.href = href;
+    if (embed) a.setAttribute("data-dash-embed", embed);
+    a.innerHTML =
+        '<span class="dash-hub-activity__icon" aria-hidden="true">' +
+        escapeHtml(icon) +
+        "</span>" +
+        '<span class="dash-hub-activity__body">' +
+        '<span class="dash-hub-activity__title">' +
+        escapeHtml(title) +
+        "</span>" +
+        (subtitle ? '<span class="dash-hub-activity__sub">' + escapeHtml(subtitle) + "</span>" : "") +
+        "</span>" +
+        (when ? '<span class="dash-hub-activity__when">' + escapeHtml(when) + "</span>" : "");
+    li.appendChild(a);
+    return li;
+}
+
+async function loadClientHubActivity(uid) {
+    const listEl = document.getElementById("clientHubActList");
+    const loadEl = document.getElementById("clientHubActLoading");
+    if (!listEl) return;
+    if (loadEl) loadEl.hidden = false;
+    listEl.innerHTML = "";
+    try {
+        const [messages, reviews, ordersPayload] = await Promise.all([
+            listMessagesForUser(uid),
+            listAvisByClient(uid),
+            listMarketplaceOrders({ buyerUid: uid }).catch(() => ({ orders: [] }))
+        ]);
+        const orders = ordersPayload.orders || ordersPayload || [];
+        const items = [];
+        for (const m of messages) {
+            if (m.toUid !== uid) continue;
+            const text = String(m.text || "").trim();
+            items.push({
+                ms: messageMillis(m),
+                icon: "💬",
+                title: "Nouveau message",
+                subtitle: text.length > 72 ? text.slice(0, 72) + "…" : text || "Message reçu",
+                href: "messagerie.html",
+                embed: "messagerie.html"
+            });
+        }
+        for (const a of reviews) {
+            const rating = Number(a.rating) || 0;
+            items.push({
+                ms: messageMillis(a),
+                icon: "★",
+                title: "Avis publié" + (rating ? " · " + rating + "/5" : ""),
+                subtitle: String(a.comment || "").trim().slice(0, 72) || "Merci pour votre retour",
+                href: "avis.html",
+                embed: "avis.html"
+            });
+        }
+        for (const o of orders) {
+            const status = String(o.status || "pending").toLowerCase();
+            const statusLabel =
+                status === "delivered"
+                    ? "Livrée"
+                    : status === "cancelled"
+                      ? "Annulée"
+                      : status === "confirmed"
+                        ? "Confirmée"
+                        : "En cours";
+            items.push({
+                ms: new Date(o.createdAt).getTime() || 0,
+                icon: "🛍",
+                title: "Commande marketplace · " + statusLabel,
+                subtitle: String(o.id || "").slice(0, 8) ? "Réf. " + String(o.id).slice(0, 8) : "Voir le détail",
+                href: "marketplace.html",
+                embed: null
+            });
+        }
+        items.sort((a, b) => b.ms - a.ms);
+        if (loadEl) loadEl.hidden = true;
+        if (!items.length) {
+            const li = document.createElement("li");
+            li.className = "dash-client-hub__empty";
+            li.textContent = "Aucune activité récente. Explorez l’annuaire ou la marketplace.";
+            listEl.appendChild(li);
+            return;
+        }
+        for (const item of items.slice(0, 6)) {
+            listEl.appendChild(
+                buildHubActivityItem({
+                    icon: item.icon,
+                    title: item.title,
+                    subtitle: item.subtitle,
+                    when: item.ms ? formatActivityWhen(item.ms) : "",
+                    href: item.href,
+                    embed: item.embed
+                })
+            );
+        }
+    } catch {
+        if (loadEl) loadEl.hidden = true;
+        const li = document.createElement("li");
+        li.className = "dash-client-hub__empty";
+        li.textContent = "Impossible de charger l’activité récente.";
+        listEl.appendChild(li);
+    }
+}
+
+function buildHubMarketCard(p) {
+    const li = document.createElement("li");
+    const a = document.createElement("a");
+    a.className = "dash-hub-market-card";
+    a.href = "marketplace.html";
+    const photo = String(p.photoUrl || "").trim();
+    const thumb = photo
+        ? '<img src="' + escapeHtml(photo) + '" alt="" class="dash-hub-market-card__img" loading="lazy" decoding="async">'
+        : '<span class="dash-hub-market-card__fb" aria-hidden="true">📷</span>';
+    const cat = String(p.category || "").trim();
+    a.innerHTML =
+        '<span class="dash-hub-market-card__thumb">' +
+        thumb +
+        "</span>" +
+        '<span class="dash-hub-market-card__body">' +
+        '<span class="dash-hub-market-card__title">' +
+        escapeHtml(String(p.title || "Article")) +
+        "</span>" +
+        (cat ? '<span class="dash-hub-market-card__cat">' + escapeHtml(cat) + "</span>" : "") +
+        '<span class="dash-hub-market-card__price">' +
+        moneyFcfa(p.priceFcfa) +
+        "</span>" +
+        (p.sellerName
+            ? '<span class="dash-hub-market-card__seller">' + escapeHtml(String(p.sellerName)) + "</span>"
+            : "") +
+        "</span>";
+    li.appendChild(a);
+    return li;
+}
+
+async function loadClientHubMarketplace() {
+    const listEl = document.getElementById("clientHubMarketList");
+    const loadEl = document.getElementById("clientHubMarketLoading");
+    if (!listEl) return;
+    if (loadEl) loadEl.hidden = false;
+    listEl.innerHTML = "";
+    try {
+        const payload = await listMarketplaceProducts();
+        const products = (payload.products || [])
+            .filter((p) => String(p.status || "active") === "active" && Number(p.stock || 0) > 0)
+            .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+        if (loadEl) loadEl.hidden = true;
+        if (!products.length) {
+            const li = document.createElement("li");
+            li.className = "dash-client-hub__empty";
+            li.textContent = "Aucune offre marketplace pour le moment.";
+            listEl.appendChild(li);
+            return;
+        }
+        for (const p of products.slice(0, 4)) {
+            listEl.appendChild(buildHubMarketCard(p));
+        }
+    } catch {
+        if (loadEl) loadEl.hidden = true;
+        const li = document.createElement("li");
+        li.className = "dash-client-hub__empty";
+        li.textContent = "Impossible de charger la marketplace.";
+        listEl.appendChild(li);
+    }
+}
+
+let clientHubLoading = false;
+
+async function loadClientHubWidgets(uid) {
+    if (!uid || clientHubLoading) return;
+    clientHubLoading = true;
+    try {
+        await Promise.all([
+            loadClientHubNextRdv(uid),
+            loadClientHubRecommendations(),
+            loadClientHubActivity(uid),
+            loadClientHubMarketplace()
+        ]);
+    } finally {
+        clientHubLoading = false;
+    }
+}
+
+function refreshClientHubAfterProfileChange(uid) {
+    clientNearDataLoaded = false;
+    clientHubLoading = false;
+    loadClientHubWidgets(uid).catch(() => {});
 }
 
 function escapeHtml(s) {
@@ -939,22 +1320,7 @@ async function loadClientNearList() {
 
 async function loadNearbyListInto({ listEl, loadEl, errEl, profileRet }) {
     try {
-        const [pros, avis] = await Promise.all([listProfessionals(), listAllAvis()]);
-        const ratings = ratingMapFromAvis(avis);
-        const clientCityNormalized = normalizeCityValue(clientDashCity);
-        const clientQuartierRaw = String(clientDashQuartier || "").trim().toLowerCase();
-        let sorted = [];
-        if (clientQuartierRaw) {
-            const match = pros.filter((p) =>
-                String(p.quartier || "")
-                    .toLowerCase()
-                    .includes(clientQuartierRaw)
-            );
-            sorted = sortProsForClient(match, clientDashCity);
-        } else if (clientCityNormalized) {
-            const sameCityPros = pros.filter((p) => normalizeCityValue(p.city) === clientCityNormalized);
-            sorted = sortProsForClient(sameCityPros, clientDashCity);
-        }
+        const { sorted, clientQuartierRaw, clientCityNormalized, ratings } = await getSortedProsForClient();
         if (loadEl) loadEl.hidden = true;
 
         if (!clientQuartierRaw && !clientCityNormalized) {
@@ -2041,6 +2407,7 @@ onAuthStateChanged(auth, async (user) => {
         if (dashboardClientUid !== user.uid) {
             dashboardClientUid = user.uid;
             clientNearDataLoaded = false;
+            clientHubLoading = false;
             const listEl = document.getElementById("clientNearList");
             if (listEl) listEl.innerHTML = "";
             const loadEl = document.getElementById("clientNearLoading");
@@ -2051,6 +2418,11 @@ onAuthStateChanged(auth, async (user) => {
             await loadClientStats(user.uid);
         } catch {
             setClientStats({ unread: 0, favorites: 0, reviews: 0 });
+        }
+        try {
+            await loadClientHubWidgets(user.uid);
+        } catch {
+            /* ignore */
         }
         tryOpenNearbyFromQuery();
     } else if (roleKey === "coiffeur") {
@@ -2145,6 +2517,7 @@ window.addEventListener("message", async (ev) => {
             } catch {
                 setClientStats({ unread: 0, favorites: 0, reviews: 0 });
             }
+            refreshClientHubAfterProfileChange(u.uid);
         } else if (dashActiveRoleKey === "coiffeur") {
             try {
                 await loadCoiffeurStats(u.uid);
