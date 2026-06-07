@@ -104,15 +104,6 @@
                         <span aria-hidden="true">+</span> Ajouter un service
                     </button>
                 </div>
-                <div class="field-group" id="dpWrapTarifMenuPhoto" hidden>
-                    <label class="field-label" for="dpTarifMenuPhotoFile">Photo du menu tarifs (optionnel)</label>
-                    <input type="file" id="dpTarifMenuPhotoFile" class="field-input-wrap" accept="image/jpeg,image/png,image/webp,image/gif">
-                    <p class="field-hint">Photo de votre grille tarifaire affichée sur la fiche publique.</p>
-                    <div id="dpTarifMenuPreviewWrap" class="profil-tarif-preview" hidden>
-                        <img id="dpTarifMenuPreview" class="profil-tarif-preview__img" alt="Aperçu menu tarifs">
-                        <button type="button" class="register-submit public-btn public-btn--ghost" id="dpTarifMenuRemove">Retirer la photo</button>
-                    </div>
-                </div>
                 <button type="submit" class="register-submit" id="dpSaveBtn">Enregistrer</button>
             </form>
         </div>
@@ -196,7 +187,6 @@ let profileUid = null;
 let profileCache = null;
 let roleDisplay = "";
 let photoUrl = "";
-let tarifMenuPhotoUrl = "";
 
 function normalizeRole(raw) {
     if (!raw || typeof raw !== "string") return "unknown";
@@ -274,13 +264,11 @@ function syncFormFromCache() {
     const wrapProMetiers = document.getElementById("dpWrapProMetiers");
     const wrapBio = document.getElementById("dpWrapBio");
     const wrapTarifs = document.getElementById("dpWrapServicesTarifs");
-    const wrapTarifPhoto = document.getElementById("dpWrapTarifMenuPhoto");
     const isPro = roleDisplay === "Coiffeur" || roleDisplay === "Salon";
     if (wrapSalon) wrapSalon.hidden = roleDisplay !== "Salon";
     if (wrapProMetiers) wrapProMetiers.hidden = !isPro;
     if (wrapBio) wrapBio.hidden = roleDisplay === "Client";
     if (wrapTarifs) wrapTarifs.hidden = !isPro;
-    if (wrapTarifPhoto) wrapTarifPhoto.hidden = !isPro;
 
     if (roleDisplay === "Salon") {
         const sn = document.getElementById("dpSalonName");
@@ -311,8 +299,6 @@ function syncFormFromCache() {
     } else {
         renderServicesEditor([]);
     }
-    tarifMenuPhotoUrl = isPro ? String(data.tarifMenuPhotoUrl || "").trim() : "";
-    applyTarifMenuPreview(tarifMenuPhotoUrl);
     setMetierChecks("dpProMetiersList", parseMetiersFromProfile(data.proMetiers));
 }
 
@@ -380,44 +366,6 @@ document.getElementById("dpAddServiceBtn")?.addEventListener("click", () => {
     listEl.appendChild(buildServiceRow());
     const last = listEl.lastElementChild?.querySelector(".profil-service-row__name");
     if (last) last.focus();
-});
-
-function applyTarifMenuPreview(url) {
-    const wrap = document.getElementById("dpTarifMenuPreviewWrap");
-    const img = document.getElementById("dpTarifMenuPreview");
-    const u = String(url || "").trim();
-    if (!wrap || !img) return;
-    if (u) {
-        img.src = u;
-        wrap.hidden = false;
-    } else {
-        img.removeAttribute("src");
-        wrap.hidden = true;
-    }
-}
-
-document.getElementById("dpTarifMenuPhotoFile")?.addEventListener("change", async (e) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    const formError = document.getElementById("dpFormError");
-    try {
-        tarifMenuPhotoUrl = await compressImageFile(file);
-        applyTarifMenuPreview(tarifMenuPhotoUrl);
-        if (formError) formError.hidden = true;
-    } catch (err) {
-        if (formError) {
-            formError.textContent = getFirebaseErrorMessage(err) || "Impossible de charger l’image.";
-            formError.hidden = false;
-        }
-        e.target.value = "";
-    }
-});
-
-document.getElementById("dpTarifMenuRemove")?.addEventListener("click", () => {
-    tarifMenuPhotoUrl = "";
-    const fileInput = document.getElementById("dpTarifMenuPhotoFile");
-    if (fileInput) fileInput.value = "";
-    applyTarifMenuPreview("");
 });
 
 function notifyParentProfileUpdated() {
@@ -522,7 +470,7 @@ document.getElementById("dpForm").addEventListener("submit", async (e) => {
             }
         }
         payload.servicesTarifs = serializeServicesTarifs(serviceRows);
-        payload.tarifMenuPhotoUrl = tarifMenuPhotoUrl || null;
+        payload.tarifMenuPhotoUrl = null;
     }
 
     if (saveBtn) saveBtn.disabled = true;
