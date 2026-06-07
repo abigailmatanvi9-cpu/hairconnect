@@ -494,7 +494,7 @@ import {
     PUBLICATION_STYLE_TYPES,
     publicationStyleTypeLabel
 } from "./firebase.js";
-import { compressImageFile } from "./image-utils.js";
+import { compressImageFile, applyAvatarElements, initialsFromName } from "./image-utils.js";
 import { normalizeRole as normalizeRoleShared, resolveUserRole, authUserId } from "./role-utils.js";
 
 const panels = ["panel-client", "panel-coiffeur", "panel-salon", "panel-unknown"];
@@ -866,16 +866,6 @@ async function loadClientStats(uid) {
     setClientStats({ unread, favorites: favoritesCount, reviews: reviews.length });
 }
 
-function initialsFromName(name) {
-    const parts = String(name || "")
-        .trim()
-        .split(/\s+/)
-        .filter(Boolean);
-    if (!parts.length) return "?";
-    if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
-    return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
-}
-
 function fillDashHomeHero(homeRoot, { name, city, quartier, photoUrl, roleKey }) {
     if (!homeRoot) return;
     const nm = homeRoot.querySelector("[data-dash-home=name]");
@@ -906,26 +896,8 @@ function fillDashHomeHero(homeRoot, { name, city, quartier, photoUrl, roleKey })
     const img = homeRoot.querySelector("[data-dash-home=avatar]");
     const fallback = homeRoot.querySelector("[data-dash-home=avatar-fb]");
     if (!img || !fallback) return;
-    img.onerror = () => {
-        img.hidden = true;
-        fallback.hidden = false;
-        fallback.textContent = initialsFromName(name);
-        img.onerror = null;
-    };
-    const url = String(photoUrl || "").trim();
-    if (url) {
-        img.src = url;
-        img.alt = "";
-        img.hidden = false;
-        fallback.hidden = true;
-    } else {
-        img.onerror = null;
-        img.removeAttribute("src");
-        img.alt = "";
-        img.hidden = true;
-        fallback.hidden = false;
-        fallback.textContent = initialsFromName(name);
-    }
+    if (img.alt !== undefined) img.alt = "";
+    applyAvatarElements(img, fallback, name, photoUrl);
 }
 
 function applyClientHomeUI({ name, city, quartier, photoUrl }) {
@@ -2200,45 +2172,11 @@ function fillDashSidebarUser(user, data) {
     emailEl.textContent = user.email || "—";
     nameEl.textContent = displayName;
     cityEl.textContent = city || "Ajoutez votre ville dans le profil";
-    img.onerror = () => {
-        img.hidden = true;
-        fb.hidden = false;
-        fb.textContent = initialsFromName(displayName);
-        img.onerror = null;
-    };
-    const url = data && String(data.photoUrl || "").trim();
-    if (url) {
-        img.src = url;
-        img.hidden = false;
-        fb.hidden = true;
-    } else {
-        img.onerror = null;
-        img.removeAttribute("src");
-        img.hidden = true;
-        fb.hidden = false;
-        fb.textContent = initialsFromName(displayName);
-    }
+    applyAvatarElements(img, fb, displayName, data && data.photoUrl);
     const rImg = document.getElementById("dashRailAvatarImg");
     const rFb = document.getElementById("dashRailAvatarFb");
     if (rImg && rFb) {
-        rImg.onerror = () => {
-            rImg.hidden = true;
-            rFb.hidden = false;
-            rFb.textContent = initialsFromName(displayName);
-            rImg.onerror = null;
-        };
-        const url2 = data && String(data.photoUrl || "").trim();
-        if (url2) {
-            rImg.src = url2;
-            rImg.hidden = false;
-            rFb.hidden = true;
-        } else {
-            rImg.onerror = null;
-            rImg.removeAttribute("src");
-            rImg.hidden = true;
-            rFb.hidden = false;
-            rFb.textContent = initialsFromName(displayName);
-        }
+        applyAvatarElements(rImg, rFb, displayName, data && data.photoUrl);
     }
 }
 

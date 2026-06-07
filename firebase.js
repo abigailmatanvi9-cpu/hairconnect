@@ -168,10 +168,16 @@ export async function resolveClientMetiersForListing() {
     return null;
 }
 
+function normalizeUserProfileRow(user) {
+    if (!user || typeof user !== "object") return null;
+    const photoUrl = user.photoUrl ?? user.photourl ?? null;
+    return { id: user.id, ...user, photoUrl };
+}
+
 export async function fetchUserProfile(uid) {
     try {
         const payload = await apiFetch(`/users/${encodeURIComponent(uid)}`);
-        return payload.user ? { id: payload.user.id, ...payload.user } : null;
+        return payload.user ? normalizeUserProfileRow(payload.user) : null;
     } catch (error) {
         if (error.message.includes("introuvable")) return null;
         throw error;
@@ -183,7 +189,7 @@ export async function updateUserProfile(uid, partial) {
         method: "PUT",
         body: JSON.stringify({ ...partial, updatedAt: new Date().toISOString() })
     });
-    return payload.user ? { id: payload.user.id, ...payload.user } : null;
+    return payload.user ? normalizeUserProfileRow(payload.user) : null;
 }
 
 export async function listUsers() {

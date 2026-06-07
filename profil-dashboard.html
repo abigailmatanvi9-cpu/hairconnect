@@ -138,7 +138,7 @@ import {
 } from "./firebase.js";
 import { initPhoneField, readPhoneFromField } from "./phone-utils.js";
 import { initLocationFields, readLocationFromFields } from "./location-utils.js";
-import { compressImageFile, PROFILE_AVATAR_COMPRESS } from "./image-utils.js";
+import { compressImageFile, PROFILE_AVATAR_COMPRESS, applyAvatarElements } from "./image-utils.js";
 import { parseServicesTarifs, serializeServicesTarifs } from "./services-tarifs-utils.js";
 
 const dpPhoneCountry = document.getElementById("dpPhoneCountry");
@@ -214,50 +214,8 @@ function normRoleProfil(r) {
     return String(r || "").trim() || "";
 }
 
-function initialsFromName(name) {
-    const parts = String(name || "")
-        .trim()
-        .split(/\s+/)
-        .filter(Boolean);
-    if (!parts.length) return "?";
-    if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
-    return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
-}
-
 function applyHubAvatar(name, url) {
-    const img = document.getElementById("dpHubAvatar");
-    const fb = document.getElementById("dpHubAvatarFb");
-    if (!img || !fb) return;
-    const u = String(url || "").trim();
-    const showFallback = () => {
-        img.onload = null;
-        img.onerror = null;
-        img.removeAttribute("src");
-        img.hidden = true;
-        fb.hidden = false;
-        fb.textContent = initialsFromName(name);
-    };
-    if (!u) {
-        showFallback();
-        return;
-    }
-    img.onerror = showFallback;
-    img.onload = () => {
-        img.hidden = false;
-        fb.hidden = true;
-        img.onerror = null;
-        img.onload = null;
-    };
-    img.hidden = true;
-    fb.hidden = false;
-    fb.textContent = initialsFromName(name);
-    img.src = u;
-    if (img.complete && img.naturalWidth > 0) {
-        img.hidden = false;
-        fb.hidden = true;
-        img.onerror = null;
-        img.onload = null;
-    }
+    applyAvatarElements(document.getElementById("dpHubAvatar"), document.getElementById("dpHubAvatarFb"), name, url);
 }
 
 function syncFormFromCache() {

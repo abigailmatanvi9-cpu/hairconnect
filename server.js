@@ -67,6 +67,10 @@ function parseMetierSlugsFromQuery(q) {
 function sanitizeUser(user) {
   if (!user) return null;
   const { passwordHash, ...safeUser } = user;
+  if (safeUser.photoUrl == null && safeUser.photourl != null) {
+    safeUser.photoUrl = safeUser.photourl;
+    delete safeUser.photourl;
+  }
   return safeUser;
 }
 

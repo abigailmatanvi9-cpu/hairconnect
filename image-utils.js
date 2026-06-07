@@ -6,6 +6,63 @@ export const PROFILE_AVATAR_COMPRESS = {
     quality: 0.85
 };
 
+/** Taille max (caractères) d'une data URL affichable de façon fiable dans un <img>. */
+const DISPLAYABLE_DATA_URL_MAX_LEN = 450_000;
+
+export function initialsFromName(name) {
+    const parts = String(name || "")
+        .trim()
+        .split(/\s+/)
+        .filter(Boolean);
+    if (!parts.length) return "?";
+    if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
+    return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+}
+
+export function normalizePhotoUrl(raw) {
+    if (raw == null) return "";
+    const u = String(raw).trim();
+    if (!u) return "";
+    if (u.startsWith("data:") && u.length > DISPLAYABLE_DATA_URL_MAX_LEN) return "";
+    return u;
+}
+
+/** Affiche une photo de profil dans un couple img + fallback initiales. */
+export function applyAvatarElements(img, fb, displayName, url) {
+    if (!img || !fb) return;
+    const initials = initialsFromName(displayName);
+    const showFallback = () => {
+        img.onload = null;
+        img.onerror = null;
+        img.removeAttribute("src");
+        img.hidden = true;
+        fb.hidden = false;
+        fb.textContent = initials;
+    };
+    const u = normalizePhotoUrl(url);
+    if (!u) {
+        showFallback();
+        return;
+    }
+    img.onerror = showFallback;
+    img.onload = () => {
+        img.hidden = false;
+        fb.hidden = true;
+        img.onerror = null;
+        img.onload = null;
+    };
+    img.hidden = true;
+    fb.hidden = false;
+    fb.textContent = initials;
+    img.src = u;
+    if (img.complete && img.naturalWidth > 0) {
+        img.hidden = false;
+        fb.hidden = true;
+        img.onerror = null;
+        img.onload = null;
+    }
+}
+
 /**
  * Redimensionne et compresse une image avant envoi (data URL) — limite la taille côté API.
  */
