@@ -8101,53 +8101,18 @@ body.hc-marketing--spa {
 
 .spa-topbar {
     display: flex;
-    flex-wrap: wrap;
     align-items: center;
-    justify-content: space-between;
-    gap: 0.75rem;
+    justify-content: center;
     padding: 0.55rem clamp(1rem, 4vw, 2.5rem);
     background: var(--hc-pro-surface);
     border-bottom: 1px solid var(--hc-pro-line);
     font-size: 0.78rem;
     color: var(--hc-pro-muted);
+    text-align: center;
 }
 
 .spa-topbar__msg {
     margin: 0;
-    flex: 1;
-    min-width: 12rem;
-}
-
-.spa-topbar__form {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 0.4rem;
-    align-items: center;
-}
-
-.spa-topbar__input {
-    padding: 0.4rem 0.65rem;
-    border: 1px solid var(--hc-pro-line);
-    border-radius: 4px;
-    font: inherit;
-    font-size: 0.78rem;
-    background: #fff;
-    color: var(--hc-pro-ink);
-    min-width: 7rem;
-}
-
-.spa-topbar__btn {
-    padding: 0.42rem 0.85rem;
-    border: none;
-    border-radius: 4px;
-    background: var(--hc-pro-ink);
-    color: #fff;
-    font: inherit;
-    font-size: 0.72rem;
-    font-weight: 700;
-    letter-spacing: 0.06em;
-    text-transform: uppercase;
-    cursor: pointer;
 }
 
 .spa-header {
