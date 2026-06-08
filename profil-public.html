@@ -30,10 +30,8 @@
         </header>
 
         <div class="pp-actions-bar" id="pubActionsBar" hidden>
-            <button type="button" class="pp-actions-bar__btn" id="pubContactBarBtn">Contacter</button>
             <a class="pp-actions-bar__btn" id="linkMsg" href="login.html" hidden>Message</a>
             <button type="button" class="pp-actions-bar__btn pp-actions-bar__btn--ghost" id="favBtn" hidden>Ajouter aux favoris</button>
-            <button type="button" class="pp-actions-bar__btn pp-actions-bar__btn--accent" id="pubRdvBtn">Prendre rendez-vous</button>
         </div>
 
         <div id="contactRequestPanel" class="pp-contact-panel" hidden>
@@ -204,8 +202,6 @@ const pubGalleryAllLink = document.getElementById("pubGalleryAllLink");
 const pubAvisList = document.getElementById("pubAvisList");
 const pubGalleryGrid = document.getElementById("pubGalleryGrid");
 const pubActionsBar = document.getElementById("pubActionsBar");
-const pubContactBarBtn = document.getElementById("pubContactBarBtn");
-const pubRdvBtn = document.getElementById("pubRdvBtn");
 
 let cachedFavCount = 0;
 let cachedAvis = [];
@@ -394,21 +390,7 @@ function setupPpTabs() {
     });
 }
 
-function scrollToContactPanel() {
-    const panel = document.getElementById("contactRequestPanel");
-    if (!panel || panel.hidden) return;
-    panel.scrollIntoView({ behavior: "smooth", block: "nearest" });
-}
-
 setupPpTabs();
-
-if (pubContactBarBtn) {
-    pubContactBarBtn.addEventListener("click", scrollToContactPanel);
-}
-
-if (pubRdvBtn) {
-    pubRdvBtn.addEventListener("click", scrollToContactPanel);
-}
 
 if (!uid) {
     errEl.textContent = "Profil introuvable (paramètre uid manquant).";
@@ -502,17 +484,12 @@ if (!uid) {
             contactRequestPanel.hidden = true;
             linkMsgEl.hidden = false;
             linkMsgEl.textContent = "Message";
-            if (pubContactBarBtn) pubContactBarBtn.hidden = true;
             pubContactPair = null;
             return;
         }
 
         contactRequestPanel.hidden = false;
         linkMsgEl.hidden = true;
-        if (pubContactBarBtn) {
-            pubContactBarBtn.hidden = false;
-            pubContactBarBtn.textContent = "Contacter";
-        }
         pubContactPair = { clientUid, proUid };
 
         if (!req) {
@@ -623,8 +600,6 @@ if (!uid) {
         } else if (user.uid !== uid && isTargetPro) {
             if (pubActionsBar) pubActionsBar.hidden = false;
             linkMsgEl.hidden = false;
-            if (pubContactBarBtn) pubContactBarBtn.hidden = true;
-            if (pubRdvBtn) pubRdvBtn.hidden = true;
             if (contactRequestPanel) contactRequestPanel.hidden = true;
         }
 
