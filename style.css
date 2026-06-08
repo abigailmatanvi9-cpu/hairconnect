@@ -5745,6 +5745,259 @@ body.hc-theme-pro .dash-published-photos.ph-hub {
     gap: 1rem;
 }
 
+.ap-rdv-new-fold {
+    margin-bottom: 1.5rem;
+    border-radius: 16px;
+    border: 1px solid #4a4a4a;
+    background: rgba(255, 255, 255, 0.04);
+    padding: 0.65rem 1rem 1rem;
+}
+
+.ap-rdv-new-fold__summary {
+    cursor: pointer;
+    font-weight: 800;
+    font-size: 1rem;
+    color: #fff;
+    list-style: none;
+}
+
+.ap-rdv-new-fold__summary::-webkit-details-marker {
+    display: none;
+}
+
+.ap-rdv-grid {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(15rem, 1fr));
+    gap: 0.85rem;
+}
+
+.ap-rdv-preview {
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+    padding: 1rem;
+    border-radius: 16px;
+    border: 1px solid #4a4a4a;
+    background: #fff;
+}
+
+.ap-rdv-preview__name {
+    margin: 0;
+    font-size: 1rem;
+    font-weight: 800;
+    color: #1e293b;
+    line-height: 1.3;
+}
+
+.ap-rdv-preview__row {
+    margin: 0;
+    font-size: 0.86rem;
+    color: #64748b;
+}
+
+.ap-rdv-preview__prest {
+    color: #334155;
+    font-weight: 600;
+}
+
+.ap-rdv-preview__status {
+    align-self: flex-start;
+    margin-top: 0.15rem;
+}
+
+.ap-rdv-preview__btn {
+    margin-top: 0.55rem;
+    width: 100%;
+    padding: 0.62rem 0.85rem;
+    border-radius: 999px;
+    border: 2px solid #c4b5fd;
+    background: #7c6aad;
+    color: #fff;
+    font: inherit;
+    font-size: 0.84rem;
+    font-weight: 700;
+    cursor: pointer;
+}
+
+.ap-rdv-preview__btn:hover {
+    filter: brightness(1.05);
+}
+
+.ap-rdv-detail-wrap {
+    margin-top: 0.5rem;
+}
+
+.ap-rdv-detail {
+    border-radius: 18px;
+    border: 1px solid #ebe4df;
+    background: #fff;
+    padding: 1rem 1.1rem 1.2rem;
+    box-shadow: 0 8px 28px rgba(30, 41, 59, 0.08);
+}
+
+.ap-rdv-detail__head {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.65rem;
+    margin-bottom: 1rem;
+    padding-bottom: 0.75rem;
+    border-bottom: 1px solid #ebe4df;
+}
+
+.ap-rdv-detail__back {
+    border: none;
+    background: transparent;
+    color: #7c6aad;
+    font: inherit;
+    font-size: 0.88rem;
+    font-weight: 700;
+    cursor: pointer;
+    padding: 0.25rem 0;
+}
+
+.ap-rdv-detail__ref {
+    margin: 0;
+    font-size: 0.92rem;
+    font-weight: 800;
+    color: #64748b;
+    letter-spacing: 0.02em;
+}
+
+.ap-rdv-fiche {
+    display: flex;
+    flex-direction: column;
+    gap: 0.45rem;
+}
+
+.ap-rdv-fiche__row {
+    margin: 0;
+    font-size: 0.94rem;
+    color: #334155;
+    line-height: 1.45;
+}
+
+.ap-rdv-fiche__row--client {
+    font-size: 1.05rem;
+}
+
+.ap-rdv-fiche__k {
+    font-size: 0.72rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: #94a3b8;
+}
+
+.ap-rdv-fiche__meta {
+    margin: 0.15rem 0 0;
+    font-size: 0.82rem;
+    color: #64748b;
+    line-height: 1.5;
+}
+
+.ap-rdv-fiche__statusline {
+    margin: 0.65rem 0 0;
+    padding-top: 0.75rem;
+    border-top: 1px dashed #ebe4df;
+}
+
+.ap-rdv-fiche__feedback {
+    margin-top: 0.35rem;
+    padding: 0.75rem;
+    border-radius: 12px;
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+}
+
+.ap-rdv-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    margin-top: 1rem;
+    padding-top: 0.85rem;
+    border-top: 1px solid #ebe4df;
+}
+
+.ap-rdv-actions__btn {
+    flex: 1 1 auto;
+    min-width: 7rem;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0.62rem 0.9rem;
+    border-radius: 999px;
+    border: 2px solid #c4b5fd;
+    background: #7c6aad;
+    color: #fff;
+    font: inherit;
+    font-size: 0.84rem;
+    font-weight: 700;
+    text-decoration: none;
+    cursor: pointer;
+    text-align: center;
+}
+
+.ap-rdv-actions__btn:hover {
+    filter: brightness(1.04);
+}
+
+.ap-rdv-actions__btn--primary {
+    background: var(--hc-smart-accent, #c9a090);
+    border-color: var(--hc-smart-accent-deep, #b07d6c);
+}
+
+.ap-rdv-actions__btn--ghost {
+    background: #fff;
+    color: #7c6aad;
+}
+
+.ap-rdv-actions__btn--danger {
+    background: #fff;
+    color: #dc2626;
+    border-color: #fecaca;
+}
+
+.ap-rdv-actions__note {
+    margin: 0;
+    flex: 1 1 100%;
+    font-size: 0.86rem;
+    color: #64748b;
+}
+
+.ap-rdv-edit-fold {
+    margin-top: 1rem;
+    border-radius: 14px;
+    border: 1px solid #ebe4df;
+    background: #faf9fc;
+    overflow: hidden;
+}
+
+.ap-rdv-edit-fold > summary {
+    cursor: pointer;
+    padding: 0.85rem 1rem;
+    font-weight: 700;
+    font-size: 0.9rem;
+    color: #5b4a8a;
+    list-style: none;
+}
+
+.ap-rdv-edit-fold > summary::-webkit-details-marker {
+    display: none;
+}
+
+.ap-rdv-edit-form {
+    padding: 0 1rem 1rem;
+    border-top: 1px solid #ebe4df;
+}
+
+.ap-rdv-renew-wrap {
+    margin-top: 0.75rem;
+}
+
 .agenda-pro__empty {
     color: #6b6b6b;
     font-size: 0.9rem;
@@ -9092,6 +9345,56 @@ body.hc-theme-pro .agenda-pro__preview-meta {
 body.hc-theme-pro .agenda-pro__card {
     border: 1px solid var(--hc-pro-line);
     background: var(--hc-pro-card);
+}
+
+body.hc-theme-pro .ap-rdv-new-fold {
+    border-color: var(--hc-pro-line);
+    background: #fff;
+}
+
+body.hc-theme-pro .ap-rdv-new-fold__summary {
+    color: var(--hc-pro-ink);
+}
+
+body.hc-theme-pro .ap-rdv-preview,
+body.hc-theme-pro .ap-rdv-detail {
+    border-color: var(--hc-pro-line);
+    background: #fff;
+}
+
+body.hc-theme-pro .ap-rdv-preview__name {
+    color: var(--hc-pro-ink);
+}
+
+body.hc-theme-pro .ap-rdv-preview__row {
+    color: var(--hc-pro-muted);
+}
+
+body.hc-theme-pro .ap-rdv-preview__prest {
+    color: var(--hc-pro-ink);
+}
+
+body.hc-theme-pro .ap-rdv-detail__ref,
+body.hc-theme-pro .ap-rdv-fiche__row,
+body.hc-theme-pro .ap-rdv-actions__note {
+    color: var(--hc-pro-muted);
+}
+
+body.hc-theme-pro .ap-rdv-fiche__row--client {
+    color: var(--hc-pro-ink);
+}
+
+body.hc-theme-pro .ap-rdv-fiche__meta {
+    color: #64748b;
+}
+
+body.hc-theme-pro .ap-rdv-edit-fold {
+    border-color: var(--hc-pro-line);
+    background: var(--hc-pro-card);
+}
+
+body.hc-theme-pro .ap-rdv-edit-fold > summary {
+    color: var(--hc-pro-purple);
 }
 
 body.hc-theme-pro .agenda-pro__when {

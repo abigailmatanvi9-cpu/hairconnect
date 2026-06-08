@@ -19,8 +19,9 @@
     <p id="roleBlock" class="form-error agenda-pro__gate" role="status" hidden></p>
 
     <section id="agendaSection" class="agenda-pro" hidden>
-        <h2 class="subpage-h2">Nouveau rendez-vous</h2>
-        <p class="agenda-pro__hint">Choisissez un client dans la liste, puis indiquez la date, l’heure, la prestation et le lieu (salon ou à domicile). Le client reçoit un message de confirmation dans la messagerie. Un rappel est envoyé automatiquement vers 24 h avant le RDV.</p>
+        <details class="ap-rdv-new-fold" id="newRdvFold" open>
+            <summary class="ap-rdv-new-fold__summary">Nouveau rendez-vous</summary>
+            <p class="agenda-pro__hint">Choisissez un client dans la liste, puis indiquez la date, l’heure, la prestation et le lieu (salon ou à domicile). Le client reçoit un message de confirmation dans la messagerie. Un rappel est envoyé automatiquement vers 24 h avant le RDV.</p>
         <form id="newRdVForm" class="register-form agenda-pro__form">
             <p id="formErr" class="form-error" role="alert" hidden></p>
             <p id="formOk" class="form-success" role="status" hidden></p>
@@ -59,11 +60,16 @@
             </div>
             <button type="submit" class="register-submit" id="createBtn">Ajouter au planning</button>
         </form>
+        </details>
 
-        <h2 class="subpage-h2">Planning</h2>
-        <p id="listErr" class="form-error" role="alert" hidden></p>
-        <p id="listLoading" class="agenda-pro__loading">Chargement…</p>
-        <ul id="rdvList" class="agenda-pro__list"></ul>
+        <div id="rdvPlanningSection">
+            <h2 class="subpage-h2">Planning</h2>
+            <p id="listErr" class="form-error" role="alert" hidden></p>
+            <p id="listLoading" class="agenda-pro__loading">Chargement…</p>
+            <ul id="rdvList" class="ap-rdv-grid"></ul>
+        </div>
+
+        <div id="rdvDetailWrap" class="ap-rdv-detail-wrap" hidden aria-live="polite"></div>
     </section>
 </div>
 
@@ -181,6 +187,46 @@ function formatWhen(iso) {
     });
 }
 
+function formatRdvDateLong(iso) {
+    const d = new Date(iso);
+    if (Number.isNaN(d.getTime())) return "—";
+    return d.toLocaleDateString("fr-FR", { day: "numeric", month: "long", year: "numeric" });
+}
+
+function formatRdvDateShort(iso) {
+    const d = new Date(iso);
+    if (Number.isNaN(d.getTime())) return "—";
+    return d.toLocaleDateString("fr-FR", { day: "numeric", month: "short" });
+}
+
+function formatRdvTime(iso) {
+    const d = new Date(iso);
+    if (Number.isNaN(d.getTime())) return "—";
+    return d.toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" }).replace(":", "h");
+}
+
+function rdvRef(id) {
+    const s = String(id || "").trim();
+    if (!s) return "RDV-—";
+    const tail = s.length > 6 ? s.slice(-6).toUpperCase() : s.toUpperCase();
+    return "RDV-" + tail;
+}
+
+function statusEmoji(status) {
+    const s = String(status || "planned").toLowerCase();
+    if (s === "planned") return "🟢";
+    if (s === "completed") return "✅";
+    if (s === "cancelled") return "🔴";
+    if (s === "noshow") return "⚪";
+    return "";
+}
+
+function renderStarsDisplay(rating) {
+    if (rating == null || !Number.isFinite(Number(rating))) return "—";
+    const n = Math.max(1, Math.min(5, Math.round(Number(rating))));
+    return "⭐".repeat(n);
+}
+
 function toDatetimeLocalValue(iso) {
     const d = new Date(iso);
     if (Number.isNaN(d.getTime())) return "";
@@ -190,6 +236,8 @@ function toDatetimeLocalValue(iso) {
 
 let myUid = null;
 let refreshPricingTimer = null;
+let cachedRdvRows = [];
+let selectedRdvId = null;
 
 function derivePrestationPrice(r, itemsSubtotal) {
     if (r.prestationPriceFcfa != null) return Number(r.prestationPriceFcfa);
@@ -221,10 +269,18 @@ async function refreshCardPricingFromServer() {
     if (!myUid) return;
     try {
         const rows = await listRendezVousForPro(myUid);
+        cachedRdvRows = rows;
+        const detailPanel = document.querySelector(".ap-rdv-detail[data-rdv-id], .ap-rdv-detail");
         const listEl = document.getElementById("rdvList");
-        if (!listEl) return;
+        if (!listEl && !detailPanel) return;
         for (const r of rows) {
-            const li = listEl.querySelector('[data-rdv-id="' + String(r.id).replace(/"/g, "") + '"]');
+            let li =
+                detailPanel && String(selectedRdvId) === String(r.id)
+                    ? detailPanel
+                    : null;
+            if (!li) {
+                li = listEl?.querySelector('[data-rdv-id="' + String(r.id).replace(/"/g, "") + '"]');
+            }
             if (!li) continue;
             const summary = r.itemSelectionSummary || { itemsCount: 0, itemsSubtotalFcfa: 0 };
             li.dataset.itemsSubtotal = String(Number(summary.itemsSubtotalFcfa || 0));
@@ -286,7 +342,32 @@ function setClientPreview(user) {
     }
 }
 
-async function loadList() {
+function closeRdvDetail() {
+    selectedRdvId = null;
+    const wrap = document.getElementById("rdvDetailWrap");
+    const planning = document.getElementById("rdvPlanningSection");
+    if (wrap) {
+        wrap.hidden = true;
+        wrap.innerHTML = "";
+    }
+    if (planning) planning.hidden = false;
+}
+
+function openRdvDetail(id) {
+    const r = cachedRdvRows.find((row) => String(row.id) === String(id));
+    if (!r) return;
+    selectedRdvId = r.id;
+    const wrap = document.getElementById("rdvDetailWrap");
+    const planning = document.getElementById("rdvPlanningSection");
+    if (!wrap) return;
+    wrap.innerHTML = "";
+    wrap.appendChild(renderDetailPanel(r));
+    wrap.hidden = false;
+    if (planning) planning.hidden = true;
+    wrap.scrollIntoView({ behavior: "smooth", block: "start" });
+}
+
+async function loadList(openId) {
     const listEl = document.getElementById("rdvList");
     const loadEl = document.getElementById("listLoading");
     const errEl = document.getElementById("listErr");
@@ -299,8 +380,10 @@ async function loadList() {
     listEl.innerHTML = "";
     try {
         const rows = await listRendezVousForPro(myUid);
+        cachedRdvRows = rows;
         if (loadEl) loadEl.hidden = true;
         if (!rows.length) {
+            closeRdvDetail();
             const li = document.createElement("li");
             li.className = "agenda-pro__empty";
             li.textContent = "Aucun rendez-vous enregistré.";
@@ -308,7 +391,14 @@ async function loadList() {
             return;
         }
         for (const r of rows) {
-            listEl.appendChild(renderCard(r));
+            listEl.appendChild(renderPreviewCard(r));
+        }
+        if (openId) {
+            openRdvDetail(openId);
+        } else if (selectedRdvId) {
+            const still = rows.find((row) => String(row.id) === String(selectedRdvId));
+            if (still) openRdvDetail(still.id);
+            else closeRdvDetail();
         }
     } catch (e) {
         if (loadEl) loadEl.hidden = true;
@@ -323,61 +413,147 @@ function rdvLocationText(atHome) {
     return atHome ? "À domicile (chez le client)" : "Au salon / en cabine";
 }
 
-function renderCard(r) {
+function renderPreviewCard(r) {
     const c = r.client || {};
-    const id = escapeHtml(r.id);
     const status = String(r.status || "planned").toLowerCase();
-    const isClosed = rdvIsClosedStatus(status);
-    const canRenew = status === "cancelled";
     const statusLabel = STATUS_LABELS[status] || status;
+    const clientName = c.name || "Client";
+    const prest = String(r.prestation || "").trim() || "Prestation";
+
+    const li = document.createElement("li");
+    li.className = "ap-rdv-preview";
+    li.innerHTML =
+        '<h3 class="ap-rdv-preview__name">' +
+        escapeHtml(clientName) +
+        "</h3>" +
+        '<p class="ap-rdv-preview__row"><span aria-hidden="true">📅</span> ' +
+        escapeHtml(formatRdvDateShort(r.scheduledAt)) +
+        "</p>" +
+        '<p class="ap-rdv-preview__row"><span aria-hidden="true">⏰</span> ' +
+        escapeHtml(formatRdvTime(r.scheduledAt)) +
+        "</p>" +
+        '<p class="ap-rdv-preview__row ap-rdv-preview__prest"><span aria-hidden="true">💇</span> ' +
+        escapeHtml(prest) +
+        "</p>" +
+        '<span class="agenda-pro__status agenda-pro__status--' +
+        escapeHtml(status) +
+        ' ap-rdv-preview__status">' +
+        statusEmoji(status) +
+        " " +
+        escapeHtml(statusLabel) +
+        "</span>" +
+        '<button type="button" class="ap-rdv-preview__btn" data-open-rdv="' +
+        escapeHtml(r.id) +
+        '">Voir les détails</button>';
+
+    li.querySelector("[data-open-rdv]")?.addEventListener("click", () => openRdvDetail(r.id));
+    return li;
+}
+
+function buildRdvFicheHtml(r) {
+    const c = r.client || {};
+    const status = String(r.status || "planned").toLowerCase();
+    const statusLabel = STATUS_LABELS[status] || status;
+    const isClosed = rdvIsClosedStatus(status);
     const rating = r.proRating != null ? Number(r.proRating) : null;
     const selectionSummary = r.itemSelectionSummary || { itemsCount: 0, itemsSubtotalFcfa: 0 };
     const itemsSubtotal = Number(selectionSummary.itemsSubtotalFcfa || 0);
     const prestationPrice = derivePrestationPrice(r, itemsSubtotal);
-
-    const li = document.createElement("li");
-    li.className = "agenda-pro__card";
-    li.dataset.rdvId = r.id;
-    li.dataset.itemsSubtotal = String(itemsSubtotal);
-    li.dataset.itemsCount = String(Number(selectionSummary.itemsCount || 0));
-
-    const clientName = escapeHtml(c.name || "Client");
-    const clientMail = escapeHtml(c.email || "—");
-    const clientPhone = escapeHtml(formatPhoneDisplay(c.phone));
-    const clientCity = escapeHtml(c.city || "—");
-    const prestEsc = escapeHtml(r.prestation || "");
+    const total =
+        (prestationPrice === "" ? 0 : Number(prestationPrice)) + itemsSubtotal;
     const atHome = Boolean(r.atHome);
+    const clientUid = String(r.clientUid || c.id || "").trim();
 
-    li.innerHTML =
-        '<div class="agenda-pro__card-head">' +
-        '<p class="agenda-pro__when">' +
-        escapeHtml(formatWhen(r.scheduledAt)) +
+    let extra = "";
+    if (itemsSubtotal > 0 || Number(selectionSummary.itemsCount || 0) > 0) {
+        extra +=
+            '<p class="ap-rdv-fiche__row"><span class="ap-rdv-fiche__k">Articles marketplace</span> ' +
+            escapeHtml(String(selectionSummary.itemsCount || 0)) +
+            " article(s) · " +
+            escapeHtml(fmt.format(itemsSubtotal)) +
+            " FCFA</p>";
+    }
+    if (prestationPrice !== "" || total > 0) {
+        extra +=
+            '<p class="ap-rdv-fiche__row"><span class="ap-rdv-fiche__k">Total</span> <strong>' +
+            escapeHtml(fmt.format(total)) +
+            " FCFA</strong></p>";
+    }
+    if (isClosed && (rating != null || String(r.proComment || "").trim())) {
+        extra +=
+            '<div class="ap-rdv-fiche__feedback">' +
+            (rating != null
+                ? '<p class="ap-rdv-fiche__row"><span class="ap-rdv-fiche__k">Note</span> ' +
+                  escapeHtml(renderStarsDisplay(rating)) +
+                  "</p>"
+                : "") +
+            (String(r.proComment || "").trim()
+                ? '<p class="ap-rdv-fiche__row"><span class="ap-rdv-fiche__k">Commentaire</span> ' +
+                  escapeHtml(String(r.proComment || "").trim()) +
+                  "</p>"
+                : "") +
+            "</div>";
+    }
+
+    return (
+        '<header class="ap-rdv-detail__head">' +
+        '<button type="button" class="ap-rdv-detail__back" data-rdv-back aria-label="Retour au planning">← Retour</button>' +
+        '<p class="ap-rdv-detail__ref">Rendez-vous #' +
+        escapeHtml(rdvRef(r.id)) +
+        "</p></header>" +
+        '<article class="ap-rdv-fiche">' +
+        '<p class="ap-rdv-fiche__row ap-rdv-fiche__row--client"><span aria-hidden="true">👤</span> <strong>' +
+        escapeHtml(c.name || "Client") +
+        "</strong></p>" +
+        '<p class="ap-rdv-fiche__row"><span aria-hidden="true">📅</span> ' +
+        escapeHtml(formatRdvDateLong(r.scheduledAt)) +
         "</p>" +
+        '<p class="ap-rdv-fiche__row"><span aria-hidden="true">⏰</span> ' +
+        escapeHtml(formatRdvTime(r.scheduledAt)) +
+        "</p>" +
+        '<p class="ap-rdv-fiche__row"><span aria-hidden="true">💇</span> ' +
+        escapeHtml(String(r.prestation || "—")) +
+        "</p>" +
+        '<p class="ap-rdv-fiche__row"><span aria-hidden="true">📍</span> ' +
+        escapeHtml(rdvLocationText(atHome)) +
+        "</p>" +
+        '<p class="ap-rdv-fiche__meta"><span class="agenda-pro__k">E-mail</span> ' +
+        escapeHtml(c.email || "—") +
+        " · <span class=\"agenda-pro__k\">Tél.</span> " +
+        escapeHtml(formatPhoneDisplay(c.phone)) +
+        (c.city ? " · " + escapeHtml(c.city) : "") +
+        "</p>" +
+        extra +
+        '<p class="ap-rdv-fiche__statusline"><span class="agenda-pro__k">Statut</span> ' +
         '<span class="agenda-pro__status agenda-pro__status--' +
         escapeHtml(status) +
         '">' +
+        statusEmoji(status) +
+        " " +
         escapeHtml(statusLabel) +
-        "</span></div>" +
-        '<p class="agenda-pro__client-line"><span class="agenda-pro__k">Lieu</span> ' +
-        escapeHtml(rdvLocationText(atHome)) +
-        "</p>" +
-        '<div class="agenda-pro__client">' +
-        "<h3 class=\"agenda-pro__client-name\">" +
-        clientName +
-        "</h3>" +
-        '<p class="agenda-pro__client-line"><span class="agenda-pro__k">E-mail</span> ' +
-        clientMail +
-        "</p>" +
-        '<p class="agenda-pro__client-line"><span class="agenda-pro__k">Téléphone</span> ' +
-        clientPhone +
-        "</p>" +
-        '<p class="agenda-pro__client-line"><span class="agenda-pro__k">Ville</span> ' +
-        clientCity +
-        "</p>" +
-        "</div>" +
-        '<div class="agenda-pro__prestation"><span class="agenda-pro__k">Prestation</span><p>' +
-        prestEsc +
-        "</p></div>" +
+        "</span></p></article>" +
+        '<div class="ap-rdv-actions" data-rdv-actions></div>' +
+        '<details class="ap-rdv-edit-fold" data-rdv-edit-fold>' +
+        '<summary>Modifier les informations</summary>' +
+        '<div class="ap-rdv-edit-form" data-rdv-edit-form></div></details>' +
+        (status === "cancelled"
+            ? '<div class="ap-rdv-renew-wrap" data-rdv-renew-wrap hidden></div>'
+            : "") +
+        '<p class="agenda-pro__saved" data-rdv-saved hidden>Enregistré.</p>'
+    );
+}
+
+function renderDetailEditFormHtml(r) {
+    const id = escapeHtml(r.id);
+    const status = String(r.status || "planned").toLowerCase();
+    const isClosed = rdvIsClosedStatus(status);
+    const rating = r.proRating != null ? Number(r.proRating) : null;
+    const selectionSummary = r.itemSelectionSummary || { itemsCount: 0, itemsSubtotalFcfa: 0 };
+    const itemsSubtotal = Number(selectionSummary.itemsSubtotalFcfa || 0);
+    const prestationPrice = derivePrestationPrice(r, itemsSubtotal);
+    const atHome = Boolean(r.atHome);
+
+    return (
         '<div class="agenda-pro__market-summary">' +
         '<p data-market-summary-text><span class="agenda-pro__k">Sélection marketplace cliente</span><br>' +
         escapeHtml(String(selectionSummary.itemsCount || 0)) +
@@ -389,8 +565,7 @@ function renderCard(r) {
         '">Voir le détail des articles</button>' +
         '<div class="agenda-pro__market-panel" data-market-panel="' +
         id +
-        '" hidden></div>' +
-        "</div>" +
+        '" hidden></div></div>' +
         '<div class="agenda-pro__pricing">' +
         '<label class="agenda-pro__k agenda-pro__lbl" for="prest-price-' +
         id +
@@ -403,14 +578,13 @@ function renderCard(r) {
         ' FCFA</strong></p>' +
         '<p class="agenda-pro__pricing-row agenda-pro__pricing-total"><span class="agenda-pro__k">Total rendez-vous</span> · <strong data-rdv-total>' +
         escapeHtml(fmt.format((prestationPrice === "" ? 0 : Number(prestationPrice)) + itemsSubtotal)) +
-        " FCFA</strong></p>" +
-        "</div>" +
+        " FCFA</strong></p></div>" +
         '<label class="agenda-pro__k agenda-pro__lbl" for="sched-' +
         id +
-        '">Modifier date &amp; heure</label>' +
+        '">Date &amp; heure</label>' +
         '<input type="datetime-local" class="agenda-pro__input" id="sched-' +
         id +
-        '" value="' +
+        '" data-rdv-schedule value="' +
         escapeHtml(toDatetimeLocalValue(r.scheduledAt)) +
         '">' +
         '<label class="agenda-pro__k agenda-pro__lbl" for="prest-' +
@@ -479,145 +653,193 @@ function renderCard(r) {
         '<textarea class="field-textarea agenda-pro__textarea" id="com-' +
         id +
         '" rows="2" placeholder="Note interne après le rendez-vous…"></textarea>' +
-        '<div class="agenda-pro__actions">' +
-        (isClosed
-            ? '<p class="agenda-pro__locked-note">Rendez-vous clôturé : plus de modification possible.</p>' +
-              (canRenew
-                  ? '<button type="button" class="agenda-pro__renew-btn" data-renew-toggle="' +
-                    id +
-                    '">Renouveler ce rendez-vous</button>' +
-                    '<div class="agenda-pro__renew-panel" data-renew-panel="' +
-                    id +
-                    '" hidden>' +
-                    '<label class="agenda-pro__k agenda-pro__lbl">Nouvelle date &amp; heure</label>' +
-                    '<input type="datetime-local" class="agenda-pro__input" data-renew-datetime value="' +
-                    escapeHtml(defaultRenewDatetime(r.scheduledAt)) +
-                    '">' +
-                    '<button type="button" class="register-submit agenda-pro__renew-confirm" data-renew-confirm="' +
-                    id +
-                    '">Créer le nouveau rendez-vous</button>' +
-                    "</div>"
-                  : "")
-            : '<button type="button" class="register-submit agenda-pro__save" data-save-rdv="' +
-              id +
-              '">Enregistrer</button>' +
-              (status === "planned"
-                  ? '<button type="button" class="agenda-pro__remind-btn" data-send-reminder="' +
-                    escapeHtml(r.id) +
-                    '">Envoyer le rappel (messagerie)</button>'
-                  : "")) +
-        "</div>" +
-        '<p class="agenda-pro__saved" id="ok-' +
+        '<button type="button" class="register-submit agenda-pro__save" data-save-rdv="' +
         id +
-        '" hidden>Enregistré.</p>';
+        '">Enregistrer les modifications</button>'
+    );
+}
 
-    const taPrest = li.querySelector("#prest-" + r.id);
-    if (taPrest) taPrest.value = r.prestation || "";
-    const inpPrestPrice = li.querySelector("[data-prestation-price]");
-    if (inpPrestPrice) {
-        inpPrestPrice.value = prestationPrice === "" ? "" : String(prestationPrice);
+function renderDetailActionsHtml(r) {
+    const status = String(r.status || "planned").toLowerCase();
+    const isClosed = rdvIsClosedStatus(status);
+    const clientUid = String(r.clientUid || r.client?.id || "").trim();
+    const id = escapeHtml(r.id);
+
+    if (status === "planned") {
+        return (
+            '<button type="button" class="ap-rdv-actions__btn ap-rdv-actions__btn--primary" data-rdv-modify="' +
+            id +
+            '">Modifier</button>' +
+            '<button type="button" class="ap-rdv-actions__btn" data-rdv-reschedule="' +
+            id +
+            '">Reporter</button>' +
+            '<button type="button" class="ap-rdv-actions__btn ap-rdv-actions__btn--danger" data-rdv-cancel="' +
+            id +
+            '">Annuler</button>' +
+            '<button type="button" class="ap-rdv-actions__btn" data-send-reminder="' +
+            id +
+            '">Envoyer un rappel</button>' +
+            (clientUid
+                ? '<a class="ap-rdv-actions__btn ap-rdv-actions__btn--ghost" href="messagerie.html?to=' +
+                  encodeURIComponent(clientUid) +
+                  '">Messagerie</a>'
+                : "")
+        );
     }
-    bindCardPricing(li);
-    updateCardPricing(li);
-    const taCom = li.querySelector("#com-" + r.id);
-    if (taCom) taCom.value = r.proComment || "";
+    if (status === "completed") {
+        return (
+            '<p class="ap-rdv-actions__note">Prestation terminée — consultation uniquement.</p>' +
+            (clientUid
+                ? '<a class="ap-rdv-actions__btn ap-rdv-actions__btn--ghost" href="messagerie.html?to=' +
+                  encodeURIComponent(clientUid) +
+                  '">Messagerie</a>'
+                : "")
+        );
+    }
+    if (status === "cancelled") {
+        return (
+            '<p class="ap-rdv-actions__note">Rendez-vous annulé.</p>' +
+            '<button type="button" class="agenda-pro__renew-btn" data-renew-toggle="' +
+            id +
+            '">Renouveler ce rendez-vous</button>'
+        );
+    }
+    if (isClosed) {
+        return '<p class="ap-rdv-actions__note">Rendez-vous clôturé.</p>';
+    }
+    return "";
+}
 
-    const starsWrap = li.querySelector("[data-rdv-stars]");
-    const ratingInput = li.querySelector("#rating-" + r.id);
-    if (starsWrap && ratingInput) {
-        starsWrap.querySelectorAll("[data-star]").forEach((btn) => {
-            btn.addEventListener("click", () => {
-                const n = Number(btn.getAttribute("data-star"));
-                ratingInput.value = String(n);
-                starsWrap.querySelectorAll("[data-star]").forEach((b) => {
-                    const v = Number(b.getAttribute("data-star"));
-                    b.classList.toggle("is-active", v === n);
-                    b.setAttribute("aria-pressed", v === n ? "true" : "false");
+function collectRdvPartialFromPanel(panel, r) {
+    const itemsSubtotal = Number(panel.dataset.itemsSubtotal || 0);
+    const schedEl = panel.querySelector("#sched-" + r.id);
+    const prestEl = panel.querySelector("#prest-" + r.id);
+    const statEl = panel.querySelector("#stat-" + r.id);
+    const comEl = panel.querySelector("#com-" + r.id);
+    const ratEl = panel.querySelector("#rating-" + r.id);
+    const prestPriceEl = panel.querySelector("[data-prestation-price]");
+    const partial = {
+        scheduledAt: schedEl ? schedEl.value : undefined,
+        prestation: prestEl ? prestEl.value.trim() : "",
+        status: statEl ? statEl.value : undefined,
+        proComment: comEl ? comEl.value.trim() : ""
+    };
+    if (prestPriceEl) {
+        const pv = String(prestPriceEl.value || "").trim();
+        let prestationPriceFcfa = null;
+        if (pv !== "") {
+            const n = parseInt(pv, 10);
+            prestationPriceFcfa = Number.isFinite(n) && n >= 0 ? n : null;
+        }
+        partial.prestationPriceFcfa = prestationPriceFcfa;
+        if (prestationPriceFcfa != null || itemsSubtotal > 0) {
+            partial.priceFcfa = (prestationPriceFcfa || 0) + itemsSubtotal;
+        } else {
+            partial.priceFcfa = null;
+        }
+    }
+    if (ratEl && ratEl.value) partial.proRating = Number(ratEl.value);
+    else partial.proRating = null;
+    const atHomeEl = panel.querySelector("[data-at-home]");
+    if (atHomeEl) partial.atHome = atHomeEl.checked;
+    return partial;
+}
+
+function openDetailEditFold(panel, focusSchedule) {
+    const fold = panel.querySelector("[data-rdv-edit-fold]");
+    if (!fold) return;
+    fold.open = true;
+    if (focusSchedule) {
+        const sched = panel.querySelector("[data-rdv-schedule]");
+        if (sched) {
+            sched.focus();
+            sched.scrollIntoView({ behavior: "smooth", block: "nearest" });
+        }
+    } else {
+        fold.scrollIntoView({ behavior: "smooth", block: "nearest" });
+    }
+}
+
+function bindDetailPanelEvents(panel, r) {
+    const status = String(r.status || "planned").toLowerCase();
+    const isClosed = rdvIsClosedStatus(status);
+    const selectionSummary = r.itemSelectionSummary || { itemsCount: 0, itemsSubtotalFcfa: 0 };
+    const itemsSubtotal = Number(selectionSummary.itemsSubtotalFcfa || 0);
+    const prestationPrice = derivePrestationPrice(r, itemsSubtotal);
+
+    panel.dataset.rdvId = r.id;
+    panel.dataset.itemsSubtotal = String(itemsSubtotal);
+    panel.dataset.itemsCount = String(Number(selectionSummary.itemsCount || 0));
+
+    panel.querySelector("[data-rdv-back]")?.addEventListener("click", closeRdvDetail);
+
+    const actionsEl = panel.querySelector("[data-rdv-actions]");
+    if (actionsEl) actionsEl.innerHTML = renderDetailActionsHtml(r);
+
+    const editFold = panel.querySelector("[data-rdv-edit-fold]");
+    if (editFold && isClosed) editFold.hidden = true;
+
+    const editFormEl = panel.querySelector("[data-rdv-edit-form]");
+    if (editFormEl && !isClosed) {
+        editFormEl.innerHTML = renderDetailEditFormHtml(r);
+        const taPrest = panel.querySelector("#prest-" + r.id);
+        if (taPrest) taPrest.value = r.prestation || "";
+        const inpPrestPrice = panel.querySelector("[data-prestation-price]");
+        if (inpPrestPrice) {
+            inpPrestPrice.value = prestationPrice === "" ? "" : String(prestationPrice);
+        }
+        const taCom = panel.querySelector("#com-" + r.id);
+        if (taCom) taCom.value = r.proComment || "";
+        bindCardPricing(panel);
+        updateCardPricing(panel);
+
+        const starsWrap = panel.querySelector("[data-rdv-stars]");
+        const ratingInput = panel.querySelector("#rating-" + r.id);
+        if (starsWrap && ratingInput) {
+            starsWrap.querySelectorAll("[data-star]").forEach((btn) => {
+                btn.addEventListener("click", () => {
+                    const n = Number(btn.getAttribute("data-star"));
+                    ratingInput.value = String(n);
+                    starsWrap.querySelectorAll("[data-star]").forEach((b) => {
+                        const v = Number(b.getAttribute("data-star"));
+                        b.classList.toggle("is-active", v === n);
+                        b.setAttribute("aria-pressed", v === n ? "true" : "false");
+                    });
                 });
             });
-        });
-    }
-
-    if (isClosed) {
-        li.classList.add("agenda-pro__card--locked");
-        setCardFieldsDisabled(li, true);
-        const renewToggle = li.querySelector("[data-renew-toggle]");
-        const renewPanel = li.querySelector("[data-renew-panel]");
-        const renewConfirm = li.querySelector("[data-renew-confirm]");
-        const renewDatetime = li.querySelector("[data-renew-datetime]");
-        if (renewToggle && renewPanel) {
-            renewToggle.addEventListener("click", () => {
-                renewPanel.hidden = !renewPanel.hidden;
-            });
         }
-        if (renewConfirm && renewDatetime) {
-            renewConfirm.addEventListener("click", async () => {
-                const when = String(renewDatetime.value || "").trim();
-                if (!when) {
-                    alert("Indiquez la date et l’heure du nouveau rendez-vous.");
-                    return;
-                }
-                renewConfirm.disabled = true;
-                try {
-                    await renewRendezVous(r.id, myUid, when);
-                    if (renewPanel) renewPanel.hidden = true;
-                    await loadList();
-                    const formOk = document.getElementById("formOk");
-                    if (formOk) {
-                        formOk.textContent = "Nouveau rendez-vous créé (statut : À venir).";
-                        formOk.hidden = false;
-                    }
-                } catch (e) {
-                    alert(getFirebaseErrorMessage(e));
-                } finally {
-                    renewConfirm.disabled = false;
-                }
-            });
+
+        if (isClosed) {
+            panel.classList.add("agenda-pro__card--locked");
+            setCardFieldsDisabled(panel, true);
         }
     }
 
-    const saveBtn = li.querySelector("[data-save-rdv]");
+    panel.querySelector("[data-rdv-modify]")?.addEventListener("click", () => openDetailEditFold(panel, false));
+    panel.querySelector("[data-rdv-reschedule]")?.addEventListener("click", () => openDetailEditFold(panel, true));
+
+    panel.querySelector("[data-rdv-cancel]")?.addEventListener("click", async () => {
+        if (!confirm("Annuler ce rendez-vous ?")) return;
+        try {
+            await updateRendezVous(r.id, myUid, { status: "cancelled" });
+            await loadList(r.id);
+        } catch (e) {
+            alert(getFirebaseErrorMessage(e));
+        }
+    });
+
+    const saveBtn = panel.querySelector("[data-save-rdv]");
     if (saveBtn) {
         saveBtn.addEventListener("click", async () => {
-            const okEl = li.querySelector("#ok-" + r.id);
+            const okEl = panel.querySelector("[data-rdv-saved]");
             if (okEl) okEl.hidden = true;
             saveBtn.disabled = true;
             try {
-                const schedEl = li.querySelector("#sched-" + r.id);
-                const prestEl = li.querySelector("#prest-" + r.id);
-                const statEl = li.querySelector("#stat-" + r.id);
-                const comEl = li.querySelector("#com-" + r.id);
-                const ratEl = li.querySelector("#rating-" + r.id);
-                const prestPriceEl = li.querySelector("[data-prestation-price]");
-                const itemsSubtotal = Number(li.dataset.itemsSubtotal || 0);
-                const partial = {
-                    scheduledAt: schedEl ? schedEl.value : undefined,
-                    prestation: prestEl ? prestEl.value.trim() : "",
-                    status: statEl ? statEl.value : undefined,
-                    proComment: comEl ? comEl.value.trim() : ""
-                };
-                if (prestPriceEl) {
-                    const pv = String(prestPriceEl.value || "").trim();
-                    let prestationPriceFcfa = null;
-                    if (pv !== "") {
-                        const n = parseInt(pv, 10);
-                        prestationPriceFcfa = Number.isFinite(n) && n >= 0 ? n : null;
-                    }
-                    partial.prestationPriceFcfa = prestationPriceFcfa;
-                    if (prestationPriceFcfa != null || itemsSubtotal > 0) {
-                        partial.priceFcfa = (prestationPriceFcfa || 0) + itemsSubtotal;
-                    } else {
-                        partial.priceFcfa = null;
-                    }
-                }
-                if (ratEl && ratEl.value) partial.proRating = Number(ratEl.value);
-                else partial.proRating = null;
-                const atHomeEl = li.querySelector("[data-at-home]");
-                if (atHomeEl) partial.atHome = atHomeEl.checked;
-                await updateRendezVous(r.id, myUid, partial);
-                if (okEl) {
-                    okEl.hidden = false;
-                }
+                await updateRendezVous(r.id, myUid, collectRdvPartialFromPanel(panel, r));
+                await loadList(r.id);
+                if (okEl) okEl.hidden = false;
+                const fold = panel.querySelector("[data-rdv-edit-fold]");
+                if (fold) fold.open = false;
             } catch (e) {
                 alert(getFirebaseErrorMessage(e));
             } finally {
@@ -626,28 +848,26 @@ function renderCard(r) {
         });
     }
 
-    const remindBtn = li.querySelector("[data-send-reminder]");
-    if (remindBtn && myUid) {
-        remindBtn.addEventListener("click", async () => {
-            remindBtn.disabled = true;
-            try {
-                const res = await sendRendezVousReminderNow(r.id, myUid);
-                alert(res?.message || "Rappel envoyé au client.");
-            } catch (e) {
-                alert(getFirebaseErrorMessage(e));
-            } finally {
-                remindBtn.disabled = false;
-            }
-        });
-    }
+    panel.querySelector("[data-send-reminder]")?.addEventListener("click", async (ev) => {
+        const btn = ev.currentTarget;
+        btn.disabled = true;
+        try {
+            const res = await sendRendezVousReminderNow(r.id, myUid);
+            alert(res?.message || "Rappel envoyé au client.");
+        } catch (e) {
+            alert(getFirebaseErrorMessage(e));
+        } finally {
+            btn.disabled = false;
+        }
+    });
 
-    const marketBtn = li.querySelector("[data-open-market-selection]");
+    const marketBtn = panel.querySelector("[data-open-market-selection]");
     if (marketBtn && myUid) {
         marketBtn.addEventListener("click", async () => {
-            const panel = li.querySelector("[data-market-panel]");
-            if (!panel) return;
-            panel.hidden = false;
-            panel.innerHTML = "<p class=\"agenda-pro__market-loading\">Chargement...</p>";
+            const marketPanel = panel.querySelector("[data-market-panel]");
+            if (!marketPanel) return;
+            marketPanel.hidden = false;
+            marketPanel.innerHTML = "<p class=\"agenda-pro__market-loading\">Chargement...</p>";
             marketBtn.disabled = true;
             try {
                 const payload = await getRendezVousItemSelection(r.id, myUid);
@@ -668,24 +888,77 @@ function renderCard(r) {
                           )
                           .join("")
                     : "<li>Aucun article sélectionné.</li>";
-                panel.innerHTML =
+                marketPanel.innerHTML =
                     "<p class=\"agenda-pro__market-note\">Sous-total articles : <strong data-items-subtotal>" +
                     escapeHtml(fmt.format(Number(selection.itemsSubtotalFcfa || 0))) +
                     " FCFA</strong></p>" +
                     "<ul class=\"agenda-pro__market-lines\">" +
                     linesHtml +
                     "</ul>";
-                li.dataset.itemsSubtotal = String(Number(selection.itemsSubtotalFcfa || 0));
-                updateCardPricing(li);
+                panel.dataset.itemsSubtotal = String(Number(selection.itemsSubtotalFcfa || 0));
+                updateCardPricing(panel);
             } catch (e) {
-                panel.innerHTML = "<p class=\"form-error\">Erreur: " + escapeHtml(getFirebaseErrorMessage(e)) + "</p>";
+                marketPanel.innerHTML =
+                    "<p class=\"form-error\">Erreur: " + escapeHtml(getFirebaseErrorMessage(e)) + "</p>";
             } finally {
                 marketBtn.disabled = false;
             }
         });
     }
 
-    return li;
+    if (status === "cancelled") {
+        const renewWrap = panel.querySelector("[data-rdv-renew-wrap]");
+        if (renewWrap) {
+            const rid = escapeHtml(r.id);
+            renewWrap.hidden = false;
+            renewWrap.innerHTML =
+                '<div class="agenda-pro__renew-panel" data-renew-panel="' +
+                rid +
+                '" hidden>' +
+                '<label class="agenda-pro__k agenda-pro__lbl">Nouvelle date &amp; heure</label>' +
+                '<input type="datetime-local" class="agenda-pro__input" data-renew-datetime value="' +
+                escapeHtml(defaultRenewDatetime(r.scheduledAt)) +
+                '">' +
+                '<button type="button" class="register-submit agenda-pro__renew-confirm" data-renew-confirm="' +
+                rid +
+                '">Créer le nouveau rendez-vous</button></div>';
+            panel.querySelector("[data-renew-toggle]")?.addEventListener("click", () => {
+                const renewPanel = panel.querySelector("[data-renew-panel]");
+                if (renewPanel) renewPanel.hidden = !renewPanel.hidden;
+            });
+            panel.querySelector("[data-renew-confirm]")?.addEventListener("click", async () => {
+                const renewDatetime = panel.querySelector("[data-renew-datetime]");
+                const renewConfirm = panel.querySelector("[data-renew-confirm]");
+                const when = String(renewDatetime?.value || "").trim();
+                if (!when) {
+                    alert("Indiquez la date et l’heure du nouveau rendez-vous.");
+                    return;
+                }
+                if (renewConfirm) renewConfirm.disabled = true;
+                try {
+                    const created = await renewRendezVous(r.id, myUid, when);
+                    await loadList(created?.id || null);
+                    const formOk = document.getElementById("formOk");
+                    if (formOk) {
+                        formOk.textContent = "Nouveau rendez-vous créé (statut : À venir).";
+                        formOk.hidden = false;
+                    }
+                } catch (e) {
+                    alert(getFirebaseErrorMessage(e));
+                } finally {
+                    if (renewConfirm) renewConfirm.disabled = false;
+                }
+            });
+        }
+    }
+}
+
+function renderDetailPanel(r) {
+    const panel = document.createElement("div");
+    panel.className = "ap-rdv-detail";
+    panel.innerHTML = buildRdvFicheHtml(r);
+    bindDetailPanelEvents(panel, r);
+    return panel;
 }
 
 document.getElementById("clientSelect").addEventListener("change", async () => {
@@ -740,7 +1013,7 @@ document.getElementById("newRdVForm").addEventListener("submit", async (e) => {
     const btn = document.getElementById("createBtn");
     if (btn) btn.disabled = true;
     try {
-        await createRendezVous({
+        const created = await createRendezVous({
             proUid: myUid,
             clientUid,
             scheduledAt,
@@ -756,11 +1029,13 @@ document.getElementById("newRdVForm").addEventListener("submit", async (e) => {
         if (pf) pf.value = "";
         const atHomeNew = document.getElementById("atHomeNew");
         if (atHomeNew) atHomeNew.checked = false;
+        const newFold = document.getElementById("newRdvFold");
+        if (newFold) newFold.open = false;
         if (formOk) {
             formOk.textContent = "Rendez-vous ajouté — le client est notifié dans la messagerie.";
             formOk.hidden = false;
         }
-        await loadList();
+        await loadList(created?.id || null);
     } catch (err) {
         if (formErr) {
             formErr.textContent = getFirebaseErrorMessage(err);
