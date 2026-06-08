@@ -11,7 +11,7 @@
 </head>
 <body class="login-page hc-theme-pro profil-dashboard-page">
 
-<div class="login-container">
+<div class="login-container subpage-wide">
     <header class="login-header">
         <a href="dashboard.html" class="login-back" aria-label="Retour au tableau de bord">
             <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M15.75 19.5 8.25 12l7.5-7.5"/></svg>
@@ -22,9 +22,9 @@
     <p id="dpFormError" class="form-error" role="alert" hidden></p>
     <p id="dpFormOk" class="form-success" role="status" hidden></p>
 
-    <section class="profil-hero" aria-labelledby="dpProfilHeroName">
-        <div class="profil-hero-main">
-            <div class="profil-hero-avatar-wrap">
+    <section class="profil-dash-card profil-dash-hero" aria-labelledby="dpProfilHeroName">
+        <div class="profil-dash-hero__top">
+            <div class="profil-hero-avatar-wrap profil-dash-hero__avatar-wrap">
                 <label class="profil-hero-avatar-label" for="dpPhotoFile">
                     <img id="dpHubAvatar" class="profil-hero-avatar" alt="" hidden>
                     <span id="dpHubAvatarFb" class="profil-hero-avatar-fb">?</span>
@@ -34,89 +34,154 @@
                 </label>
                 <input type="file" id="dpPhotoFile" class="profil-hero-avatar-input" accept="image/jpeg,image/png,image/webp,image/gif" hidden>
             </div>
-            <div class="profil-hero-text">
-                <h2 class="profil-hero-name" id="dpProfilHeroName">—</h2>
-                <p class="profil-hero-email" id="dpHubEmail">—</p>
-                <span class="profil-hero-role" id="dpHubRolePill">—</span>
-                <p class="profil-hero-photo-hint">
-                    <label for="dpPhotoFile" class="profil-hero-photo-link">Ajouter ou changer votre photo de profil</label>
-                </p>
-            </div>
+            <h2 class="profil-dash-hero__name" id="dpProfilHeroName">—</h2>
+            <p class="profil-dash-hero__role" id="dpHubRolePill">—</p>
+            <ul class="profil-dash-hero__facts" id="dpHeroFacts"></ul>
         </div>
+
+        <div class="profil-dash-complete" id="dpCompleteBlock">
+            <div class="profil-dash-complete__head">
+                <span>Profil complété à <strong id="dpCompletePct">0</strong>&nbsp;%</span>
+                <button type="button" class="profil-dash-complete__cta" id="dpEditCta">Modifier</button>
+            </div>
+            <div class="profil-dash-complete__bar" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" id="dpCompleteBarWrap">
+                <span class="profil-dash-complete__bar-fill" id="dpCompleteBar" style="width:0%"></span>
+            </div>
+            <ul class="profil-dash-complete__checks" id="dpCompleteChecks"></ul>
+        </div>
+
+        <div class="profil-dash-hero__stats" id="dpHeroStats" hidden></div>
     </section>
 
-    <details class="profil-edit-details" id="dpEditDetails" open>
-        <summary class="profil-edit-summary">Modifier mes informations</summary>
-        <div class="profil-edit-inner">
-            <form id="dpForm" class="register-form profil-edit-form">
-                <div class="field-group">
-                    <label class="field-label" for="dpName">Nom affiché</label>
-                    <div class="field-input-wrap">
-                        <input type="text" id="dpName" name="name" autocomplete="name" required>
-                    </div>
-                </div>
-                <div class="field-group" id="dpWrapSalonName" hidden>
-                    <label class="field-label" for="dpSalonName">Nom du salon</label>
-                    <div class="field-input-wrap">
-                        <input type="text" id="dpSalonName" name="salonName" placeholder="Ex. Salon Élégance">
-                    </div>
-                </div>
-                <fieldset class="field-group register-metiers-fieldset" id="dpWrapProMetiers" hidden>
-                    <legend class="field-label">Mon activité</legend>
-                    <p class="field-hint">Tout ce que vous proposez ; les clients qui cochent ces types vous verront.</p>
-                    <div id="dpProMetiersList" class="register-metiers-list"></div>
-                </fieldset>
-                <div class="field-group">
-                    <label class="field-label" for="dpCity">Ville</label>
-                    <div class="field-input-wrap">
-                        <select id="dpCity" name="city" class="field-select" required aria-describedby="dpLocationHint"></select>
-                    </div>
-                </div>
-                <div class="field-group" id="dpCityOtherWrap" hidden>
-                    <label class="field-label" for="dpCityOther">Autre ville</label>
-                    <div class="field-input-wrap">
-                        <input type="text" id="dpCityOther" name="cityOther" placeholder="Nom de la ville" autocomplete="address-level2">
-                    </div>
-                </div>
-                <div class="field-group">
-                    <label class="field-label" for="dpQuartier">Quartier ou zone</label>
-                    <div class="field-input-wrap">
-                        <select id="dpQuartier" name="quartier" class="field-select" required disabled></select>
-                    </div>
-                    <p class="field-hint" id="dpLocationHint">Choisissez d’abord la ville, puis le quartier. Les clients filtrent l’annuaire avec ces informations.</p>
-                </div>
-                <div class="field-group" id="dpQuartierOtherWrap" hidden>
-                    <label class="field-label" for="dpQuartierOther">Autre quartier</label>
-                    <div class="field-input-wrap">
-                        <input type="text" id="dpQuartierOther" name="quartierOther" placeholder="Ex. Tokoin, Bè…" autocomplete="address-line2">
-                    </div>
-                </div>
-                <div class="field-group">
-                    <label class="field-label" for="dpPhoneNational">Téléphone (optionnel)</label>
-                    <div class="phone-input-row">
-                        <select id="dpPhoneCountry" class="phone-input-row__country" aria-label="Indicatif pays"></select>
-                        <div class="field-input-wrap phone-input-row__number-wrap">
-                            <input type="tel" id="dpPhoneNational" name="phoneNational" autocomplete="tel-national" placeholder="90 12 34 56">
+    <section class="profil-dash-card profil-dash-preview" id="dpPublicPreview" hidden aria-labelledby="dpPreviewTitle">
+        <h3 class="profil-dash-preview__title" id="dpPreviewTitle">Aperçu public</h3>
+        <p class="profil-dash-preview__hint">Ce que les clients voient sur votre fiche.</p>
+        <ul class="profil-dash-preview__list" id="dpPreviewList"></ul>
+        <a class="profil-dash-preview__link" id="dpPreviewLink" href="#" target="_blank" rel="noopener noreferrer">Voir ma fiche publique</a>
+    </section>
+
+    <section class="profil-dash-card profil-dash-activity" id="dpActivityBlock" hidden aria-labelledby="dpActivityTitle">
+        <h3 class="profil-dash-activity__title" id="dpActivityTitle">Votre activité</h3>
+        <ul class="profil-dash-activity__grid" id="dpActivityGrid"></ul>
+    </section>
+
+    <nav class="profil-dash-tabs" id="dpTabs" role="tablist" aria-label="Sections du profil">
+        <button type="button" class="profil-dash-tab is-active" role="tab" aria-selected="true" data-dp-tab="info" id="dpTabInfo">Informations</button>
+        <button type="button" class="profil-dash-tab" role="tab" aria-selected="false" data-dp-tab="services" id="dpTabServices" hidden>Services</button>
+        <button type="button" class="profil-dash-tab" role="tab" aria-selected="false" data-dp-tab="photos" id="dpTabPhotos" hidden>Photos</button>
+        <button type="button" class="profil-dash-tab" role="tab" aria-selected="false" data-dp-tab="avis" id="dpTabAvis" hidden>Avis</button>
+    </nav>
+
+    <form id="dpForm" class="register-form profil-edit-form">
+        <div id="dpPanelInfo" class="profil-dash-panel" role="tabpanel" aria-labelledby="dpTabInfo">
+            <details class="profil-dash-fold" open>
+                <summary>Informations générales</summary>
+                <div class="profil-dash-fold__body">
+                    <div class="field-group">
+                        <label class="field-label" for="dpName">Nom affiché</label>
+                        <div class="field-input-wrap">
+                            <input type="text" id="dpName" name="name" autocomplete="name" required>
                         </div>
                     </div>
-                    <p class="field-hint" id="dpPhoneHint"></p>
+                    <div class="field-group" id="dpWrapSalonName" hidden>
+                        <label class="field-label" for="dpSalonName">Nom du salon</label>
+                        <div class="field-input-wrap">
+                            <input type="text" id="dpSalonName" name="salonName" placeholder="Ex. Salon Élégance">
+                        </div>
+                    </div>
+                    <fieldset class="field-group register-metiers-fieldset" id="dpWrapProMetiers" hidden>
+                        <legend class="field-label">Mon activité</legend>
+                        <p class="field-hint">Tout ce que vous proposez ; les clients qui cochent ces types vous verront.</p>
+                        <div id="dpProMetiersList" class="register-metiers-list"></div>
+                    </fieldset>
                 </div>
-                <div class="field-group" id="dpWrapBio">
-                    <label class="field-label" for="dpBio">Description</label>
-                    <textarea id="dpBio" name="bio" class="field-textarea" rows="4" placeholder="Présentez-vous ou décrivez votre établissement…"></textarea>
+            </details>
+
+            <details class="profil-dash-fold">
+                <summary>Localisation</summary>
+                <div class="profil-dash-fold__body">
+                    <div class="field-group">
+                        <label class="field-label" for="dpCity">Ville</label>
+                        <div class="field-input-wrap">
+                            <select id="dpCity" name="city" class="field-select" required aria-describedby="dpLocationHint"></select>
+                        </div>
+                    </div>
+                    <div class="field-group" id="dpCityOtherWrap" hidden>
+                        <label class="field-label" for="dpCityOther">Autre ville</label>
+                        <div class="field-input-wrap">
+                            <input type="text" id="dpCityOther" name="cityOther" placeholder="Nom de la ville" autocomplete="address-level2">
+                        </div>
+                    </div>
+                    <div class="field-group">
+                        <label class="field-label" for="dpQuartier">Quartier ou zone</label>
+                        <div class="field-input-wrap">
+                            <select id="dpQuartier" name="quartier" class="field-select" required disabled></select>
+                        </div>
+                        <p class="field-hint" id="dpLocationHint">Choisissez d'abord la ville, puis le quartier.</p>
+                    </div>
+                    <div class="field-group" id="dpQuartierOtherWrap" hidden>
+                        <label class="field-label" for="dpQuartierOther">Autre quartier</label>
+                        <div class="field-input-wrap">
+                            <input type="text" id="dpQuartierOther" name="quartierOther" placeholder="Ex. Tokoin, Bè…" autocomplete="address-line2">
+                        </div>
+                    </div>
                 </div>
-                <div class="field-group" id="dpWrapServicesTarifs" hidden>
-                    <label class="field-label">Services et tarifs</label>
-                    <p class="field-hint">Ajoutez vos prestations une par une. Cochez «&nbsp;À partir de&nbsp;» si le tarif varie selon la longueur, le style ou la complexité.</p>
-                    <ul id="dpServicesList" class="profil-services-list" aria-label="Liste des services"></ul>
-                    <button type="button" class="profil-services-add" id="dpAddServiceBtn">
-                        <span aria-hidden="true">+</span> Ajouter un service
-                    </button>
+            </details>
+
+            <details class="profil-dash-fold">
+                <summary>Contact</summary>
+                <div class="profil-dash-fold__body">
+                    <p class="field-hint profil-dash-email-readonly" id="dpHubEmail">—</p>
+                    <div class="field-group">
+                        <label class="field-label" for="dpPhoneNational">Téléphone (optionnel)</label>
+                        <div class="phone-input-row">
+                            <select id="dpPhoneCountry" class="phone-input-row__country" aria-label="Indicatif pays"></select>
+                            <div class="field-input-wrap phone-input-row__number-wrap">
+                                <input type="tel" id="dpPhoneNational" name="phoneNational" autocomplete="tel-national" placeholder="90 12 34 56">
+                            </div>
+                        </div>
+                        <p class="field-hint" id="dpPhoneHint"></p>
+                    </div>
                 </div>
-                <button type="submit" class="register-submit" id="dpSaveBtn">Enregistrer</button>
-            </form>
+            </details>
+
+            <details class="profil-dash-fold" id="dpFoldBio" hidden>
+                <summary>Description</summary>
+                <div class="profil-dash-fold__body">
+                    <div class="field-group" id="dpWrapBio">
+                        <label class="field-label" for="dpBio">Présentation</label>
+                        <textarea id="dpBio" name="bio" class="field-textarea" rows="4" placeholder="Présentez-vous ou décrivez votre établissement…"></textarea>
+                    </div>
+                </div>
+            </details>
+
+            <button type="submit" class="register-submit profil-dash-save" id="dpSaveBtn">Enregistrer</button>
         </div>
-    </details>
+
+        <div id="dpPanelServices" class="profil-dash-panel" role="tabpanel" aria-labelledby="dpTabServices" hidden>
+            <h3 class="profil-dash-panel__title">Services enregistrés</h3>
+            <p class="field-hint">Ajoutez vos prestations une par une. Cochez « À partir de » si le tarif varie.</p>
+            <ul id="dpServicesList" class="profil-service-cards" aria-label="Liste des services"></ul>
+            <button type="button" class="profil-services-add" id="dpAddServiceBtn">
+                <span aria-hidden="true">+</span> Ajouter un service
+            </button>
+            <button type="submit" class="register-submit profil-dash-save" id="dpSaveBtnServices">Enregistrer les services</button>
+        </div>
+    </form>
+
+    <div id="dpPanelPhotos" class="profil-dash-panel" role="tabpanel" aria-labelledby="dpTabPhotos" hidden>
+        <h3 class="profil-dash-panel__title">Photos &amp; réalisations</h3>
+        <p class="field-hint">Vos visuels renforcent la confiance des clients.</p>
+        <div id="dpPhotosGrid" class="profil-dash-photos-grid"></div>
+        <p id="dpPhotosEmpty" class="profil-dash-empty" hidden>Aucune photo publiée pour le moment.</p>
+        <p class="field-hint">Publiez depuis le tableau de bord (section Photos) ou demandez à vos clients de partager après prestation.</p>
+    </div>
+
+    <div id="dpPanelAvis" class="profil-dash-panel" role="tabpanel" aria-labelledby="dpTabAvis" hidden>
+        <h3 class="profil-dash-panel__title">Avis clients</h3>
+        <ul id="dpAvisList" class="profil-dash-avis-list"></ul>
+        <p id="dpAvisEmpty" class="profil-dash-empty" hidden>Pas encore d'avis reçu.</p>
+    </div>
 
     <button type="button" class="profil-logout" id="dpLogout">
         <span class="profil-logout-icon" aria-hidden="true">
@@ -134,16 +199,49 @@ import {
     fetchUserProfile,
     updateUserProfile,
     getFirebaseErrorMessage,
-    HAIRCONNECT_METIERS
+    HAIRCONNECT_METIERS,
+    listFavorites,
+    listAvisForPro,
+    listAvisByClient,
+    listPublications,
+    listMessagesForUser,
+    listRendezVousForClient,
+    listRendezVousForPro,
+    listCandidaturesForCoiffeur,
+    listCandidaturesForSalon,
+    listOffres,
+    countFavoritesForPro
 } from "./firebase.js";
-import { initPhoneField, readPhoneFromField } from "./phone-utils.js";
+import { initPhoneField, readPhoneFromField, formatPhoneDisplay } from "./phone-utils.js";
 import { initLocationFields, readLocationFromFields } from "./location-utils.js";
 import { compressImageFile, PROFILE_AVATAR_COMPRESS, applyAvatarElements } from "./image-utils.js";
-import { parseServicesTarifs, serializeServicesTarifs } from "./services-tarifs-utils.js";
+import { parseServicesTarifs, serializeServicesTarifs, formatServicePriceFcfa } from "./services-tarifs-utils.js";
 
 const dpPhoneCountry = document.getElementById("dpPhoneCountry");
 const dpPhoneNational = document.getElementById("dpPhoneNational");
 const dpPhoneHint = document.getElementById("dpPhoneHint");
+const WEEK_MS = 7 * 24 * 60 * 60 * 1000;
+
+function escapeHtml(s) {
+    return String(s)
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;");
+}
+
+function messageMillis(row) {
+    const raw = row?.createdAt;
+    if (raw?.toMillis) return raw.toMillis();
+    const t = new Date(raw || 0).getTime();
+    return Number.isFinite(t) ? t : 0;
+}
+
+function averageRating(rows) {
+    const nums = (rows || []).map((a) => Number(a.rating)).filter((n) => Number.isFinite(n) && n > 0);
+    if (!nums.length) return null;
+    return Math.round((nums.reduce((s, n) => s + n, 0) / nums.length) * 10) / 10;
+}
 
 function buildMetierBoxes(container, inputName, idPrefix) {
     if (!container) return;
@@ -214,6 +312,370 @@ function normRoleProfil(r) {
     return String(r || "").trim() || "";
 }
 
+function roleLabelWithIcon(roleKey) {
+    if (roleKey === "Client") return "👤 Client";
+    if (roleKey === "Coiffeur") return "💇 Coiffeur·se";
+    if (roleKey === "Salon") return "🏪 Salon professionnel";
+    return roleKey;
+}
+
+function computeClientCompletion(profile) {
+    const checks = [
+        { key: "name", label: "Nom", ok: !!String(profile?.name || "").trim() },
+        { key: "city", label: "Ville", ok: !!String(profile?.city || "").trim() },
+        {
+            key: "quartier",
+            label: "Quartier",
+            ok: !!String(profile?.quartier || "").trim(),
+            warn: "Quartier manquant"
+        },
+        {
+            key: "phone",
+            label: "Téléphone",
+            ok: !!String(profile?.phone || "").trim(),
+            warn: "Téléphone manquant"
+        },
+        {
+            key: "photo",
+            label: "Photo de profil",
+            ok: !!String(profile?.photoUrl || "").trim(),
+            warn: "Photo manquante"
+        }
+    ];
+    const done = checks.filter((c) => c.ok).length;
+    return { checks, pct: Math.round((done / checks.length) * 100) };
+}
+
+function computeCoiffeurCompletion(profile) {
+    const checks = [
+        { key: "name", label: "Nom", ok: !!String(profile?.name || "").trim() },
+        { key: "phone", label: "Téléphone", ok: !!String(profile?.phone || "").trim() },
+        {
+            key: "photo",
+            label: "Photo de profil",
+            ok: !!String(profile?.photoUrl || "").trim(),
+            warn: "Photo manquante"
+        },
+        { key: "city", label: "Ville", ok: !!String(profile?.city || "").trim(), warn: "Ville manquante" },
+        {
+            key: "tarifs",
+            label: "Services & tarifs",
+            ok: !!String(profile?.servicesTarifs || "").trim(),
+            warn: "Services incomplets"
+        },
+        {
+            key: "bio",
+            label: "Description",
+            ok: !!String(profile?.bio || "").trim(),
+            warn: "Description manquante"
+        }
+    ];
+    const done = checks.filter((c) => c.ok).length;
+    return { checks, pct: Math.round((done / checks.length) * 100) };
+}
+
+function computeSalonCompletion(profile) {
+    const checks = [
+        {
+            key: "salonName",
+            label: "Nom du salon",
+            ok: !!String(profile?.salonName || "").trim(),
+            warn: "Nom du salon manquant"
+        },
+        { key: "phone", label: "Téléphone", ok: !!String(profile?.phone || "").trim(), warn: "Téléphone manquant" },
+        { key: "city", label: "Ville", ok: !!String(profile?.city || "").trim(), warn: "Ville manquante" },
+        {
+            key: "photo",
+            label: "Photo de profil",
+            ok: !!String(profile?.photoUrl || "").trim(),
+            warn: "Photo manquante"
+        },
+        {
+            key: "tarifs",
+            label: "Services & tarifs",
+            ok: !!String(profile?.servicesTarifs || "").trim(),
+            warn: "Tarifs manquants"
+        },
+        {
+            key: "bio",
+            label: "Description",
+            ok: !!String(profile?.bio || "").trim(),
+            warn: "Description manquante"
+        }
+    ];
+    const done = checks.filter((c) => c.ok).length;
+    return { checks, pct: Math.round((done / checks.length) * 100) };
+}
+
+function renderCompletion(roleKey, profile) {
+    let result = { checks: [], pct: 0 };
+    if (roleKey === "Client") result = computeClientCompletion(profile);
+    else if (roleKey === "Coiffeur") result = computeCoiffeurCompletion(profile);
+    else if (roleKey === "Salon") result = computeSalonCompletion(profile);
+
+    const pctEl = document.getElementById("dpCompletePct");
+    const barEl = document.getElementById("dpCompleteBar");
+    const barWrap = document.getElementById("dpCompleteBarWrap");
+    const listEl = document.getElementById("dpCompleteChecks");
+    if (pctEl) pctEl.textContent = String(result.pct);
+    if (barEl) barEl.style.width = result.pct + "%";
+    if (barWrap) barWrap.setAttribute("aria-valuenow", String(result.pct));
+    if (!listEl) return;
+    listEl.innerHTML = result.checks
+        .map((c) => {
+            const icon = c.ok ? "✓" : "⚠";
+            const cls = c.ok
+                ? "profil-dash-complete__check profil-dash-complete__check--ok"
+                : "profil-dash-complete__check profil-dash-complete__check--warn";
+            const text = c.ok ? c.label : c.warn || c.label + " manquant";
+            return `<li class="${cls}"><span aria-hidden="true">${icon}</span> ${escapeHtml(text)}</li>`;
+        })
+        .join("");
+}
+
+function renderHeroFacts(profile, email) {
+    const el = document.getElementById("dpHeroFacts");
+    if (!el) return;
+    const parts = [];
+    const q = String(profile?.quartier || "").trim();
+    const c = String(profile?.city || "").trim();
+    const loc = [q, c].filter(Boolean).join(", ");
+    if (loc) parts.push(`<li>📍 ${escapeHtml(loc)}</li>`);
+    if (email) parts.push(`<li>📧 ${escapeHtml(email)}</li>`);
+    const phone = formatPhoneDisplay(profile?.phone);
+    if (phone && phone !== "—") parts.push(`<li>📞 ${escapeHtml(phone)}</li>`);
+    el.innerHTML = parts.join("");
+    el.hidden = !parts.length;
+}
+
+function renderHeroStats(items) {
+    const el = document.getElementById("dpHeroStats");
+    if (!el) return;
+    if (!items?.length) {
+        el.hidden = true;
+        return;
+    }
+    el.innerHTML = items.map((it) => `<span class="profil-dash-hero__stat">${escapeHtml(it)}</span>`).join("");
+    el.hidden = false;
+}
+
+function estimateProViews({ messages, uid, candidatures, publications, favCount }) {
+    const received = (messages || []).filter((m) => m.toUid === uid).length;
+    const senders = new Set((messages || []).map((m) => String(m.fromUid || "")).filter(Boolean)).size;
+    return senders * 18 + received * 2 + (candidatures || []).length * 9 + (publications || []).length * 22 + (favCount || 0) * 5;
+}
+
+function renderPublicPreview(profile, { avg, publications, favCount, quartier, city }) {
+    const block = document.getElementById("dpPublicPreview");
+    const list = document.getElementById("dpPreviewList");
+    const link = document.getElementById("dpPreviewLink");
+    if (!block || !list) return;
+    const loc = [String(quartier || "").trim(), String(city || "").trim()].filter(Boolean).join(", ");
+    const rows = [];
+    if (avg != null) rows.push(`⭐ ${avg}/5`);
+    if (loc) rows.push(`📍 ${loc}`);
+    rows.push("💬 Contact via messagerie HairConnect");
+    if (publications) rows.push(`📸 ${publications} réalisation${publications > 1 ? "s" : ""}`);
+    if (favCount) rows.push(`❤️ ${favCount} favori${favCount > 1 ? "s" : ""}`);
+    list.innerHTML = rows.map((r) => `<li>${escapeHtml(r)}</li>`).join("");
+    if (link && profileUid) {
+        link.href = "profil-public.html?uid=" + encodeURIComponent(profileUid);
+    }
+    block.hidden = false;
+}
+
+function renderActivityGrid(title, items) {
+    const block = document.getElementById("dpActivityBlock");
+    const titleEl = document.getElementById("dpActivityTitle");
+    const grid = document.getElementById("dpActivityGrid");
+    if (!block || !grid) return;
+    if (titleEl) titleEl.textContent = title;
+    grid.innerHTML = items
+        .map(
+            (it) =>
+                `<li class="profil-dash-activity__item">` +
+                `<span class="profil-dash-activity__val">${escapeHtml(String(it.value))}</span>` +
+                `<span class="profil-dash-activity__label">${escapeHtml(it.label)}</span>` +
+                `</li>`
+        )
+        .join("");
+    block.hidden = !items.length;
+}
+
+function renderPhotosTab(publications) {
+    const grid = document.getElementById("dpPhotosGrid");
+    const empty = document.getElementById("dpPhotosEmpty");
+    if (!grid) return;
+    grid.innerHTML = "";
+    const sorted = [...(publications || [])].sort((a, b) => messageMillis(b) - messageMillis(a));
+    if (!sorted.length) {
+        if (empty) empty.hidden = false;
+        return;
+    }
+    if (empty) empty.hidden = true;
+    for (const p of sorted.slice(0, 12)) {
+        const url = String(p.photoUrl || "").trim();
+        if (!url) continue;
+        const cell = document.createElement("div");
+        cell.className = "profil-dash-photos-grid__cell";
+        cell.innerHTML = `<img src="${escapeHtml(url)}" alt="${escapeHtml(p.title || "Photo")}" loading="lazy" decoding="async">`;
+        grid.appendChild(cell);
+    }
+}
+
+function renderStars(rating) {
+    const r = Math.max(0, Math.min(5, Math.round(Number(rating) || 0)));
+    return "★".repeat(r) + "☆".repeat(5 - r);
+}
+
+function renderAvisTab(avis) {
+    const list = document.getElementById("dpAvisList");
+    const empty = document.getElementById("dpAvisEmpty");
+    if (!list) return;
+    list.innerHTML = "";
+    const sorted = [...(avis || [])].sort((a, b) => messageMillis(b) - messageMillis(a));
+    if (!sorted.length) {
+        if (empty) empty.hidden = false;
+        return;
+    }
+    if (empty) empty.hidden = true;
+    for (const a of sorted.slice(0, 8)) {
+        const li = document.createElement("li");
+        li.className = "profil-dash-avis-item";
+        const comment = String(a.comment || "").trim() || "Sans commentaire.";
+        li.innerHTML =
+            `<p class="profil-dash-avis-item__stars">${escapeHtml(renderStars(a.rating))}</p>` +
+            `<p class="profil-dash-avis-item__text">${escapeHtml(comment)}</p>`;
+        list.appendChild(li);
+    }
+}
+
+async function loadProfileInsights(profile, roleKey) {
+    if (!profileUid) return;
+    const isPro = roleKey === "Coiffeur" || roleKey === "Salon";
+    try {
+        if (roleKey === "Client") {
+            const [favorites, rdv, avis, photos] = await Promise.all([
+                listFavorites(profileUid).catch(() => []),
+                listRendezVousForClient(profileUid).catch(() => []),
+                listAvisByClient(profileUid).catch(() => []),
+                listPublications({ authorUid: profileUid }).catch(() => [])
+            ]);
+            renderHeroStats([]);
+            renderActivityGrid("Mes statistiques", [
+                { label: "Favoris", value: `❤️ ${favorites.length}` },
+                { label: "Rendez-vous", value: `📅 ${rdv.length}` },
+                { label: "Avis publiés", value: `📝 ${avis.length}` },
+                { label: "Photos partagées", value: `📸 ${photos.length}` }
+            ]);
+            return;
+        }
+
+        const [messages, avis, publications, favCount, rdv, candidatures, offres] = await Promise.all([
+            listMessagesForUser(profileUid).catch(() => []),
+            listAvisForPro(profileUid).catch(() => []),
+            listPublications({ targetProUid: profileUid }).catch(() => []),
+            countFavoritesForPro(profileUid).catch(() => 0),
+            listRendezVousForPro(profileUid).catch(() => []),
+            roleKey === "Salon"
+                ? listCandidaturesForSalon(profileUid).catch(() => [])
+                : listCandidaturesForCoiffeur(profileUid).catch(() => []),
+            roleKey === "Salon" ? listOffres(profileUid).catch(() => []) : Promise.resolve([])
+        ]);
+
+        const avg = averageRating(avis);
+        const weekAgo = Date.now() - WEEK_MS;
+        const views = estimateProViews({
+            messages,
+            uid: profileUid,
+            candidatures,
+            publications,
+            favCount
+        });
+        const messagesReceived = messages.filter((m) => m.toUid === profileUid).length;
+        const messagesWeek = messages.filter((m) => m.toUid === profileUid && messageMillis(m) >= weekAgo).length;
+
+        renderHeroStats([
+            avg != null ? `⭐ ${avg}` : null,
+            `📝 ${avis.length} avis`,
+            `📸 ${publications.length} photos`
+        ].filter(Boolean));
+
+        renderPublicPreview(profile, {
+            avg,
+            publications: publications.length,
+            favCount,
+            quartier: profile.quartier,
+            city: profile.city
+        });
+
+        if (roleKey === "Coiffeur") {
+            renderActivityGrid("Votre activité", [
+                { label: "Vues estimées ce mois", value: `👀 ${views}` },
+                { label: "Favoris", value: `❤️ ${favCount}` },
+                { label: "Messages reçus", value: `💬 ${messagesReceived}` },
+                { label: "Note moyenne", value: avg != null ? `⭐ ${avg}` : "—" }
+            ]);
+        } else if (roleKey === "Salon") {
+            const pending = candidatures.filter((c) => String(c.status || "pending").toLowerCase() === "pending").length;
+            renderActivityGrid("Votre salon", [
+                { label: "Vues estimées", value: `👀 ${views}` },
+                { label: "Rendez-vous", value: `📅 ${rdv.length}` },
+                { label: "Candidatures en attente", value: `📩 ${pending}` },
+                { label: "Note moyenne", value: avg != null ? `⭐ ${avg}/5` : "—" },
+                { label: "Photos", value: `📸 ${publications.length}` }
+            ]);
+        }
+
+        renderPhotosTab(publications);
+        renderAvisTab(avis);
+    } catch {
+        /* ignore */
+    }
+}
+
+let dpTabsReady = false;
+
+function applyTabVisibility(roleKey) {
+    const isPro = roleKey === "Coiffeur" || roleKey === "Salon";
+    const tabServices = document.getElementById("dpTabServices");
+    const tabPhotos = document.getElementById("dpTabPhotos");
+    const tabAvis = document.getElementById("dpTabAvis");
+    if (tabServices) tabServices.hidden = !isPro;
+    if (tabPhotos) tabPhotos.hidden = !isPro;
+    if (tabAvis) tabAvis.hidden = !isPro;
+}
+
+function switchDpTab(key) {
+    const tabs = document.querySelectorAll("[data-dp-tab]");
+    const panels = {
+        info: document.getElementById("dpPanelInfo"),
+        services: document.getElementById("dpPanelServices"),
+        photos: document.getElementById("dpPanelPhotos"),
+        avis: document.getElementById("dpPanelAvis")
+    };
+    tabs.forEach((t) => {
+        const active = t.dataset.dpTab === key && !t.hidden;
+        t.classList.toggle("is-active", active);
+        t.setAttribute("aria-selected", active ? "true" : "false");
+    });
+    if (panels.info) panels.info.hidden = key !== "info";
+    if (panels.services) panels.services.hidden = key !== "services";
+    if (panels.photos) panels.photos.hidden = key !== "photos";
+    if (panels.avis) panels.avis.hidden = key !== "avis";
+}
+
+function setupTabsOnce() {
+    if (dpTabsReady) return;
+    dpTabsReady = true;
+    document.querySelectorAll("[data-dp-tab]").forEach((btn) => {
+        btn.addEventListener("click", () => {
+            if (btn.hidden) return;
+            switchDpTab(btn.dataset.dpTab);
+        });
+    });
+}
+
 function applyHubAvatar(name, url) {
     applyAvatarElements(document.getElementById("dpHubAvatar"), document.getElementById("dpHubAvatarFb"), name, url);
 }
@@ -233,21 +695,31 @@ function syncFormFromCache() {
     const nameEl = document.getElementById("dpProfilHeroName");
     const emailEl = document.getElementById("dpHubEmail");
     const roleEl = document.getElementById("dpHubRolePill");
-    if (emailEl) emailEl.textContent = user.email || "—";
-    if (nameEl) nameEl.textContent = displayName;
-    if (roleEl) roleEl.textContent = roleDisplay || data.role || "—";
+    if (emailEl) emailEl.textContent = "📧 " + (user.email || "—");
+    if (nameEl) {
+        nameEl.textContent = displayName;
+        nameEl.dataset.baseName = displayName;
+    }
+    if (roleEl) roleEl.textContent = roleLabelWithIcon(roleDisplay);
     photoUrl = data.photoUrl || "";
     applyHubAvatar(displayName, photoUrl);
+    renderHeroFacts(data, user.email);
+    renderCompletion(roleDisplay, data);
+    setupTabsOnce();
+    applyTabVisibility(roleDisplay);
 
     const wrapSalon = document.getElementById("dpWrapSalonName");
     const wrapProMetiers = document.getElementById("dpWrapProMetiers");
     const wrapBio = document.getElementById("dpWrapBio");
-    const wrapTarifs = document.getElementById("dpWrapServicesTarifs");
+    const foldBio = document.getElementById("dpFoldBio");
     const isPro = roleDisplay === "Coiffeur" || roleDisplay === "Salon";
     if (wrapSalon) wrapSalon.hidden = roleDisplay !== "Salon";
     if (wrapProMetiers) wrapProMetiers.hidden = !isPro;
     if (wrapBio) wrapBio.hidden = roleDisplay === "Client";
-    if (wrapTarifs) wrapTarifs.hidden = !isPro;
+    if (foldBio) foldBio.hidden = roleDisplay === "Client";
+
+    document.getElementById("dpPublicPreview").hidden = !isPro;
+    document.getElementById("dpActivityBlock").hidden = true;
 
     if (roleDisplay === "Salon") {
         const sn = document.getElementById("dpSalonName");
@@ -279,80 +751,130 @@ function syncFormFromCache() {
         renderServicesEditor([]);
     }
     setMetierChecks("dpProMetiersList", parseMetiersFromProfile(data.proMetiers));
+    loadProfileInsights(data, roleDisplay);
+}
+
+function readServiceFromCard(card) {
+    const name = card.querySelector(".profil-service-card__name-input")?.value.trim() || "";
+    const priceRaw = card.querySelector(".profil-service-card__price-input")?.value;
+    const price = priceRaw === "" || priceRaw == null ? null : Number(priceRaw);
+    const fromPrice = !!card.querySelector(".profil-service-card__from-input")?.checked;
+    return { name, price: Number.isFinite(price) ? price : null, fromPrice };
+}
+
+function syncServiceCardView(card) {
+    const data = readServiceFromCard(card);
+    const nameEl = card.querySelector(".profil-service-card__name-display");
+    const priceEl = card.querySelector(".profil-service-card__price-display");
+    if (nameEl) nameEl.textContent = data.name || "Service sans nom";
+    if (priceEl) {
+        const label = formatServicePriceFcfa(data.price, data.fromPrice);
+        priceEl.textContent = label ? (data.fromPrice ? "À partir de " + label : label) : "Prix à définir";
+    }
+}
+
+function buildServiceCard({ name = "", price = null, fromPrice = true, editing = false } = {}) {
+    const li = document.createElement("li");
+    li.className = "profil-service-card";
+
+    const view = document.createElement("div");
+    view.className = "profil-service-card__view";
+    const nameDisplay = document.createElement("p");
+    nameDisplay.className = "profil-service-card__name-display";
+    const priceDisplay = document.createElement("p");
+    priceDisplay.className = "profil-service-card__price-display";
+    const actions = document.createElement("div");
+    actions.className = "profil-service-card__actions";
+    const editBtn = document.createElement("button");
+    editBtn.type = "button";
+    editBtn.className = "profil-service-card__btn";
+    editBtn.textContent = "Modifier";
+    const delBtn = document.createElement("button");
+    delBtn.type = "button";
+    delBtn.className = "profil-service-card__btn profil-service-card__btn--danger";
+    delBtn.textContent = "Supprimer";
+    actions.appendChild(editBtn);
+    actions.appendChild(delBtn);
+    view.appendChild(nameDisplay);
+    view.appendChild(priceDisplay);
+    view.appendChild(actions);
+
+    const edit = document.createElement("div");
+    edit.className = "profil-service-card__edit";
+    const nameInput = document.createElement("input");
+    nameInput.type = "text";
+    nameInput.className = "profil-service-card__name-input field-input";
+    nameInput.placeholder = "Nom du service";
+    nameInput.maxLength = 120;
+    nameInput.value = name;
+    const priceInput = document.createElement("input");
+    priceInput.type = "number";
+    priceInput.className = "profil-service-card__price-input field-input";
+    priceInput.placeholder = "Montant (FCFA)";
+    priceInput.min = "0";
+    priceInput.step = "1";
+    priceInput.inputMode = "numeric";
+    if (price != null && Number.isFinite(Number(price))) priceInput.value = String(price);
+    const fromLabel = document.createElement("label");
+    fromLabel.className = "profil-service-row__from-label";
+    const fromCheck = document.createElement("input");
+    fromCheck.type = "checkbox";
+    fromCheck.className = "profil-service-card__from-input";
+    fromCheck.checked = fromPrice !== false;
+    fromLabel.appendChild(fromCheck);
+    fromLabel.appendChild(document.createTextNode(" À partir de"));
+    const doneBtn = document.createElement("button");
+    doneBtn.type = "button";
+    doneBtn.className = "profil-service-card__btn";
+    doneBtn.textContent = "Valider";
+    edit.appendChild(nameInput);
+    edit.appendChild(priceInput);
+    edit.appendChild(fromLabel);
+    edit.appendChild(doneBtn);
+
+    function setEditing(on) {
+        edit.hidden = !on;
+        view.hidden = on;
+    }
+
+    editBtn.addEventListener("click", () => setEditing(true));
+    doneBtn.addEventListener("click", () => {
+        syncServiceCardView(li);
+        setEditing(false);
+    });
+    delBtn.addEventListener("click", () => {
+        li.remove();
+        const listEl = document.getElementById("dpServicesList");
+        if (listEl && !listEl.children.length) {
+            listEl.appendChild(buildServiceCard({ editing: true }));
+        }
+    });
+    [nameInput, priceInput, fromCheck].forEach((el) => {
+        el.addEventListener("change", () => syncServiceCardView(li));
+        el.addEventListener("input", () => syncServiceCardView(li));
+    });
+
+    li.appendChild(view);
+    li.appendChild(edit);
+    setEditing(editing);
+    syncServiceCardView(li);
+    return li;
 }
 
 function readServicesFromEditor() {
     const listEl = document.getElementById("dpServicesList");
     if (!listEl) return [];
-    return [...listEl.querySelectorAll(".profil-service-row")].map((row) => {
-        const name = row.querySelector(".profil-service-row__name")?.value.trim() || "";
-        const priceRaw = row.querySelector(".profil-service-row__price")?.value;
-        const price = priceRaw === "" || priceRaw == null ? null : Number(priceRaw);
-        const fromPrice = !!row.querySelector(".profil-service-row__from")?.checked;
-        return { name, price: Number.isFinite(price) ? price : null, fromPrice };
-    });
-}
-
-function buildServiceRow({ name = "", price = null, fromPrice = true } = {}) {
-    const li = document.createElement("li");
-    li.className = "profil-service-row";
-    const nameInput = document.createElement("input");
-    nameInput.type = "text";
-    nameInput.className = "profil-service-row__name field-input";
-    nameInput.placeholder = "Nom du service";
-    nameInput.maxLength = 120;
-    nameInput.value = name;
-
-    const priceWrap = document.createElement("div");
-    priceWrap.className = "profil-service-row__price-wrap";
-    const priceInput = document.createElement("input");
-    priceInput.type = "number";
-    priceInput.className = "profil-service-row__price field-input";
-    priceInput.placeholder = "Montant (FCFA)";
-    priceInput.min = "0";
-    priceInput.step = "1";
-    priceInput.inputMode = "numeric";
-    if (price != null && Number.isFinite(Number(price))) {
-        priceInput.value = String(price);
-    }
-    const fromLabel = document.createElement("label");
-    fromLabel.className = "profil-service-row__from-label";
-    const fromCheck = document.createElement("input");
-    fromCheck.type = "checkbox";
-    fromCheck.className = "profil-service-row__from";
-    fromCheck.checked = fromPrice !== false;
-    fromLabel.appendChild(fromCheck);
-    fromLabel.appendChild(document.createTextNode(" À partir de"));
-    priceWrap.appendChild(priceInput);
-    priceWrap.appendChild(fromLabel);
-
-    const removeBtn = document.createElement("button");
-    removeBtn.type = "button";
-    removeBtn.className = "profil-service-row__remove";
-    removeBtn.setAttribute("aria-label", "Retirer ce service");
-    removeBtn.innerHTML =
-        '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true">' +
-        '<path stroke-linecap="round" stroke-linejoin="round" d="M6 18 18 6M6 6l12 12"/></svg>';
-    removeBtn.addEventListener("click", () => {
-        li.remove();
-        const listEl = document.getElementById("dpServicesList");
-        if (listEl && !listEl.children.length) {
-            listEl.appendChild(buildServiceRow());
-        }
-    });
-    li.appendChild(nameInput);
-    li.appendChild(priceWrap);
-    li.appendChild(removeBtn);
-    return li;
+    return [...listEl.querySelectorAll(".profil-service-card")].map((card) => readServiceFromCard(card));
 }
 
 function renderServicesEditor(rows) {
     const listEl = document.getElementById("dpServicesList");
     if (!listEl) return;
     listEl.innerHTML = "";
-    const data = rows && rows.length ? rows : [{ name: "", price: null, fromPrice: true }];
+    const data = rows && rows.length ? rows : [];
+    if (!data.length) return;
     for (const row of data) {
-        listEl.appendChild(buildServiceRow(row));
+        listEl.appendChild(buildServiceCard(row));
     }
 }
 
@@ -384,6 +906,7 @@ document.getElementById("dpPhotoFile")?.addEventListener("change", async (e) => 
         profileCache = { ...(fresh || profileCache || {}), photoUrl: savedPhoto };
         applyHubAvatar(displayName, savedPhoto);
         notifyParentProfileUpdated(savedPhoto);
+        renderCompletion(roleDisplay, profileCache);
         if (formError) formError.hidden = true;
         if (formOk) {
             formOk.textContent = "Photo de profil enregistrée.";
@@ -401,9 +924,16 @@ document.getElementById("dpPhotoFile")?.addEventListener("change", async (e) => 
 document.getElementById("dpAddServiceBtn")?.addEventListener("click", () => {
     const listEl = document.getElementById("dpServicesList");
     if (!listEl) return;
-    listEl.appendChild(buildServiceRow());
-    const last = listEl.lastElementChild?.querySelector(".profil-service-row__name");
-    if (last) last.focus();
+    const card = buildServiceCard({ editing: true });
+    listEl.appendChild(card);
+    card.querySelector(".profil-service-card__name-input")?.focus();
+});
+
+document.getElementById("dpEditCta")?.addEventListener("click", () => {
+    document.querySelector("[data-dp-tab=\"info\"]")?.click();
+    document.getElementById("dpPanelInfo")?.scrollIntoView({ behavior: "smooth", block: "start" });
+    const firstFold = document.querySelector("#dpPanelInfo .profil-dash-fold");
+    if (firstFold) firstFold.open = true;
 });
 
 function notifyParentProfileUpdated(photoUrlHint) {
@@ -438,7 +968,7 @@ document.getElementById("dpLogout").addEventListener("click", async () => {
     window.location.href = "login.html";
 });
 
-document.getElementById("dpForm").addEventListener("submit", async (e) => {
+async function handleProfileSave(e) {
     e.preventDefault();
     const formError = document.getElementById("dpFormError");
     const formOk = document.getElementById("dpFormOk");
@@ -484,8 +1014,7 @@ document.getElementById("dpForm").addEventListener("submit", async (e) => {
         phone: phoneResult.e164,
         photoUrl
     };
-    payload.bio =
-        roleDisplay === "Client" ? "" : document.getElementById("dpBio").value.trim();
+    payload.bio = roleDisplay === "Client" ? "" : document.getElementById("dpBio").value.trim();
 
     if (!payload.name) {
         if (formError) {
@@ -507,6 +1036,7 @@ document.getElementById("dpForm").addEventListener("submit", async (e) => {
                     formError.textContent = `Indiquez un prix valide pour « ${row.name} ».`;
                     formError.hidden = false;
                 }
+                document.querySelector("[data-dp-tab=\"services\"]")?.click();
                 return;
             }
         }
@@ -536,7 +1066,14 @@ document.getElementById("dpForm").addEventListener("submit", async (e) => {
     } finally {
         if (saveBtn) saveBtn.disabled = false;
     }
+}
+
+document.getElementById("dpForm").addEventListener("submit", handleProfileSave);
+document.getElementById("dpSaveBtnServices")?.addEventListener("click", (e) => {
+    e.preventDefault();
+    document.getElementById("dpForm").requestSubmit();
 });
+setupTabsOnce();
 </script>
 </body>
 </html>
