@@ -328,47 +328,65 @@ async function sendRdv24hReminders() {
   }
 }
 
-async function ensurePublicationsFile() {
-  const dir = path.dirname(publicationsFile);
-  await fs.mkdir(dir, { recursive: true });
-  try {
-    await fs.access(publicationsFile);
-  } catch {
-    await fs.writeFile(publicationsFile, "[]", "utf8");
-  }
+function publicationRowToApi(row) {
+  return {
+    id: row.id,
+    authorUid: row.authorUid,
+    targetProUid: row.targetProUid,
+    photoUrl: row.photoUrl,
+    title: row.title,
+    caption: row.caption || "",
+    kind: row.kind,
+    styleType: row.styleType,
+    createdAt:
+      row.createdAt instanceof Date ? row.createdAt.toISOString() : String(row.createdAt || "")
+  };
 }
 
-async function readPublications() {
-  await ensurePublicationsFile();
-  const raw = await fs.readFile(publicationsFile, "utf8");
+/** Import unique depuis l’ancien fichier .data/publications.json (si la table est vide). */
+async function migratePublicationsFromJsonIfNeeded() {
   try {
-    const rows = JSON.parse(raw);
-    if (!Array.isArray(rows)) return [];
-    let changed = false;
-    const normalized = rows.map((p) => {
-      const next = { ...p };
-      if (!next.id) {
-        next.id = randomUUID();
-        changed = true;
-      }
-      if (!next.createdAt) {
-        next.createdAt = new Date().toISOString();
-        changed = true;
-      }
-      return next;
+    const existing = await prisma.publication.count();
+    if (existing > 0) return;
+    const raw = await fs.readFile(publicationsFile, "utf8");
+    const parsed = JSON.parse(raw);
+    if (!Array.isArray(parsed) || !parsed.length) return;
+    const pruned = await filterPublicationRowsByExistingUsers(parsed);
+    if (!pruned.length) return;
+    await prisma.publication.createMany({
+      data: pruned.map((p) => ({
+        id: String(p.id || randomUUID()),
+        authorUid: String(p.authorUid),
+        targetProUid: String(p.targetProUid),
+        photoUrl: String(p.photoUrl),
+        title: String(p.title || "").slice(0, 120),
+        caption: String(p.caption || "").slice(0, 500),
+        kind: String(p.kind),
+        styleType: String(p.styleType || "autre"),
+        createdAt: p.createdAt ? new Date(p.createdAt) : new Date()
+      }))
     });
-    if (changed) {
-      await writePublications(normalized);
+    console.log(`[HairConnect] ${pruned.length} publication(s) importée(s) depuis publications.json`);
+  } catch (e) {
+    if (e?.code !== "ENOENT") {
+      console.warn("[HairConnect] Import publications.json:", e?.message || e);
     }
-    return normalized;
-  } catch {
-    return [];
   }
 }
 
-async function writePublications(rows) {
-  await ensurePublicationsFile();
-  await fs.writeFile(publicationsFile, JSON.stringify(rows, null, 2), "utf8");
+async function loadPublicationsPruned() {
+  await migratePublicationsFromJsonIfNeeded();
+  const rows = await prisma.publication.findMany();
+  const asApi = rows.map(publicationRowToApi);
+  const pruned = await filterPublicationRowsByExistingUsers(asApi);
+  if (pruned.length < rows.length) {
+    const okIds = new Set(pruned.map((p) => p.id));
+    const orphanIds = rows.filter((r) => !okIds.has(r.id)).map((r) => r.id);
+    if (orphanIds.length) {
+      await prisma.publication.deleteMany({ where: { id: { in: orphanIds } } });
+    }
+  }
+  return pruned;
 }
 
 /**
@@ -3102,21 +3120,18 @@ app.post("/api/publications", async (req, res) => {
       return res.status(400).json({ message: "targetProUid requis." });
     }
 
-    const rows = await readPublications();
-    const row = {
-      id: randomUUID(),
-      authorUid,
-      targetProUid,
-      photoUrl,
-      title,
-      caption,
-      kind,
-      styleType,
-      createdAt: new Date().toISOString()
-    };
-    rows.push(row);
-    await writePublications(rows);
-    return res.status(201).json({ publication: row });
+    const row = await prisma.publication.create({
+      data: {
+        authorUid,
+        targetProUid,
+        photoUrl,
+        title,
+        caption,
+        kind,
+        styleType
+      }
+    });
+    return res.status(201).json({ publication: publicationRowToApi(row) });
   } catch (error) {
     return res.status(500).json({ code: "internal/error", message: error.message });
   }
@@ -3131,12 +3146,7 @@ app.get("/api/publications", async (req, res) => {
     const withAuthorNames =
       String(req.query.withAuthorNames || "") === "1" ||
       String(req.query.withAuthorNames || "").toLowerCase() === "true";
-    const rows = await readPublications();
-    const pruned = await filterPublicationRowsByExistingUsers(rows);
-    if (pruned.length !== rows.length) {
-      await writePublications(pruned);
-    }
-    let filtered = pruned
+    let filtered = (await loadPublicationsPruned())
       .filter((p) => (targetProUid ? String(p.targetProUid) === targetProUid : true))
       .filter((p) => (authorUid ? String(p.authorUid) === authorUid : true))
       .filter((p) => (kind ? String(p.kind) === kind : true))
@@ -3180,36 +3190,36 @@ app.patch("/api/publications/:id", async (req, res) => {
     if (!id || !authorUid) {
       return res.status(400).json({ message: "id et authorUid requis." });
     }
-    const rows = await readPublications();
-    const idx = rows.findIndex((p) => String(p.id) === id);
-    if (idx === -1) {
+    const existing = await prisma.publication.findUnique({ where: { id } });
+    if (!existing) {
       return res.status(404).json({ message: "Publication introuvable." });
     }
-    if (String(rows[idx].authorUid) !== authorUid) {
+    if (String(existing.authorUid) !== authorUid) {
       return res.status(403).json({ message: "Modification non autorisée." });
     }
+    const data = {};
     if (req.body.title != null) {
       const title = String(req.body.title || "").trim().slice(0, 120);
       if (!title) return res.status(400).json({ message: "Le nom de la réalisation est requis." });
-      rows[idx].title = title;
+      data.title = title;
     }
     if (req.body.caption != null) {
-      rows[idx].caption = String(req.body.caption || "").trim().slice(0, 500);
+      data.caption = String(req.body.caption || "").trim().slice(0, 500);
     }
     if (req.body.styleType != null) {
       const styleType = normalizePublicationStyleType(req.body.styleType);
       if (!styleType) {
         return res.status(400).json({ message: "Type de réalisation invalide." });
       }
-      rows[idx].styleType = styleType;
+      data.styleType = styleType;
     }
     if (Object.prototype.hasOwnProperty.call(req.body, "photoUrl")) {
       const photoUrl = String(req.body.photoUrl || "").trim();
       if (!photoUrl) return res.status(400).json({ message: "La photo est requise." });
-      rows[idx].photoUrl = photoUrl;
+      data.photoUrl = photoUrl;
     }
-    await writePublications(rows);
-    return res.json({ publication: rows[idx] });
+    const row = await prisma.publication.update({ where: { id }, data });
+    return res.json({ publication: publicationRowToApi(row) });
   } catch (error) {
     return res.status(500).json({ code: "internal/error", message: error.message });
   }
@@ -3222,16 +3232,14 @@ app.delete("/api/publications/:id", async (req, res) => {
     if (!id || !authorUid) {
       return res.status(400).json({ message: "id et authorUid requis." });
     }
-    const rows = await readPublications();
-    const idx = rows.findIndex((p) => String(p.id) === id);
-    if (idx === -1) {
+    const existing = await prisma.publication.findUnique({ where: { id } });
+    if (!existing) {
       return res.status(404).json({ message: "Publication introuvable." });
     }
-    if (String(rows[idx].authorUid) !== authorUid) {
+    if (String(existing.authorUid) !== authorUid) {
       return res.status(403).json({ message: "Suppression non autorisée." });
     }
-    rows.splice(idx, 1);
-    await writePublications(rows);
+    await prisma.publication.delete({ where: { id } });
     return res.status(200).json({ ok: true });
   } catch (error) {
     return res.status(500).json({ code: "internal/error", message: error.message });
@@ -3261,6 +3269,9 @@ app.use(express.static("."));
 
 app.listen(port, () => {
   console.log(`HairConnect backend running on http://localhost:${port}`);
+  migratePublicationsFromJsonIfNeeded().catch((err) =>
+    console.warn("[HairConnect] Migration publications:", err?.message || err)
+  );
   warnIfPrismaClientStale();
   const intervalMs = Number(process.env.RDV_REMINDER_INTERVAL_MS || 10 * 60 * 1000);
   setInterval(() => {

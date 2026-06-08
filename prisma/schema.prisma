@@ -88,6 +88,25 @@ model Avis {
   createdAt     DateTime  @default(now())
 }
 
+/// Galerie « S'inspirer » — photos publiées par les pros ou après prestation client.
+model Publication {
+  id           String   @id @default(uuid())
+  authorUid    String
+  targetProUid String
+  photoUrl     String
+  title        String
+  caption      String   @default("")
+  /// pro | client_after_service
+  kind         String
+  styleType    String
+  createdAt    DateTime @default(now())
+
+  @@index([targetProUid])
+  @@index([authorUid])
+  @@index([kind])
+  @@index([styleType])
+}
+
 model Offre {
   id          String   @id @default(uuid())
   salonUid    String
