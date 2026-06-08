@@ -17,21 +17,44 @@
     </header>
 
     <p class="subpage-lead">
-        Traitez chaque candidature : <strong>en attente</strong>, <strong>acceptée</strong> ou <strong>refusée</strong>.
-        Le coiffeur est notifié dans la messagerie.
+        Gérez les candidatures reçues pour vos offres d'emploi. Le coiffeur est notifié par messagerie à chaque décision.
     </p>
 
-    <div class="candidature-filters jobs-tabs" id="candFilters" role="tablist" aria-label="Filtrer les candidatures">
-        <button type="button" class="jobs-tab is-active" data-cand-filter="all">Toutes</button>
-        <button type="button" class="jobs-tab" data-cand-filter="pending">En attente</button>
-        <button type="button" class="jobs-tab" data-cand-filter="accepted">Acceptées</button>
-        <button type="button" class="jobs-tab" data-cand-filter="rejected">Refusées</button>
+    <div class="cand-hub-stats" id="candStats" aria-label="Statistiques candidatures">
+        <div class="cand-hub-stats__item">
+            <span class="cand-hub-stats__label">Total</span>
+            <strong class="cand-hub-stats__val" id="statTotal">0</strong>
+        </div>
+        <div class="cand-hub-stats__item">
+            <span class="cand-hub-stats__label">En attente</span>
+            <strong class="cand-hub-stats__val" id="statPending">0</strong>
+        </div>
+        <div class="cand-hub-stats__item">
+            <span class="cand-hub-stats__label">Acceptées</span>
+            <strong class="cand-hub-stats__val" id="statAccepted">0</strong>
+        </div>
+        <div class="cand-hub-stats__item">
+            <span class="cand-hub-stats__label">Refusées</span>
+            <strong class="cand-hub-stats__val" id="statRejected">0</strong>
+        </div>
     </div>
 
-    <p id="ok" class="form-success" role="status" hidden></p>
+    <div class="candidature-filters jobs-tabs" id="candFilters" role="tablist" aria-label="Filtrer les candidatures">
+        <button type="button" class="jobs-tab is-active" data-cand-filter="all" aria-selected="true">Toutes</button>
+        <button type="button" class="jobs-tab" data-cand-filter="pending" aria-selected="false">En attente</button>
+        <button type="button" class="jobs-tab" data-cand-filter="accepted" aria-selected="false">Acceptées</button>
+        <button type="button" class="jobs-tab" data-cand-filter="rejected" aria-selected="false">Refusées</button>
+    </div>
+
     <p id="err" class="form-error" role="alert" hidden></p>
-    <ul id="list" class="candidature-list"></ul>
+
+    <div class="cand-hub-layout" id="candLayout">
+        <ul id="list" class="cand-hub-grid" aria-live="polite"></ul>
+        <aside id="candDetail" class="cand-detail-panel" hidden aria-label="Détail de la candidature"></aside>
+    </div>
 </div>
+
+<div id="candToast" class="hc-toast" role="status" aria-live="polite" hidden></div>
 
 <script type="module">
 import {
@@ -39,20 +62,29 @@ import {
     fetchUserProfile,
     listCandidaturesForSalon,
     respondCandidature,
-    getFirebaseErrorMessage
+    listAvisForPro,
+    listPublications,
+    getFirebaseErrorMessage,
+    HAIRCONNECT_METIERS
 } from "./firebase.js";
 import { onAuthStateChanged } from "./firebase.js";
 import { resolveUserRole, authUserId, isCoiffeurRole } from "./role-utils.js";
+import { computeAvisSummary, formatAvisAvg } from "./avis-display-utils.js";
 
 const listEl = document.getElementById("list");
 const errEl = document.getElementById("err");
-const okEl = document.getElementById("ok");
+const detailEl = document.getElementById("candDetail");
+const layoutEl = document.getElementById("candLayout");
+const toastEl = document.getElementById("candToast");
 const filtersEl = document.getElementById("candFilters");
 const inDashEmbed = window.self !== window.top;
 
 let myUid = null;
 let allRows = [];
 let activeFilter = "all";
+let selectedId = null;
+let coiffeurExtras = {};
+let toastTimer = null;
 
 const backBtn = document.getElementById("backBtn");
 if (backBtn && inDashEmbed) {
@@ -103,6 +135,122 @@ function statusLabel(st) {
     return "En attente";
 }
 
+function statusIcon(st) {
+    if (st === "accepted") return "✓";
+    if (st === "rejected") return "✗";
+    return "⏳";
+}
+
+function formatRoleLabel(role) {
+    const r = String(role || "").trim().toLowerCase();
+    if (r.includes("coiffeuse")) return "Coiffeuse indépendante";
+    if (r.includes("coiffeur")) return "Coiffeur indépendant";
+    return String(role || "Coiffeur").trim() || "Coiffeur";
+}
+
+function parseMetiers(proMetiers) {
+    if (!proMetiers) return [];
+    if (Array.isArray(proMetiers)) return proMetiers.map(String);
+    if (typeof proMetiers === "string") {
+        try {
+            const parsed = JSON.parse(proMetiers);
+            return Array.isArray(parsed) ? parsed.map(String) : [];
+        } catch {
+            return [];
+        }
+    }
+    return [];
+}
+
+function metierLabels(proMetiers) {
+    const slugs = parseMetiers(proMetiers);
+    const bySlug = Object.fromEntries(HAIRCONNECT_METIERS.map((m) => [m.slug, m.label]));
+    return slugs.map((s) => bySlug[String(s).toLowerCase()] || s).filter(Boolean);
+}
+
+function formatLocation(co) {
+    const parts = [];
+    const q = String(co?.quartier || "").trim();
+    const c = String(co?.city || "").trim();
+    if (q) parts.push(q);
+    if (c) parts.push(c);
+    return parts.join(", ") || "—";
+}
+
+function deriveExperienceLabel(co) {
+    const bio = String(co?.bio || "").trim();
+    const yearsMatch = bio.match(/(\d+)\s*ans/i);
+    if (yearsMatch) return yearsMatch[1] + " ans d'expérience";
+    const metiers = metierLabels(co?.proMetiers);
+    if (metiers.length) return metiers.slice(0, 2).join(" · ");
+    return formatRoleLabel(co?.role);
+}
+
+function coiffeurRatingLabel(uid) {
+    const extra = coiffeurExtras[uid];
+    if (!extra || extra.avg == null) return null;
+    return "⭐ " + extra.avg + "/5";
+}
+
+function updateStats() {
+    const counts = { pending: 0, accepted: 0, rejected: 0 };
+    for (const c of allRows) {
+        const st = normalizeStatus(c.status);
+        counts[st] = (counts[st] || 0) + 1;
+    }
+    const total = allRows.length;
+    const set = (id, val) => {
+        const el = document.getElementById(id);
+        if (el) el.textContent = String(val);
+    };
+    set("statTotal", total);
+    set("statPending", counts.pending);
+    set("statAccepted", counts.accepted);
+    set("statRejected", counts.rejected);
+}
+
+function showToast(message) {
+    if (!toastEl) return;
+    toastEl.textContent = message;
+    toastEl.hidden = false;
+    toastEl.classList.add("is-visible");
+    if (toastTimer) clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => {
+        toastEl.classList.remove("is-visible");
+        toastEl.hidden = true;
+    }, 3200);
+}
+
+function renderCardActions(c, st) {
+    const id = escapeHtml(c.id);
+    if (st === "pending") {
+        return (
+            '<button type="button" class="cand-card__btn cand-card__btn--accept" data-cand-accept="' +
+            id +
+            '">✓ Accepter</button>' +
+            '<button type="button" class="cand-card__btn cand-card__btn--reject" data-cand-reject="' +
+            id +
+            '">✗ Refuser</button>'
+        );
+    }
+    if (st === "accepted") {
+        const uid = String(c.coiffeurUid || c.coiffeur?.id || "").trim();
+        return (
+            '<a class="cand-card__btn cand-card__btn--msg" href="messagerie.html?to=' +
+            encodeURIComponent(uid) +
+            '">💬 Contacter</a>'
+        );
+    }
+    if (st === "rejected") {
+        return (
+            '<button type="button" class="cand-card__btn cand-card__btn--reopen" data-cand-reaccept="' +
+            id +
+            '">↺ Réexaminer</button>'
+        );
+    }
+    return "";
+}
+
 function renderCandidatureCard(c) {
     const co = c.coiffeur || {};
     const off = c.offre || {};
@@ -111,64 +259,198 @@ function renderCandidatureCard(c) {
     const offerTitle = String(off.title || "Offre").trim();
     const dateText = formatDate(c.createdAt);
     const st = normalizeStatus(c.status);
-    const rawMessage = c.message != null ? String(c.message) : "";
-    const messageHtml = rawMessage.trim()
-        ? escapeHtml(rawMessage)
-        : "(Aucun message.)";
-
-    const actions =
-        st === "pending"
-            ? '<button type="button" class="register-submit candidature-card__btn-accept" data-cand-accept="' +
-              escapeHtml(c.id) +
-              '">Accepter</button>' +
-              '<button type="button" class="jobs-card__delete candidature-card__btn-reject" data-cand-reject="' +
-              escapeHtml(c.id) +
-              '">Refuser</button>'
-            : "";
+    const rating = coiffeurRatingLabel(coiffeurUid);
+    const location = formatLocation(co);
+    const experience = deriveExperienceLabel(co);
+    const isSelected = String(selectedId) === String(c.id);
 
     const li = document.createElement("li");
-    li.className = "candidature-card";
+    li.className = "cand-card" + (isSelected ? " is-selected" : "");
+    li.dataset.candId = c.id;
     li.dataset.status = st;
     li.innerHTML =
-        '<header class="candidature-card__head">' +
-        '<div class="candidature-card__who">' +
+        '<div class="cand-card__body" data-cand-open="' +
+        escapeHtml(c.id) +
+        '" role="button" tabindex="0" aria-label="Voir le détail de ' +
+        escapeHtml(name) +
+        '">' +
+        '<div class="cand-card__top">' +
         (co.photoUrl
-            ? '<img class="candidature-card__avatar" src="' +
+            ? '<img class="cand-card__avatar" src="' +
               escapeHtml(co.photoUrl) +
               '" alt="" loading="lazy">'
-            : '<span class="candidature-card__avatar candidature-card__avatar--placeholder" aria-hidden="true">' +
-              escapeHtml(name.charAt(0).toUpperCase()) +
-              "</span>") +
-        "<div>" +
-        "<h2 class=\"candidature-card__name\">" +
+            : '<span class="cand-card__avatar cand-card__avatar--ph" aria-hidden="true">👩</span>') +
+        '<div class="cand-card__head">' +
+        '<h2 class="cand-card__name">' +
         escapeHtml(name) +
         "</h2>" +
-        '<p class="candidature-card__meta">Pour « ' +
-        escapeHtml(offerTitle) +
-        " »" +
-        (dateText ? " · " + escapeHtml(dateText) : "") +
+        (rating ? '<p class="cand-card__rating">' + escapeHtml(rating) + "</p>" : "") +
+        '<p class="cand-card__exp">💼 ' +
+        escapeHtml(experience) +
         "</p>" +
-        '<span class="candidature-card__status candidature-card__status--' +
+        '<p class="cand-card__loc">📍 ' +
+        escapeHtml(location) +
+        "</p>" +
+        "</div></div>" +
+        '<p class="cand-card__offer"><span class="cand-card__k">Postule pour</span> ' +
+        escapeHtml(offerTitle) +
+        "</p>" +
+        (dateText ? '<p class="cand-card__date">📅 ' + escapeHtml(dateText) + "</p>" : "") +
+        '<span class="cand-card__status cand-card__status--' +
         escapeHtml(st) +
         '">' +
+        statusIcon(st) +
+        " " +
         escapeHtml(statusLabel(st)) +
-        "</span>" +
-        "</div></div></header>" +
-        '<div class="candidature-card__message-body">' +
-        messageHtml +
-        "</div>" +
-        '<div class="candidature-card__actions">' +
-        actions +
-        (st === "accepted"
-            ? '<a class="register-submit candidature-card__btn-msg" href="messagerie.html?to=' +
-              encodeURIComponent(coiffeurUid) +
-              '">Contacter le coiffeur</a>'
-            : "") +
-        '<a class="candidature-card__link-profile" href="profil-public.html?uid=' +
+        "</span></div>" +
+        '<div class="cand-card__actions">' +
+        renderCardActions(c, st) +
+        '<a class="cand-card__btn cand-card__btn--ghost" href="profil-public.html?uid=' +
         encodeURIComponent(coiffeurUid) +
-        '">Profil</a>' +
+        '" data-cand-profile>Voir le profil</a>' +
         "</div>";
+
+    li.querySelector("[data-cand-open]")?.addEventListener("keydown", (e) => {
+        if (e.key === "Enter" || e.key === " ") {
+            e.preventDefault();
+            openDetail(c.id);
+        }
+    });
+
     return li;
+}
+
+function renderDetailPanel(c) {
+    const co = c.coiffeur || {};
+    const off = c.offre || {};
+    const coiffeurUid = String(c.coiffeurUid || co.id || "").trim();
+    const st = normalizeStatus(c.status);
+    const extra = coiffeurExtras[coiffeurUid] || {};
+    const rating = coiffeurRatingLabel(coiffeurUid);
+    const rawMessage = c.message != null ? String(c.message) : "";
+    const messageHtml = rawMessage.trim() ? escapeHtml(rawMessage) : "(Aucun message joint.)";
+    const bio = String(co.bio || "").trim();
+    const pubs = Array.isArray(extra.publications) ? extra.publications : [];
+
+    const portfolioHtml = pubs.length
+        ? '<div class="cand-detail__portfolio">' +
+          pubs
+              .slice(0, 4)
+              .map((p) => {
+                  const url = String(p.photoUrl || "").trim();
+                  if (!url) return "";
+                  return (
+                      '<a class="cand-detail__port-cell" href="profil-public.html?uid=' +
+                      encodeURIComponent(coiffeurUid) +
+                      '"><img src="' +
+                      escapeHtml(url) +
+                      '" alt="' +
+                      escapeHtml(String(p.title || "Réalisation")) +
+                      '" loading="lazy"></a>'
+                  );
+              })
+              .join("") +
+          "</div>"
+        : '<p class="cand-detail__empty">Aucune réalisation publiée pour le moment.</p>';
+
+    let detailActions = "";
+    if (st === "pending") {
+        detailActions =
+            '<button type="button" class="cand-detail__btn cand-detail__btn--accept" data-cand-accept="' +
+            escapeHtml(c.id) +
+            '">✓ Accepter</button>' +
+            '<button type="button" class="cand-detail__btn cand-detail__btn--reject" data-cand-reject="' +
+            escapeHtml(c.id) +
+            '">✗ Refuser</button>';
+    } else if (st === "accepted") {
+        detailActions =
+            '<a class="cand-detail__btn cand-detail__btn--msg" href="messagerie.html?to=' +
+            encodeURIComponent(coiffeurUid) +
+            '">💬 Contacter</a>';
+    } else if (st === "rejected") {
+        detailActions =
+            '<button type="button" class="cand-detail__btn cand-detail__btn--reopen" data-cand-reaccept="' +
+            escapeHtml(c.id) +
+            '">↺ Réexaminer et accepter</button>';
+    }
+
+    detailEl.innerHTML =
+        '<div class="cand-detail__inner">' +
+        '<button type="button" class="cand-detail__close" data-cand-close aria-label="Fermer le détail">×</button>' +
+        '<header class="cand-detail__hero">' +
+        (co.photoUrl
+            ? '<img class="cand-detail__avatar" src="' +
+              escapeHtml(co.photoUrl) +
+              '" alt="" loading="lazy">'
+            : '<span class="cand-detail__avatar cand-detail__avatar--ph" aria-hidden="true">👩</span>') +
+        '<div><h2 class="cand-detail__name">' +
+        escapeHtml(co.name || "Coiffeur") +
+        "</h2>" +
+        (rating ? '<p class="cand-detail__rating">' + escapeHtml(rating) + "</p>" : "") +
+        '<p class="cand-detail__meta">💼 ' +
+        escapeHtml(deriveExperienceLabel(co)) +
+        "</p>" +
+        '<p class="cand-detail__meta">📍 ' +
+        escapeHtml(formatLocation(co)) +
+        "</p></div></header>" +
+        '<p class="cand-detail__status cand-card__status cand-card__status--' +
+        escapeHtml(st) +
+        '">' +
+        statusIcon(st) +
+        " " +
+        escapeHtml(statusLabel(st)) +
+        "</p>" +
+        '<section class="cand-detail__section">' +
+        '<h3 class="cand-detail__title">Offre visée</h3>' +
+        '<p class="cand-detail__text">' +
+        escapeHtml(off.title || "—") +
+        (formatDate(c.createdAt) ? " · 📅 " + escapeHtml(formatDate(c.createdAt)) : "") +
+        "</p></section>" +
+        '<section class="cand-detail__section">' +
+        '<h3 class="cand-detail__title">Message de candidature</h3>' +
+        '<p class="cand-detail__message">' +
+        messageHtml +
+        "</p></section>" +
+        (bio
+            ? '<section class="cand-detail__section"><h3 class="cand-detail__title">Expérience / présentation</h3><p class="cand-detail__text">' +
+              escapeHtml(bio) +
+              "</p></section>"
+            : "") +
+        '<section class="cand-detail__section">' +
+        '<h3 class="cand-detail__title">Portfolio</h3>' +
+        portfolioHtml +
+        "</section>" +
+        '<div class="cand-detail__actions">' +
+        detailActions +
+        '<a class="cand-detail__btn cand-detail__btn--ghost" href="profil-public.html?uid=' +
+        encodeURIComponent(coiffeurUid) +
+        '">Voir le profil public</a>' +
+        "</div></div>";
+
+    detailEl.hidden = false;
+    if (layoutEl) layoutEl.classList.add("has-detail");
+}
+
+function closeDetailPanel() {
+    selectedId = null;
+    if (detailEl) {
+        detailEl.hidden = true;
+        detailEl.innerHTML = "";
+    }
+    if (layoutEl) layoutEl.classList.remove("has-detail");
+    for (const card of listEl.querySelectorAll(".cand-card.is-selected")) {
+        card.classList.remove("is-selected");
+    }
+}
+
+function openDetail(id) {
+    const c = allRows.find((row) => String(row.id) === String(id));
+    if (!c) return;
+    selectedId = c.id;
+    for (const card of listEl.querySelectorAll(".cand-card")) {
+        card.classList.toggle("is-selected", String(card.dataset.candId) === String(id));
+    }
+    renderDetailPanel(c);
 }
 
 function renderList() {
@@ -178,8 +460,9 @@ function renderList() {
             ? allRows
             : allRows.filter((c) => normalizeStatus(c.status) === activeFilter);
     if (!rows.length) {
+        closeDetailPanel();
         const li = document.createElement("li");
-        li.className = "candidature-card candidature-card--empty";
+        li.className = "cand-card cand-card--empty";
         li.textContent =
             activeFilter === "all"
                 ? "Aucune candidature de coiffeur pour le moment."
@@ -190,28 +473,58 @@ function renderList() {
     for (const c of rows) {
         listEl.appendChild(renderCandidatureCard(c));
     }
+    if (selectedId) {
+        const still = rows.find((c) => String(c.id) === String(selectedId));
+        if (still) renderDetailPanel(still);
+        else closeDetailPanel();
+    }
+}
+
+async function loadCoiffeurExtras(rows) {
+    const uids = [...new Set(rows.map((r) => String(r.coiffeurUid || r.coiffeur?.id || "").trim()).filter(Boolean))];
+    const entries = await Promise.all(
+        uids.map(async (uid) => {
+            const [avis, publications] = await Promise.all([
+                listAvisForPro(uid).catch(() => []),
+                listPublications({ targetProUid: uid, kind: "pro" }).catch(() => [])
+            ]);
+            const summary = computeAvisSummary(avis);
+            return [
+                uid,
+                {
+                    avg: formatAvisAvg(summary.avg),
+                    avisCount: summary.total,
+                    publications: (publications || []).filter((p) => String(p.photoUrl || "").trim())
+                }
+            ];
+        })
+    );
+    coiffeurExtras = Object.fromEntries(entries);
 }
 
 async function loadAll() {
     allRows = await listCandidaturesForSalon(myUid);
     allRows = allRows.filter((c) => isCoiffeurRole(c.coiffeur || {}));
+    await loadCoiffeurExtras(allRows);
+    updateStats();
     renderList();
 }
 
-async function handleRespond(id, status) {
+async function handleRespond(id, status, confirmMsg) {
     if (!id || !myUid) return;
-    const label = status === "accepted" ? "accepter" : "refuser";
-    if (!window.confirm(`Confirmer : ${label} cette candidature ?`)) return;
+    if (!window.confirm(confirmMsg)) return;
     errEl.hidden = true;
-    okEl.hidden = true;
     try {
         await respondCandidature(id, myUid, status);
-        okEl.textContent =
-            status === "accepted"
-                ? "Candidature acceptée. Le coiffeur a été prévenu par messagerie."
-                : "Candidature refusée. Le coiffeur a été prévenu par messagerie.";
-        okEl.hidden = false;
+        if (status === "accepted") {
+            showToast("✓ Candidature acceptée");
+        } else {
+            showToast("Candidature refusée");
+        }
         await loadAll();
+        if (selectedId && String(selectedId) === String(id)) {
+            openDetail(id);
+        }
     } catch (e) {
         errEl.textContent = getFirebaseErrorMessage(e);
         errEl.hidden = false;
@@ -233,16 +546,63 @@ if (filtersEl) {
 }
 
 listEl.addEventListener("click", (e) => {
+    if (e.target.closest("[data-cand-profile], [data-cand-accept], [data-cand-reject], [data-cand-reaccept], a.cand-card__btn--msg")) {
+        e.stopPropagation();
+    }
+    const openEl = e.target.closest("[data-cand-open]");
+    if (openEl) {
+        openDetail(openEl.getAttribute("data-cand-open"));
+        return;
+    }
     const acceptBtn = e.target.closest("[data-cand-accept]");
     const rejectBtn = e.target.closest("[data-cand-reject]");
+    const reacceptBtn = e.target.closest("[data-cand-reaccept]");
     if (acceptBtn) {
-        handleRespond(acceptBtn.getAttribute("data-cand-accept"), "accepted");
+        e.stopPropagation();
+        handleRespond(acceptBtn.getAttribute("data-cand-accept"), "accepted", "Confirmer : accepter cette candidature ?");
         return;
     }
     if (rejectBtn) {
-        handleRespond(rejectBtn.getAttribute("data-cand-reject"), "rejected");
+        e.stopPropagation();
+        handleRespond(rejectBtn.getAttribute("data-cand-reject"), "rejected", "Confirmer : refuser cette candidature ?");
+        return;
+    }
+    if (reacceptBtn) {
+        e.stopPropagation();
+        handleRespond(
+            reacceptBtn.getAttribute("data-cand-reaccept"),
+            "accepted",
+            "Réexaminer et accepter cette candidature ?"
+        );
     }
 });
+
+if (detailEl) {
+    detailEl.addEventListener("click", (e) => {
+        if (e.target.closest("[data-cand-close]")) {
+            closeDetailPanel();
+            return;
+        }
+        const acceptBtn = e.target.closest("[data-cand-accept]");
+        const rejectBtn = e.target.closest("[data-cand-reject]");
+        const reacceptBtn = e.target.closest("[data-cand-reaccept]");
+        if (acceptBtn) {
+            handleRespond(acceptBtn.getAttribute("data-cand-accept"), "accepted", "Confirmer : accepter cette candidature ?");
+            return;
+        }
+        if (rejectBtn) {
+            handleRespond(rejectBtn.getAttribute("data-cand-reject"), "rejected", "Confirmer : refuser cette candidature ?");
+            return;
+        }
+        if (reacceptBtn) {
+            handleRespond(
+                reacceptBtn.getAttribute("data-cand-reaccept"),
+                "accepted",
+                "Réexaminer et accepter cette candidature ?"
+            );
+        }
+    });
+}
 
 onAuthStateChanged(auth, async (user) => {
     if (!user) {

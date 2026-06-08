@@ -2929,7 +2929,9 @@ app.patch("/api/candidatures/:id", async (req, res) => {
       return res.status(403).json({ message: "Seul le salon concerné peut traiter cette candidature." });
     }
     const current = normalizeCandidatureStatus(existing.status);
-    if (current !== "pending") {
+    const canRespond =
+      current === "pending" || (current === "rejected" && status === "accepted");
+    if (!canRespond) {
       return res.status(409).json({
         message: `Cette candidature est déjà ${current === "accepted" ? "acceptée" : "refusée"}.`
       });

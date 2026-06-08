@@ -8881,153 +8881,468 @@ body.hc-theme-pro .pro-card-links a {
     color: var(--hc-pro-purple);
 }
 
-/* Candidatures salon */
-.candidature-list {
-    list-style: none;
-    margin: 0;
-    padding: 0;
-    display: flex;
-    flex-direction: column;
-    gap: 1rem;
+/* Candidatures salon — hub recrutement */
+.cand-hub-stats {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 0.55rem;
+    margin-bottom: 1rem;
 }
 
-.candidature-card {
-    border: 1px solid var(--hc-pro-line, #e8e8e8);
+.cand-hub-stats__item {
+    padding: 0.75rem 0.55rem;
     border-radius: 14px;
-    background: var(--hc-pro-card, #fff);
-    padding: 1rem 1.1rem 1.15rem;
-    text-align: left;
-}
-
-.candidature-card--empty {
-    text-align: center;
-    color: var(--hc-pro-muted, #64748b);
-    padding: 1.5rem;
-}
-
-.candidature-card__head {
-    margin-bottom: 0.85rem;
-}
-
-.candidature-card__who {
-    display: flex;
-    align-items: center;
-    gap: 0.75rem;
-}
-
-.candidature-card__avatar {
-    width: 3rem;
-    height: 3rem;
-    border-radius: 50%;
-    object-fit: cover;
-    flex-shrink: 0;
-    border: 2px solid var(--hc-pro-line, #e8e8e8);
-}
-
-.candidature-card__avatar--placeholder {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    background: var(--hc-pro-purple-soft, #f5ebe6);
-    color: var(--hc-pro-purple-deep, #5c4033);
-    font-weight: 700;
-    font-size: 1.1rem;
-}
-
-.candidature-card__name {
-    margin: 0;
-    font-size: 1.05rem;
-    font-weight: 700;
-    color: var(--hc-pro-ink, #333333);
-}
-
-.candidature-card__date {
-    margin: 0.2rem 0 0;
-    font-size: 0.8rem;
-    color: var(--hc-pro-muted, #64748b);
-}
-
-.candidature-card__meta {
-    margin: 0.2rem 0 0;
-    font-size: 0.8rem;
-    color: var(--hc-pro-muted, #64748b);
-}
-
-.candidature-card__message-body {
-    margin: 0.65rem 0 0;
-    padding: 0.75rem 0.85rem;
-    border-radius: 10px;
-    background: #ffffff;
     border: 1px solid var(--hc-pro-line, #e8e8e8);
-    color: var(--hc-pro-ink, #333333);
-    font-size: 0.9rem;
-    line-height: 1.5;
-    white-space: pre-wrap;
-    word-break: break-word;
-}
-
-.candidature-card__actions {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    gap: 0.65rem;
-    margin-top: 0.85rem;
-}
-
-.candidature-card__btn-msg {
-    flex: 1 1 auto;
-    min-width: 9rem;
+    background: #fff;
     text-align: center;
-    text-decoration: none;
+    box-shadow: 0 4px 14px rgba(30, 41, 59, 0.06);
 }
 
-.candidature-card__link-profile {
-    font-size: 0.85rem;
-    font-weight: 600;
-    color: var(--hc-pro-purple, #8a79af);
-    text-decoration: none;
+.cand-hub-stats__label {
+    display: block;
+    font-size: 0.72rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--hc-pro-muted, #64748b);
 }
 
-.candidature-card__link-profile:hover {
-    text-decoration: underline;
+.cand-hub-stats__val {
+    display: block;
+    margin-top: 0.2rem;
+    font-size: 1.35rem;
+    font-weight: 800;
+    color: var(--hc-pro-purple-deep, #5b4a8a);
 }
 
 .candidature-filters {
     margin-bottom: 1rem;
 }
 
-.candidature-card__status {
-    display: inline-block;
-    margin-top: 0.35rem;
-    padding: 0.2rem 0.55rem;
-    font-size: 0.75rem;
+.cand-hub-layout {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 1rem;
+    align-items: start;
+}
+
+.cand-hub-layout.has-detail {
+    grid-template-columns: 1fr;
+}
+
+@media (min-width: 900px) {
+    .cand-hub-layout.has-detail {
+        grid-template-columns: minmax(0, 1fr) 22rem;
+    }
+}
+
+.cand-hub-grid {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(16.5rem, 1fr));
+    gap: 0.85rem;
+}
+
+.cand-card {
+    border-radius: 16px;
+    border: 1px solid var(--hc-pro-line, #e8e8e8);
+    background: #fff;
+    box-shadow: 0 6px 20px rgba(30, 41, 59, 0.07);
+    transition: box-shadow 0.15s ease, border-color 0.15s ease, transform 0.15s ease;
+}
+
+.cand-card.is-selected {
+    border-color: var(--hc-pro-purple, #7c6aad);
+    box-shadow: 0 8px 24px rgba(124, 106, 173, 0.18);
+}
+
+.cand-card--empty {
+    grid-column: 1 / -1;
+    text-align: center;
+    color: var(--hc-pro-muted, #64748b);
+    padding: 1.5rem;
+    box-shadow: none;
+}
+
+.cand-card__body {
+    padding: 1rem 1.05rem 0.35rem;
+    cursor: pointer;
+}
+
+.cand-card__body:focus-visible {
+    outline: 2px solid var(--hc-pro-purple, #7c6aad);
+    outline-offset: -2px;
+    border-radius: 16px 16px 0 0;
+}
+
+.cand-card__actions {
+    padding: 0 1.05rem 1.1rem;
+}
+
+.cand-card__top {
+    display: flex;
+    gap: 0.75rem;
+    align-items: flex-start;
+}
+
+.cand-card__avatar {
+    width: 3.25rem;
+    height: 3.25rem;
+    border-radius: 50%;
+    object-fit: cover;
+    flex-shrink: 0;
+    border: 2px solid var(--hc-pro-line, #e8e8e8);
+}
+
+.cand-card__avatar--ph {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--hc-pro-purple-soft, #f3f0fa);
+    font-size: 1.35rem;
+}
+
+.cand-card__name {
+    margin: 0;
+    font-size: 1rem;
+    font-weight: 800;
+    color: var(--hc-pro-ink, #1e293b);
+    line-height: 1.3;
+}
+
+.cand-card__rating,
+.cand-card__exp,
+.cand-card__loc,
+.cand-card__date,
+.cand-card__offer {
+    margin: 0.2rem 0 0;
+    font-size: 0.82rem;
+    color: var(--hc-pro-muted, #64748b);
+    line-height: 1.4;
+}
+
+.cand-card__offer {
+    margin-top: 0.65rem;
+    color: var(--hc-pro-ink, #334155);
     font-weight: 600;
+}
+
+.cand-card__k {
+    display: block;
+    font-size: 0.68rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: #94a3b8;
+    margin-bottom: 0.1rem;
+}
+
+.cand-card__status {
+    display: inline-block;
+    margin-top: 0.55rem;
+    padding: 0.28rem 0.65rem;
+    font-size: 0.76rem;
+    font-weight: 700;
     border-radius: 999px;
 }
 
-.candidature-card__status--pending {
-    background: rgba(234, 179, 8, 0.2);
+.cand-card__status--pending {
+    background: #fffbeb;
     color: #a16207;
+    border: 1px solid #fde68a;
 }
 
-.candidature-card__status--accepted {
-    background: rgba(34, 197, 94, 0.18);
+.cand-card__status--accepted {
+    background: #ecfdf5;
     color: #15803d;
+    border: 1px solid #bbf7d0;
 }
 
-.candidature-card__status--rejected {
-    background: rgba(239, 68, 68, 0.15);
+.cand-card__status--rejected {
+    background: #fef2f2;
     color: #b91c1c;
+    border: 1px solid #fecaca;
 }
 
-.candidature-card__btn-accept {
-    flex: 1;
-    min-width: 7rem;
+.cand-card__actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.45rem;
+    margin-top: 0;
+    padding-top: 0.75rem;
+    border-top: 1px solid var(--hc-pro-line, #ebe4df);
 }
 
-.candidature-card__btn-reject {
-    flex: 1;
-    min-width: 7rem;
+.cand-card__btn {
+    flex: 1 1 auto;
+    min-width: 6.5rem;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0.55rem 0.75rem;
+    border-radius: 999px;
+    border: 2px solid var(--hc-pro-focus, #c4b5fd);
+    background: var(--hc-pro-purple, #7c6aad);
+    color: #fff;
+    font: inherit;
+    font-size: 0.8rem;
+    font-weight: 700;
+    text-decoration: none;
+    cursor: pointer;
+    text-align: center;
+}
+
+.cand-card__btn--ghost {
+    background: #fff;
+    color: var(--hc-pro-purple, #7c6aad);
+}
+
+.cand-card__btn--accept {
+    background: #15803d;
+    border-color: #16a34a;
+}
+
+.cand-card__btn--reject {
+    background: #fff;
+    color: #b91c1c;
+    border-color: #fecaca;
+}
+
+.cand-card__btn--msg {
+    background: var(--hc-smart-accent, #c9a090);
+    border-color: var(--hc-smart-accent-deep, #b07d6c);
+}
+
+.cand-card__btn--reopen {
+    background: #fff;
+    color: var(--hc-pro-purple, #7c6aad);
+}
+
+.cand-detail-panel {
+    position: sticky;
+    top: 0.75rem;
+    border-radius: 18px;
+    border: 1px solid var(--hc-pro-line, #e8e8e8);
+    background: #fff;
+    box-shadow: 0 10px 32px rgba(30, 41, 59, 0.1);
+    max-height: calc(100vh - 2rem);
+    overflow: auto;
+}
+
+.cand-detail__inner {
+    padding: 1rem 1.05rem 1.15rem;
+    position: relative;
+}
+
+.cand-detail__close {
+    position: absolute;
+    top: 0.5rem;
+    right: 0.5rem;
+    width: 2rem;
+    height: 2rem;
+    border: none;
+    border-radius: 50%;
+    background: #f1f5f9;
+    color: #64748b;
+    font-size: 1.25rem;
+    line-height: 1;
+    cursor: pointer;
+}
+
+.cand-detail__hero {
+    display: flex;
+    gap: 0.75rem;
+    align-items: flex-start;
+    padding-right: 1.75rem;
+}
+
+.cand-detail__avatar {
+    width: 3.5rem;
+    height: 3.5rem;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 2px solid var(--hc-pro-line, #e8e8e8);
+    flex-shrink: 0;
+}
+
+.cand-detail__avatar--ph {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--hc-pro-purple-soft, #f3f0fa);
+    font-size: 1.5rem;
+}
+
+.cand-detail__name {
+    margin: 0;
+    font-size: 1.05rem;
+    font-weight: 800;
+    color: var(--hc-pro-ink, #1e293b);
+}
+
+.cand-detail__rating,
+.cand-detail__meta {
+    margin: 0.2rem 0 0;
+    font-size: 0.84rem;
+    color: var(--hc-pro-muted, #64748b);
+}
+
+.cand-detail__status {
+    margin-top: 0.75rem;
+}
+
+.cand-detail__section {
+    margin-top: 1rem;
+    padding-top: 0.85rem;
+    border-top: 1px solid var(--hc-pro-line, #ebe4df);
+}
+
+.cand-detail__title {
+    margin: 0 0 0.45rem;
+    font-size: 0.72rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: #94a3b8;
+}
+
+.cand-detail__text,
+.cand-detail__message,
+.cand-detail__empty {
+    margin: 0;
+    font-size: 0.88rem;
+    color: var(--hc-pro-ink, #334155);
+    line-height: 1.5;
+    white-space: pre-wrap;
+    word-break: break-word;
+}
+
+.cand-detail__message {
+    padding: 0.75rem 0.85rem;
+    border-radius: 12px;
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+}
+
+.cand-detail__empty {
+    color: var(--hc-pro-muted, #64748b);
+    font-size: 0.84rem;
+}
+
+.cand-detail__portfolio {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 0.45rem;
+}
+
+.cand-detail__port-cell {
+    display: block;
+    border-radius: 10px;
+    overflow: hidden;
+    aspect-ratio: 1;
+    border: 1px solid var(--hc-pro-line, #e8e8e8);
+}
+
+.cand-detail__port-cell img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+}
+
+.cand-detail__actions {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    margin-top: 1rem;
+}
+
+.cand-detail__btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0.7rem 1rem;
+    border-radius: 999px;
+    border: 2px solid var(--hc-pro-focus, #c4b5fd);
+    background: var(--hc-pro-purple, #7c6aad);
+    color: #fff;
+    font: inherit;
+    font-size: 0.86rem;
+    font-weight: 700;
+    text-decoration: none;
+    cursor: pointer;
+    text-align: center;
+}
+
+.cand-detail__btn--ghost {
+    background: #fff;
+    color: var(--hc-pro-purple, #7c6aad);
+}
+
+.cand-detail__btn--accept {
+    background: #15803d;
+    border-color: #16a34a;
+}
+
+.cand-detail__btn--reject {
+    background: #fff;
+    color: #b91c1c;
+    border-color: #fecaca;
+}
+
+.cand-detail__btn--msg {
+    background: var(--hc-smart-accent, #c9a090);
+    border-color: var(--hc-smart-accent-deep, #b07d6c);
+}
+
+.cand-detail__btn--reopen {
+    background: #fff;
+    color: var(--hc-pro-purple, #7c6aad);
+}
+
+.hc-toast {
+    position: fixed;
+    top: 1rem;
+    right: 1rem;
+    z-index: 9999;
+    max-width: min(20rem, calc(100vw - 2rem));
+    padding: 0.75rem 1rem;
+    border-radius: 12px;
+    background: #1e293b;
+    color: #fff;
+    font-size: 0.9rem;
+    font-weight: 600;
+    box-shadow: 0 10px 30px rgba(15, 23, 42, 0.25);
+    opacity: 0;
+    transform: translateY(-0.5rem);
+    transition: opacity 0.2s ease, transform 0.2s ease;
+    pointer-events: none;
+}
+
+.hc-toast.is-visible {
+    opacity: 1;
+    transform: translateY(0);
+}
+
+@media (max-width: 599px) {
+    .cand-hub-stats {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .cand-hub-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .cand-detail-panel {
+        position: fixed;
+        inset: auto 0 0 0;
+        top: 12vh;
+        z-index: 50;
+        max-height: 88vh;
+        border-radius: 18px 18px 0 0;
+    }
 }
 
 /* Messagerie */
