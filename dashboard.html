@@ -514,14 +514,6 @@
                                 <input type="text" id="dashEmbedOwnPublicationsCaption" class="field-input" maxlength="500" placeholder="Détails, produits utilisés…">
                             </div>
                         </div>
-                        <div class="ph-hub-preview" id="phHubPublishPreview" aria-live="polite">
-                            <h4 class="ph-hub-preview__title">Aperçu de votre réalisation</h4>
-                            <div class="ph-hub-preview__img-wrap" id="phHubPreviewImgWrap" hidden>
-                                <img id="phHubPreviewImg" alt="Aperçu">
-                            </div>
-                            <p class="ph-hub-preview__name" id="phHubPreviewName">Nom de la réalisation</p>
-                            <p class="ph-hub-preview__type" id="phHubPreviewType">Type : —</p>
-                        </div>
                         <button type="submit" class="register-submit ph-hub-submit" id="dashEmbedOwnPublicationsAddBtn">Publier</button>
                     </form>
                 </section>
@@ -1806,7 +1798,6 @@ function resetOwnPublicationPhotoPicker(keepExistingOnEdit) {
         dropPreview.hidden = true;
         previewImg.removeAttribute("src");
     }
-    updateOwnPublicationPreview();
 }
 
 function clearOwnPublicationEditMode() {
@@ -1816,30 +1807,6 @@ function clearOwnPublicationEditMode() {
     const btn = document.getElementById("dashEmbedOwnPublicationsAddBtn");
     if (banner) banner.hidden = true;
     if (btn) btn.textContent = "Publier";
-}
-
-function updateOwnPublicationPreview() {
-    const title = String(document.getElementById("dashEmbedOwnPublicationsTitle")?.value || "").trim();
-    const styleVal = String(document.getElementById("dashEmbedOwnPublicationsStyle")?.value || "").trim();
-    const styleLabel = publicationStyleTypeLabel(styleVal) || "—";
-    const previewName = document.getElementById("phHubPreviewName");
-    const previewType = document.getElementById("phHubPreviewType");
-    const previewWrap = document.getElementById("phHubPreviewImgWrap");
-    const previewImg = document.getElementById("phHubPreviewImg");
-    if (previewName) previewName.textContent = title || "Nom de la réalisation";
-    if (previewType) previewType.textContent = "Type : " + styleLabel;
-    const photo =
-        dashOwnPublicationsPendingPhotoUrl ||
-        (dashOwnPublicationsEditingId ? dashOwnPublicationsEditingPhotoUrl : "");
-    if (previewWrap && previewImg) {
-        if (photo) {
-            previewWrap.hidden = false;
-            previewImg.src = photo;
-        } else {
-            previewWrap.hidden = true;
-            previewImg.removeAttribute("src");
-        }
-    }
 }
 
 function startOwnPublicationEdit(pub) {
@@ -2232,7 +2199,6 @@ async function applyOwnPublicationPhotoFile(file) {
         if (dropInner) dropInner.hidden = true;
         if (dropPreview) dropPreview.hidden = false;
         if (previewImg) previewImg.src = dashOwnPublicationsPendingPhotoUrl;
-        updateOwnPublicationPreview();
     } catch (err) {
         showOwnPublicationsError(getFirebaseErrorMessage(err) || "Impossible de traiter cette image.");
     }
@@ -2245,7 +2211,6 @@ document.getElementById("phHubCancelEdit")?.addEventListener("click", () => {
     clearOwnPublicationEditMode();
     resetOwnPublicationPhotoPicker(false);
     fillOwnPublicationStyleSelect();
-    updateOwnPublicationPreview();
 });
 
 if (dashEmbedOwnPublicationsPickBtn) {
@@ -2293,12 +2258,8 @@ dashEmbedOwnPublicationsRemovePhoto?.addEventListener("click", (e) => {
     resetOwnPublicationPhotoPicker(false);
 });
 
-document.getElementById("dashEmbedOwnPublicationsTitle")?.addEventListener("input", updateOwnPublicationPreview);
-document.getElementById("dashEmbedOwnPublicationsStyle")?.addEventListener("change", updateOwnPublicationPreview);
-
 const dashEmbedOwnPublicationsForm = document.getElementById("dashEmbedOwnPublicationsForm");
 fillOwnPublicationStyleSelect();
-updateOwnPublicationPreview();
 
 if (dashEmbedOwnPublicationsForm) {
     dashEmbedOwnPublicationsForm.addEventListener("submit", async (e) => {
@@ -2370,7 +2331,6 @@ if (dashEmbedOwnPublicationsForm) {
             clearOwnPublicationEditMode();
             resetOwnPublicationPhotoPicker(false);
             fillOwnPublicationStyleSelect();
-            updateOwnPublicationPreview();
             await loadEmbedOwnPublications();
         } catch (err) {
             const msg = getFirebaseErrorMessage(err) || String(err?.message || "Publication impossible.");
