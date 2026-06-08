@@ -1386,6 +1386,13 @@ body.login-page--beauty .phone-input-row__country {
     display: none;
 }
 
+.field-input-wrap:has(.password-toggle) input[type="password"]::-webkit-textfield-decoration-container,
+.field-input-wrap:has(.password-toggle) input[type="password"]::-webkit-credentials-auto-fill-button {
+    display: none !important;
+    visibility: hidden;
+    pointer-events: none;
+}
+
 .password-toggle {
     position: absolute;
     right: 0.65rem;
@@ -1410,6 +1417,10 @@ body.login-page--beauty .phone-input-row__country {
     display: block;
     width: 1.25rem;
     height: 1.25rem;
+}
+
+.password-toggle__icon[hidden] {
+    display: none;
 }
 
 .password-toggle:hover {
