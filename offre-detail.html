@@ -68,8 +68,7 @@
                     </div>
                     <p class="job-detail__salon-card-name" id="sideSalonName"></p>
                     <ul class="job-detail__salon-stats" id="sideSalonStats"></ul>
-                    <a id="sideContact" class="job-detail__salon-link" href="#">📞 Contacter</a>
-                    <a id="sideProfile" class="job-detail__salon-link job-detail__salon-link--ghost" href="#">Voir le profil public</a>
+                    <a id="sideProfile" class="job-detail__salon-link" href="#">Voir le profil public</a>
                 </div>
             </aside>
         </div>
@@ -78,8 +77,6 @@
 
 <nav id="jobActionsBar" class="job-detail__actions-bar" aria-label="Actions" hidden>
     <button type="button" class="job-detail__action job-detail__action--primary" id="actApply">Postuler</button>
-    <a class="job-detail__action" id="actContact" href="#">Contacter le salon</a>
-    <button type="button" class="job-detail__action" id="actFavorite">Ajouter aux favoris</button>
 </nav>
 
 <script type="module">
@@ -93,9 +90,6 @@ import {
     listAvisForPro,
     listPublications,
     countFavoritesForPro,
-    addFavorite,
-    removeFavorite,
-    listFavorites,
     deleteOffre,
     updateOffreStatus,
     getFirebaseErrorMessage
@@ -121,7 +115,6 @@ let myUid = null;
 let myRole = "";
 let currentOffer = null;
 let salonUid = null;
-let isFavorite = false;
 let canApply = false;
 let alreadyApplied = false;
 
@@ -218,10 +211,7 @@ async function loadSalonSidebar(salonProfile, salonId) {
         .map((s) => `<li>${escapeHtml(s)}</li>`)
         .join("");
 
-    const contactHref = `messagerie.html?to=${encodeURIComponent(salonId)}`;
-    document.getElementById("sideContact").href = contactHref;
     document.getElementById("sideProfile").href = `profil-public.html?uid=${encodeURIComponent(salonId)}`;
-    document.getElementById("actContact").href = contactHref;
 
     await mountProAvatar(
         document.getElementById("sideAvatar"),
@@ -235,30 +225,20 @@ async function loadSalonSidebar(salonProfile, salonId) {
 function updateActionsBar() {
     const bar = document.getElementById("jobActionsBar");
     const applyBtn = document.getElementById("actApply");
-    const favBtn = document.getElementById("actFavorite");
     const isOwner = myRole === "salon" && String(currentOffer?.salonUid) === String(myUid);
     const isFilled = String(currentOffer?.status || "").toLowerCase() === "filled";
 
-    if (isOwner || myRole === "client") {
+    if (isOwner || myRole !== "coiffeur") {
         bar.hidden = true;
         return;
     }
     bar.hidden = false;
-
-    if (myRole === "coiffeur") {
-        applyBtn.hidden = false;
-        favBtn.hidden = false;
-        if (isFilled || alreadyApplied) {
-            applyBtn.disabled = true;
-            applyBtn.textContent = isFilled ? "Poste pourvu" : "Déjà postulé";
-        } else {
-            applyBtn.disabled = false;
-            applyBtn.textContent = "Postuler";
-        }
-        favBtn.textContent = isFavorite ? "Retirer des favoris" : "Ajouter aux favoris";
+    if (isFilled || alreadyApplied) {
+        applyBtn.disabled = true;
+        applyBtn.textContent = isFilled ? "Poste pourvu" : "Déjà postulé";
     } else {
-        applyBtn.hidden = true;
-        favBtn.hidden = true;
+        applyBtn.disabled = false;
+        applyBtn.textContent = "Postuler";
     }
 }
 
@@ -337,12 +317,6 @@ async function initUserState(user) {
         } catch {
             document.getElementById("candidature").hidden = false;
         }
-        try {
-            const favs = await listFavorites(myUid);
-            isFavorite = favs.some((f) => String(f.proId) === String(salonUid));
-        } catch {
-            isFavorite = false;
-        }
     }
 
     updateActionsBar();
@@ -352,22 +326,6 @@ async function initUserState(user) {
 document.getElementById("actApply")?.addEventListener("click", () => {
     document.getElementById("candidature")?.scrollIntoView({ behavior: "smooth" });
     document.getElementById("msg")?.focus();
-});
-
-document.getElementById("actFavorite")?.addEventListener("click", async () => {
-    if (!myUid || !salonUid || myRole !== "coiffeur") return;
-    try {
-        if (isFavorite) {
-            await removeFavorite(myUid, salonUid);
-            isFavorite = false;
-        } else {
-            await addFavorite(myUid, salonUid);
-            isFavorite = true;
-        }
-        updateActionsBar();
-    } catch (e) {
-        showErr(getFirebaseErrorMessage(e));
-    }
 });
 
 document.getElementById("applyForm")?.addEventListener("submit", async (e) => {
