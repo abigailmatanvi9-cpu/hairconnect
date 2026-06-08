@@ -1946,29 +1946,42 @@ app.patch("/api/avis/:id", async (req, res) => {
   try {
     const id = String(req.params.id || "").trim();
     const fromClientUid = String(req.body?.fromClientUid || "").trim();
-    if (!id || !fromClientUid) {
-      return res.status(400).json({ message: "id et fromClientUid requis." });
+    const toProUid = String(req.body?.toProUid || "").trim();
+    if (!id || (!fromClientUid && !toProUid)) {
+      return res.status(400).json({ message: "id et fromClientUid ou toProUid requis." });
     }
     const existing = await prisma.avis.findUnique({ where: { id } });
     if (!existing) return res.status(404).json({ message: "Avis introuvable." });
-    if (existing.fromClientUid !== fromClientUid) {
+    const isClient = fromClientUid && existing.fromClientUid === fromClientUid;
+    const isPro = toProUid && existing.toProUid === toProUid;
+    if (!isClient && !isPro) {
       return res.status(403).json({ message: "Modification non autorisée." });
     }
     const data = {};
-    if (req.body.rating != null) {
-      const rating = Number(req.body.rating);
-      if (!Number.isFinite(rating) || rating < 1 || rating > 5) {
-        return res.status(400).json({ message: "La note doit être comprise entre 1 et 5." });
+    if (isClient) {
+      if (req.body.rating != null) {
+        const rating = Number(req.body.rating);
+        if (!Number.isFinite(rating) || rating < 1 || rating > 5) {
+          return res.status(400).json({ message: "La note doit être comprise entre 1 et 5." });
+        }
+        data.rating = Math.round(rating);
       }
-      data.rating = Math.round(rating);
+      if (req.body.comment != null) {
+        const comment = String(req.body.comment || "").trim();
+        if (!comment) return res.status(400).json({ message: "Le commentaire est obligatoire." });
+        data.comment = comment;
+      }
+      if (Object.prototype.hasOwnProperty.call(req.body, "photoUrl")) {
+        data.photoUrl = String(req.body.photoUrl || "").trim() || null;
+      }
     }
-    if (req.body.comment != null) {
-      const comment = String(req.body.comment || "").trim();
-      if (!comment) return res.status(400).json({ message: "Le commentaire est obligatoire." });
-      data.comment = comment;
+    if (isPro && Object.prototype.hasOwnProperty.call(req.body, "proReply")) {
+      const reply = String(req.body.proReply || "").trim().slice(0, 500);
+      data.proReply = reply || null;
+      data.proReplyAt = reply ? new Date() : null;
     }
-    if (Object.prototype.hasOwnProperty.call(req.body, "photoUrl")) {
-      data.photoUrl = String(req.body.photoUrl || "").trim() || null;
+    if (!Object.keys(data).length) {
+      return res.status(400).json({ message: "Aucune modification demandée." });
     }
     const row = await prisma.avis.update({ where: { id }, data });
     return res.json({ avis: row });

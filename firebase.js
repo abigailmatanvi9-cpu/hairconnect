@@ -424,6 +424,22 @@ export async function createReview(fromClientUid, toProUid, rating, comment, pho
     });
 }
 
+export async function replyToAvis(avisId, toProUid, proReply) {
+    const payload = await apiFetch(`/avis/${encodeURIComponent(avisId)}`, {
+        method: "PATCH",
+        body: JSON.stringify({
+            toProUid,
+            proReply: String(proReply || "").trim()
+        })
+    });
+    const row = payload.avis || {};
+    return {
+        ...row,
+        createdAt: { toMillis: () => new Date(row.createdAt).getTime() },
+        proReplyAt: row.proReplyAt ? { toMillis: () => new Date(row.proReplyAt).getTime() } : null
+    };
+}
+
 export async function updateReview(avisId, fromClientUid, { rating, comment, photoUrl } = {}) {
     const body = { fromClientUid };
     if (rating != null) body.rating = Number(rating);

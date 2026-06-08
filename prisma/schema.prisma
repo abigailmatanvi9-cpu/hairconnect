@@ -77,13 +77,15 @@ model ContactRequest {
 }
 
 model Avis {
-  id            String   @id @default(uuid())
+  id            String    @id @default(uuid())
   fromClientUid String
   toProUid      String
   rating        Int
   comment       String
   photoUrl      String?
-  createdAt     DateTime @default(now())
+  proReply      String?
+  proReplyAt    DateTime?
+  createdAt     DateTime  @default(now())
 }
 
 model Offre {

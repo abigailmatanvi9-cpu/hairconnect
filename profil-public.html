@@ -60,7 +60,8 @@
         </nav>
 
         <div id="ppPanelAvis" class="pp-tab-panel" role="tabpanel" aria-labelledby="ppTabAvis">
-            <ul class="pp-avis-list" id="pubAvisList"></ul>
+            <div id="pubAvisSummary" class="ar-hub-summary-wrap ar-hub-summary-wrap--compact" hidden></div>
+            <ul class="pp-avis-list ar-hub-grid ar-hub-grid--preview" id="pubAvisList"></ul>
             <a id="pubAvisAllLink" class="pp-gallery-more" href="#">Voir tous les avis</a>
             <p id="pubAvisErr" class="form-error" role="alert" hidden></p>
             <p id="pubAvisOk" class="form-success" role="status" hidden></p>
@@ -156,6 +157,13 @@ import {
 } from "./firebase.js";
 import { compressImageFile, mountProAvatar } from "./image-utils.js";
 import { parseServicesTarifs, formatServicePriceFcfa } from "./services-tarifs-utils.js";
+import {
+    computeAvisSummary,
+    renderAvisSummaryHtml,
+    createAvisCardElement,
+    buildClientProfileMap,
+    avisMillis
+} from "./avis-display-utils.js";
 
 const pubClientStyleSelect = document.getElementById("pubClientStyle");
 if (pubClientStyleSelect) {
@@ -245,33 +253,6 @@ function avisAvg(avis) {
     return Number.isInteger(avgRaw) ? String(avgRaw) : avgRaw.toFixed(1);
 }
 
-function formatRelativeFr(createdAt) {
-    const ms = createdAt?.toMillis ? createdAt.toMillis() : new Date(createdAt || 0).getTime();
-    if (!ms) return "";
-    const diff = Date.now() - ms;
-    const mins = Math.floor(diff / 60000);
-    if (mins < 60) return "À l'instant";
-    const hours = Math.floor(diff / 3600000);
-    if (hours < 24) return hours === 1 ? "Il y a 1 heure" : `Il y a ${hours} heures`;
-    const days = Math.floor(diff / 86400000);
-    if (days === 1) return "Il y a 1 jour";
-    if (days < 30) return `Il y a ${days} jours`;
-    return new Date(ms).toLocaleDateString("fr-FR", { day: "2-digit", month: "short", year: "numeric" });
-}
-
-function clientDisplayShort(profile) {
-    const n = String(profile?.name || "").trim();
-    if (!n) return "Cliente";
-    const parts = n.split(/\s+/).filter(Boolean);
-    if (parts.length === 1) return parts[0];
-    return parts[0] + " " + parts[parts.length - 1].charAt(0).toUpperCase() + ".";
-}
-
-function renderStars(rating) {
-    const r = Math.max(0, Math.min(5, Math.round(Number(rating) || 0)));
-    return "★".repeat(r) + "☆".repeat(5 - r);
-}
-
 function updateStats(avis, publications, favCount) {
     const avg = avisAvg(avis);
     const ratingEl = document.getElementById("pubStatRating");
@@ -305,56 +286,35 @@ function updateMetaChips(avis, publications) {
     el.hidden = !chips.length;
 }
 
-async function buildClientNameMap(avis) {
-    const uids = [...new Set(avis.map((a) => String(a.fromClientUid || "").trim()).filter(Boolean))];
-    const map = {};
-    await Promise.all(
-        uids.map(async (id) => {
-            const p = await fetchUserProfile(id).catch(() => null);
-            if (p) map[id] = p;
-        })
-    );
-    return map;
-}
-
 async function renderAvisList(avis) {
     if (!pubAvisList) return;
     cachedAvis = avis;
     pubAvisList.innerHTML = "";
+    const summaryEl = document.getElementById("pubAvisSummary");
     if (!avis.length) {
+        if (summaryEl) {
+            summaryEl.hidden = true;
+            summaryEl.innerHTML = "";
+        }
         const li = document.createElement("li");
-        li.className = "pp-avis-empty";
+        li.className = "pp-avis-empty ar-hub-grid__empty";
         li.textContent = "Pas encore d'avis publié.";
         pubAvisList.appendChild(li);
         return;
     }
-    const sorted = [...avis].sort((a, b) => {
-        const ta = a?.createdAt?.toMillis ? a.createdAt.toMillis() : new Date(a.createdAt || 0).getTime();
-        const tb = b?.createdAt?.toMillis ? b.createdAt.toMillis() : new Date(b.createdAt || 0).getTime();
-        return tb - ta;
-    });
-    const preview = sorted.slice(0, 5);
-    const nameMap = await buildClientNameMap(preview);
-    for (const avis of preview) {
-        const li = document.createElement("li");
-        li.className = "pp-avis-card";
-        const rating = Math.max(1, Math.min(5, Number(avis.rating || 0))) || 0;
-        const photoUrl = String(avis.photoUrl || "").trim();
-        const author = clientDisplayShort(nameMap[avis.fromClientUid]);
-        const rel = formatRelativeFr(avis.createdAt);
-        const photoBlock = photoUrl
-            ? `<p class="pp-avis-card__photo-label">📷 Photo jointe</p>` +
-              `<div class="pp-avis-card__photo">` +
-              `<a href="${escapeHtml(photoUrl)}" target="_blank" rel="noopener noreferrer">` +
-              `<img src="${escapeHtml(photoUrl)}" alt="Photo de l'avis" loading="lazy" decoding="async">` +
-              `</a></div>`
-            : "";
-        li.innerHTML =
-            `<p class="pp-avis-card__stars">${escapeHtml(renderStars(rating))}</p>` +
-            `<p class="pp-avis-card__comment">${escapeHtml(String(avis.comment || "Sans commentaire."))}</p>` +
-            `<p class="pp-avis-card__author">— ${escapeHtml(author)}${rel ? " · " + escapeHtml(rel) : ""}</p>` +
-            photoBlock;
-        pubAvisList.appendChild(li);
+    const sorted = [...avis].sort((a, b) => avisMillis(b.createdAt) - avisMillis(a.createdAt));
+    const summary = computeAvisSummary(sorted);
+    if (summaryEl) {
+        summaryEl.innerHTML = renderAvisSummaryHtml(summary, { compact: true });
+        summaryEl.hidden = false;
+    }
+    const preview = sorted.slice(0, 6);
+    const profileMap = await buildClientProfileMap(preview, fetchUserProfile);
+    for (const row of preview) {
+        const clientProfile = profileMap[row.fromClientUid] || null;
+        const card = createAvisCardElement(row, clientProfile);
+        card.classList.add("pp-avis-card");
+        pubAvisList.appendChild(card);
     }
 }
 

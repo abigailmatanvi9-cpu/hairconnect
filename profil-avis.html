@@ -7,7 +7,7 @@
     <link rel="stylesheet" href="style.css">
 </head>
 <body class="login-page hc-theme-pro">
-<div class="login-container subpage-container subpage-wide">
+<div class="login-container subpage-container subpage-wide ar-hub-page">
     <header class="login-header">
         <a href="#" id="proAvisBack" class="login-back" aria-label="Retour à la fiche">
             <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M15.75 19.5 8.25 12l7.5-7.5"/></svg>
@@ -16,8 +16,8 @@
     </header>
 
     <p id="proAvisErr" class="form-error" role="alert" hidden></p>
-    <p id="proAvisLead" class="subpage-lead" hidden></p>
-    <ul id="proAvisList" class="pro-avis-page__list"></ul>
+    <div id="proAvisSummary" class="ar-hub-summary-wrap" hidden></div>
+    <ul id="proAvisList" class="ar-hub-grid"></ul>
 </div>
 
 <script type="module">
@@ -28,6 +28,13 @@ import {
     listAvisForPro,
     getFirebaseErrorMessage
 } from "./firebase.js";
+import {
+    computeAvisSummary,
+    renderAvisSummaryHtml,
+    createAvisCardElement,
+    buildClientProfileMap,
+    avisMillis
+} from "./avis-display-utils.js";
 
 const params = new URLSearchParams(location.search);
 const uid = params.get("uid");
@@ -35,72 +42,35 @@ const avisRet = params.get("ret");
 const PROFILE_RET_PROPAGATE = new Set(["nearby-embed", "nearby-home"]);
 const errEl = document.getElementById("proAvisErr");
 const listEl = document.getElementById("proAvisList");
-const leadEl = document.getElementById("proAvisLead");
+const summaryEl = document.getElementById("proAvisSummary");
 const titleEl = document.getElementById("proAvisTitle");
 const backEl = document.getElementById("proAvisBack");
 
-function escapeHtml(s) {
-    return String(s || "")
-        .replace(/&/g, "&amp;")
-        .replace(/</g, "&lt;")
-        .replace(/>/g, "&gt;")
-        .replace(/"/g, "&quot;");
-}
-
-function avisDateText(createdAt) {
-    const ms = createdAt?.toMillis ? createdAt.toMillis() : new Date(createdAt || 0).getTime();
-    if (!ms) return "";
-    return new Date(ms).toLocaleString("fr-FR", {
-        day: "2-digit",
-        month: "2-digit",
-        year: "numeric",
-        hour: "2-digit",
-        minute: "2-digit"
-    });
-}
-
-function renderAvisPage(list) {
+async function renderAvisPage(list) {
     if (!listEl) return;
     listEl.innerHTML = "";
-    if (!list.length) {
+    const sorted = [...list].sort((a, b) => avisMillis(b.createdAt) - avisMillis(a.createdAt));
+    const summary = computeAvisSummary(sorted);
+    if (summaryEl) {
+        if (sorted.length) {
+            summaryEl.innerHTML = renderAvisSummaryHtml(summary);
+            summaryEl.hidden = false;
+        } else {
+            summaryEl.hidden = true;
+            summaryEl.innerHTML = "";
+        }
+    }
+    if (!sorted.length) {
         const li = document.createElement("li");
-        li.className = "pro-avis-page__empty";
+        li.className = "ar-hub-grid__empty";
         li.textContent = "Pas encore d’avis sur ce profil.";
         listEl.appendChild(li);
         return;
     }
-    const sorted = [...list].sort((a, b) => {
-        const ta = a?.createdAt?.toMillis ? a.createdAt.toMillis() : new Date(a.createdAt || 0).getTime();
-        const tb = b?.createdAt?.toMillis ? b.createdAt.toMillis() : new Date(b.createdAt || 0).getTime();
-        return tb - ta;
-    });
+    const profileMap = await buildClientProfileMap(sorted, fetchUserProfile);
     for (const avis of sorted) {
-        const li = document.createElement("li");
-        li.className = "pro-avis-page__item";
-        const rating = Math.max(1, Math.min(5, Number(avis.rating || 0))) || 0;
-        const stars = rating ? "★".repeat(rating) + "☆".repeat(5 - rating) : "";
-        const photoUrl = String(avis.photoUrl || "").trim();
-        const photoBlock = photoUrl
-            ? "<div class=\"public-publications__avis-photo\">" +
-              "<a href=\"" +
-              escapeHtml(photoUrl) +
-              "\" target=\"_blank\" rel=\"noopener noreferrer\" title=\"Ouvrir la photo en grand\" class=\"public-publications__avis-photo-link\">" +
-              "<img class=\"public-publications__img public-publications__img--avis\" src=\"" +
-              escapeHtml(photoUrl) +
-              "\" alt=\"Photo partagée avec l’avis\" loading=\"lazy\" decoding=\"async\">" +
-              "</a>" +
-              "</div>"
-            : "";
-        li.innerHTML =
-            "<p class=\"public-publications__meta\">" +
-            escapeHtml(stars ? `${stars} · ${rating}/5` : "Avis") +
-            (avisDateText(avis.createdAt) ? " · " + escapeHtml(avisDateText(avis.createdAt)) : "") +
-            "</p>" +
-            photoBlock +
-            "<p class=\"public-publications__caption\">" +
-            escapeHtml(String(avis.comment || "Sans commentaire.")) +
-            "</p>";
-        listEl.appendChild(li);
+        const clientProfile = profileMap[avis.fromClientUid] || null;
+        listEl.appendChild(createAvisCardElement(avis, clientProfile));
     }
 }
 
@@ -139,13 +109,10 @@ if (!uid) {
 
         const proName = d.salonName || d.name || "Ce professionnel";
         titleEl.textContent = "Avis — " + proName;
-        leadEl.textContent =
-            "Notes, commentaires et éventuelles photos publiées par les clients pour " + proName + ".";
-        leadEl.hidden = false;
 
         try {
             const avis = await listAvisForPro(uid);
-            renderAvisPage(avis);
+            await renderAvisPage(avis);
         } catch (e2) {
             errEl.textContent = getFirebaseErrorMessage(e2);
             errEl.hidden = false;
