@@ -3,69 +3,127 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Laisser un avis — HairConnect</title>
+    <title>Mes avis — HairConnect</title>
     <link rel="stylesheet" href="style.css">
 </head>
 <body class="login-page hc-theme-pro">
 
-<div class="login-container subpage-container">
+<div class="login-container subpage-container subpage-wide ca-hub">
     <header class="login-header">
-        <a href="recherche.html" class="login-back" aria-label="Retour">
+        <a href="dashboard.html" class="login-back" aria-label="Retour au tableau de bord">
             <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M15.75 19.5 8.25 12l7.5-7.5"/></svg>
         </a>
-        <h1 class="login-title">Avis</h1>
+        <h1 class="login-title">Mes avis</h1>
     </header>
 
-    <p class="subpage-lead">
-        Notez une prestation (après rendez-vous). Vos avis et commentaires sont <strong>publics</strong> : ils s’affichent sur la
-        <strong>fiche profil du professionnel</strong> (comme sur la plupart des plateformes), donc tout visiteur qui consulte ce
-        profil peut les lire. Votre nom n’y figure pas automatiquement, seulement la note, la date et votre texte.
-    </p>
+    <div class="ca-hub-stats" aria-label="Statistiques de vos avis">
+        <div class="ca-hub-stats__item">
+            <span class="ca-hub-stats__emoji" aria-hidden="true">⭐</span>
+            <span class="ca-hub-stats__label">Avis publiés</span>
+            <strong class="ca-hub-stats__val" id="statPublished">0</strong>
+        </div>
+        <div class="ca-hub-stats__item">
+            <span class="ca-hub-stats__emoji" aria-hidden="true">📸</span>
+            <span class="ca-hub-stats__label">Photos partagées</span>
+            <strong class="ca-hub-stats__val" id="statPhotos">0</strong>
+        </div>
+        <div class="ca-hub-stats__item">
+            <span class="ca-hub-stats__emoji" aria-hidden="true">🏪</span>
+            <span class="ca-hub-stats__label">Professionnels évalués</span>
+            <strong class="ca-hub-stats__val" id="statPros">0</strong>
+        </div>
+    </div>
 
-    <form id="avisForm" class="register-form">
-        <p id="formError" class="form-error" role="alert" hidden></p>
-        <p id="formOk" class="form-success" role="status" hidden></p>
-        <div class="field-group">
-            <label class="field-label" for="toProUid">Professionnel</label>
-            <div class="field-input-wrap">
-                <select id="toProUid" required>
-                    <option value="">Choisir un professionnel...</option>
-                </select>
-            </div>
-            <p id="prosHint" class="field-hint">Chargement des professionnels...</p>
-        </div>
-        <div class="field-group">
-            <label class="field-label" for="rating">Note / 5</label>
-            <div class="field-input-wrap">
-                <input type="number" id="rating" min="1" max="5" value="5" required>
-            </div>
-        </div>
-        <div class="field-group">
-            <label class="field-label" for="comment">Commentaire</label>
-            <textarea id="comment" class="field-textarea" rows="4" required></textarea>
-        </div>
-        <div class="field-group">
-            <label class="field-label" for="photoFile">Photo (optionnel)</label>
-            <div class="field-input-wrap" id="photoPickerWrap" role="button" tabindex="0" aria-label="Choisir une photo">
-                <input type="file" id="photoFile" accept="image/*">
-            </div>
-            <p class="field-hint" id="photoHint">Cliquez pour choisir une photo depuis votre galerie (mobile) ou l’explorateur (PC).</p>
-        </div>
-        <button type="submit" class="register-submit" id="btn">Publier l’avis</button>
-    </form>
+    <div class="ca-hub-tabs" role="tablist" aria-label="Sections avis">
+        <button type="button" class="ca-hub-tab is-active" id="tabList" role="tab" aria-selected="true" aria-controls="panelList">Mes avis</button>
+        <button type="button" class="ca-hub-tab" id="tabPublish" role="tab" aria-selected="false" aria-controls="panelPublish">Publier un avis</button>
+    </div>
 
-    <section class="avis-my-published" aria-labelledby="myAvisTitle">
-        <h2 id="myAvisTitle" class="subpage-h2">Vos avis publiés</h2>
-        <p class="field-hint avis-my-published__hint">
-            Retrouvez ici ce que vous avez déjà publié. Pour voir comment cela apparaît côté public, ouvrez la
-            <a href="recherche.html">fiche du professionnel</a> depuis l’annuaire.
+    <section id="panelList" class="ca-hub-panel" role="tabpanel" aria-labelledby="tabList">
+        <div id="myAvisEmpty" class="ca-hub-empty" hidden>
+            <p class="ca-hub-empty__title">⭐ Aucun avis publié</p>
+            <p class="ca-hub-empty__text">Partagez votre expérience après une prestation.</p>
+            <button type="button" class="ca-hub-empty__cta" id="btnFirstAvis">Publier mon premier avis</button>
+        </div>
+        <ul id="myAvisList" class="ca-hub-cards" aria-live="polite"></ul>
+    </section>
+
+    <section id="panelPublish" class="ca-hub-panel" role="tabpanel" aria-labelledby="tabPublish" hidden>
+        <p class="ca-hub-publish-lead">
+            Vos avis sont <strong>publics</strong> sur la fiche du professionnel (note, date et commentaire).
         </p>
-        <ul id="myAvisList" class="avis-my-list"></ul>
+        <form id="avisForm" class="register-form ca-hub-form">
+            <p id="formError" class="form-error" role="alert" hidden></p>
+            <p id="formOk" class="form-success" role="status" hidden></p>
+            <p id="editBanner" class="ca-hub-edit-banner" hidden>
+                Modification d’un avis existant.
+                <button type="button" class="ca-hub-edit-banner__cancel" id="btnCancelEdit">Annuler</button>
+            </p>
+            <div class="field-group">
+                <label class="field-label" for="toProUid">Professionnel</label>
+                <div class="field-input-wrap">
+                    <select id="toProUid" required>
+                        <option value="">Choisir un professionnel…</option>
+                    </select>
+                </div>
+                <p id="prosHint" class="field-hint">Chargement des professionnels…</p>
+            </div>
+            <div class="field-group">
+                <span class="field-label" id="ratingLabel">Note</span>
+                <div class="ca-hub-stars" id="ratingStars" role="group" aria-labelledby="ratingLabel">
+                    <button type="button" class="ca-hub-stars__btn" data-val="1" aria-label="1 étoile">★</button>
+                    <button type="button" class="ca-hub-stars__btn" data-val="2" aria-label="2 étoiles">★</button>
+                    <button type="button" class="ca-hub-stars__btn" data-val="3" aria-label="3 étoiles">★</button>
+                    <button type="button" class="ca-hub-stars__btn" data-val="4" aria-label="4 étoiles">★</button>
+                    <button type="button" class="ca-hub-stars__btn is-on" data-val="5" aria-label="5 étoiles">★</button>
+                </div>
+                <input type="hidden" id="rating" value="5" required>
+            </div>
+            <div class="field-group">
+                <label class="field-label" for="comment">Commentaire</label>
+                <textarea id="comment" class="field-textarea" rows="4" required placeholder="Décrivez votre expérience…"></textarea>
+            </div>
+            <div class="field-group">
+                <span class="field-label">Photo (optionnel)</span>
+                <div class="ca-hub-drop" id="photoDropZone" tabindex="0" role="button" aria-label="Ajouter une photo">
+                    <input type="file" id="photoFile" accept="image/png,image/jpeg,image/jpg" hidden>
+                    <div class="ca-hub-drop__inner" id="photoDropInner">
+                        <span class="ca-hub-drop__icon" aria-hidden="true">📷</span>
+                        <p class="ca-hub-drop__title">Ajouter une photo</p>
+                        <p class="ca-hub-drop__hint">Cliquez ou déposez une image</p>
+                        <p class="ca-hub-drop__formats">PNG • JPG • 2 Mo max</p>
+                    </div>
+                    <div class="ca-hub-drop__preview" id="photoDropPreview" hidden>
+                        <img id="photoPreviewImg" alt="Aperçu de la photo sélectionnée">
+                        <button type="button" class="ca-hub-drop__remove" id="btnRemovePhoto">Retirer la photo</button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="ca-hub-preview" id="avisPreview" aria-live="polite">
+                <h3 class="ca-hub-preview__title">Aperçu de votre avis</h3>
+                <p class="ca-hub-preview__stars" id="previewStars">★★★★★</p>
+                <p class="ca-hub-preview__pro" id="previewPro">Professionnel : —</p>
+                <p class="ca-hub-preview__comment" id="previewComment">Votre commentaire apparaîtra ici.</p>
+                <p class="ca-hub-preview__photo" id="previewPhoto" hidden>📸 Photo</p>
+            </div>
+
+            <button type="submit" class="register-submit" id="btn">Publier l’avis</button>
+        </form>
     </section>
 </div>
 
 <script type="module">
-import { auth, createReview, getFirebaseErrorMessage, listProfessionals, listAvisByClient, fetchUserProfile } from "./firebase.js";
+import {
+    auth,
+    createReview,
+    updateReview,
+    deleteReview,
+    getFirebaseErrorMessage,
+    listProfessionals,
+    listAvisByClient,
+    fetchUserProfile
+} from "./firebase.js";
 import { onAuthStateChanged } from "./firebase.js";
 
 const params = new URLSearchParams(location.search);
@@ -78,12 +136,35 @@ const btn = document.getElementById("btn");
 const toProSelect = document.getElementById("toProUid");
 const prosHint = document.getElementById("prosHint");
 const photoFileInput = document.getElementById("photoFile");
-const photoPickerWrap = document.getElementById("photoPickerWrap");
-const photoHint = document.getElementById("photoHint");
-
+const photoDropZone = document.getElementById("photoDropZone");
+const photoDropInner = document.getElementById("photoDropInner");
+const photoDropPreview = document.getElementById("photoDropPreview");
+const photoPreviewImg = document.getElementById("photoPreviewImg");
+const btnRemovePhoto = document.getElementById("btnRemovePhoto");
+const ratingInput = document.getElementById("rating");
+const ratingStars = document.getElementById("ratingStars");
+const commentInput = document.getElementById("comment");
 const myAvisList = document.getElementById("myAvisList");
+const myAvisEmpty = document.getElementById("myAvisEmpty");
+const btnFirstAvis = document.getElementById("btnFirstAvis");
+const tabList = document.getElementById("tabList");
+const tabPublish = document.getElementById("tabPublish");
+const panelList = document.getElementById("panelList");
+const panelPublish = document.getElementById("panelPublish");
+const statPublished = document.getElementById("statPublished");
+const statPhotos = document.getElementById("statPhotos");
+const statPros = document.getElementById("statPros");
+const previewStars = document.getElementById("previewStars");
+const previewPro = document.getElementById("previewPro");
+const previewComment = document.getElementById("previewComment");
+const previewPhoto = document.getElementById("previewPhoto");
+const editBanner = document.getElementById("editBanner");
+const btnCancelEdit = document.getElementById("btnCancelEdit");
 
 let clientUid = null;
+let editingId = null;
+let editingExistingPhoto = "";
+let pendingPhotoDataUrl = "";
 
 function escapeHtml(s) {
     return String(s || "")
@@ -93,16 +174,115 @@ function escapeHtml(s) {
         .replace(/"/g, "&quot;");
 }
 
-function avisDateLabel(createdAt) {
+function formatRoleLabel(role) {
+    const r = String(role || "").trim().toLowerCase();
+    if (r === "salon") return "Salon";
+    if (r.includes("coiffeuse")) return "Coiffeuse";
+    if (r.includes("coiffeur")) return "Coiffeur";
+    return "Professionnel";
+}
+
+function renderStars(rating) {
+    const r = Math.max(0, Math.min(5, Math.round(Number(rating) || 0)));
+    return "★".repeat(r) + "☆".repeat(5 - r);
+}
+
+function avisDateLong(createdAt) {
     const ms = createdAt?.toMillis ? createdAt.toMillis() : new Date(createdAt || 0).getTime();
     if (!ms) return "";
-    return new Date(ms).toLocaleString("fr-FR", {
-        day: "2-digit",
-        month: "2-digit",
-        year: "numeric",
-        hour: "2-digit",
-        minute: "2-digit"
+    return new Date(ms).toLocaleDateString("fr-FR", {
+        day: "numeric",
+        month: "long",
+        year: "numeric"
     });
+}
+
+function updateStats(mine) {
+    statPublished.textContent = String(mine.length);
+    statPhotos.textContent = String(mine.filter((a) => String(a.photoUrl || "").trim()).length);
+    statPros.textContent = String(new Set(mine.map((a) => String(a.toProUid || "").trim()).filter(Boolean)).size);
+}
+
+function switchTab(which) {
+    const isList = which === "list";
+    tabList.classList.toggle("is-active", isList);
+    tabPublish.classList.toggle("is-active", !isList);
+    tabList.setAttribute("aria-selected", isList ? "true" : "false");
+    tabPublish.setAttribute("aria-selected", isList ? "false" : "true");
+    panelList.hidden = !isList;
+    panelPublish.hidden = isList;
+}
+
+function setRating(val) {
+    const r = Math.max(1, Math.min(5, Number(val) || 5));
+    ratingInput.value = String(r);
+    for (const star of ratingStars.querySelectorAll(".ca-hub-stars__btn")) {
+        const v = Number(star.dataset.val);
+        star.classList.toggle("is-on", v <= r);
+    }
+    updatePreview();
+}
+
+function proDisplayName(proId) {
+    const opt = toProSelect.querySelector(`option[value="${CSS.escape(proId)}"]`);
+    if (!opt) return "Professionnel";
+    return opt.textContent.replace(/\s*\([^)]+\)\s*$/, "").trim() || "Professionnel";
+}
+
+function updatePreview() {
+    const rating = Number(ratingInput.value) || 5;
+    previewStars.textContent = renderStars(rating);
+    const proId = toProSelect.value.trim();
+    previewPro.textContent = proId ? `${formatRoleLabel("professionnel")} : ${proDisplayName(proId)}` : "Professionnel : —";
+    const comment = commentInput.value.trim();
+    previewComment.textContent = comment || "Votre commentaire apparaîtra ici.";
+    const hasPhoto = Boolean(pendingPhotoDataUrl || (editingExistingPhoto && editingId));
+    previewPhoto.hidden = !hasPhoto;
+}
+
+function resetPhotoPicker(keepExistingOnEdit) {
+    photoFileInput.value = "";
+    pendingPhotoDataUrl = "";
+    if (!keepExistingOnEdit) editingExistingPhoto = "";
+    const showExisting = editingId && editingExistingPhoto;
+    if (showExisting) {
+        photoDropInner.hidden = true;
+        photoDropPreview.hidden = false;
+        photoPreviewImg.src = editingExistingPhoto;
+    } else {
+        photoDropInner.hidden = false;
+        photoDropPreview.hidden = true;
+        photoPreviewImg.removeAttribute("src");
+    }
+    updatePreview();
+}
+
+function clearEditMode() {
+    editingId = null;
+    editingExistingPhoto = "";
+    editBanner.hidden = true;
+    toProSelect.disabled = false;
+    btn.textContent = "Publier l’avis";
+    if (pre) toProSelect.value = pre;
+}
+
+function startEdit(avis, profile) {
+    editingId = avis.id;
+    editingExistingPhoto = String(avis.photoUrl || "").trim();
+    switchTab("publish");
+    editBanner.hidden = false;
+    toProSelect.value = String(avis.toProUid || "");
+    toProSelect.disabled = true;
+    setRating(avis.rating);
+    commentInput.value = String(avis.comment || "");
+    resetPhotoPicker(true);
+    btn.textContent = "Enregistrer les modifications";
+    formError.hidden = true;
+    formOk.hidden = true;
+    updatePreview();
+    const role = formatRoleLabel(profile?.role);
+    const name = profile?.salonName || profile?.name || proDisplayName(avis.toProUid);
+    previewPro.textContent = `${role} : ${name}`;
 }
 
 async function loadMyReviews() {
@@ -110,59 +290,68 @@ async function loadMyReviews() {
     myAvisList.innerHTML = "";
     try {
         const mine = await listAvisByClient(clientUid);
+        updateStats(mine);
         if (!mine.length) {
-            const li = document.createElement("li");
-            li.className = "avis-my-list__empty";
-            li.textContent = "Vous n’avez pas encore publié d’avis.";
-            myAvisList.appendChild(li);
+            myAvisEmpty.hidden = false;
+            myAvisList.hidden = true;
             return;
         }
+        myAvisEmpty.hidden = true;
+        myAvisList.hidden = false;
         const uids = [...new Set(mine.map((a) => String(a.toProUid || "").trim()).filter(Boolean))];
         const profiles = await Promise.all(uids.map((id) => fetchUserProfile(id).catch(() => null)));
-        const nameBy = new Map(
-            uids.map((id, i) => {
-                const p = profiles[i];
-                const label = p?.salonName || p?.name || p?.email || `Professionnel (${id.slice(0, 8)}…)`;
-                return [id, label];
-            })
-        );
+        const profileBy = new Map(uids.map((id, i) => [id, profiles[i]]));
         for (const a of mine) {
             const proId = String(a.toProUid || "").trim();
-            const label = nameBy.get(proId) || "Professionnel";
+            const profile = profileBy.get(proId);
+            const role = formatRoleLabel(profile?.role);
+            const name = profile?.salonName || profile?.name || profile?.email || proDisplayName(proId);
             const rating = Math.min(5, Math.max(1, Number(a.rating) || 0));
-            const stars = "★".repeat(rating) + "☆".repeat(5 - rating);
             const pUrl = String(a.photoUrl || "").trim();
-            const photoHtml = pUrl
-                ? "<div class=\"avis-my-list__photo\"><a href=\"" +
-                  escapeHtml(pUrl) +
-                  "\" target=\"_blank\" rel=\"noopener noreferrer\">" +
-                  "<img src=\"" +
-                  escapeHtml(pUrl) +
-                  "\" alt=\"Photo de l’avis\" loading=\"lazy\" decoding=\"async\"></a></div>"
+            const dateLabel = avisDateLong(a.createdAt);
+            const photoBlock = pUrl
+                ? `<p class="ca-hub-card__photo-label">📸 Photo jointe</p>` +
+                  `<div class="ca-hub-card__photo"><a href="${escapeHtml(pUrl)}" target="_blank" rel="noopener noreferrer">` +
+                  `<img src="${escapeHtml(pUrl)}" alt="Photo de l’avis" loading="lazy" decoding="async"></a></div>`
                 : "";
             const li = document.createElement("li");
-            li.className = "avis-my-list__item";
+            li.className = "ca-hub-card";
             li.innerHTML =
-                "<p class=\"avis-my-list__meta\">" +
-                escapeHtml(stars + " · " + rating + "/5") +
-                (avisDateLabel(a.createdAt) ? " · " + escapeHtml(avisDateLabel(a.createdAt)) : "") +
-                "</p>" +
-                "<p class=\"avis-my-list__pro\">Pour : <strong>" +
-                escapeHtml(label) +
-                "</strong></p>" +
-                photoHtml +
-                "<p class=\"avis-my-list__comment\">" +
-                escapeHtml(String(a.comment || "").trim() || "—") +
-                "</p>" +
-                "<p class=\"avis-my-list__link\"><a href=\"profil-public.html?uid=" +
-                encodeURIComponent(proId) +
-                "\">Voir la fiche publique</a></p>";
+                `<p class="ca-hub-card__stars">${escapeHtml(renderStars(rating))}</p>` +
+                `<p class="ca-hub-card__pro">${escapeHtml(role)} : <strong>${escapeHtml(name)}</strong></p>` +
+                `<p class="ca-hub-card__comment">${escapeHtml(String(a.comment || "").trim() || "—")}</p>` +
+                photoBlock +
+                (dateLabel ? `<p class="ca-hub-card__date">Publié le ${escapeHtml(dateLabel)}</p>` : "") +
+                `<div class="ca-hub-card__actions">` +
+                `<button type="button" class="ca-hub-card__btn ca-hub-card__btn--edit" data-id="${escapeHtml(a.id)}">Modifier</button>` +
+                `<button type="button" class="ca-hub-card__btn ca-hub-card__btn--delete" data-id="${escapeHtml(a.id)}">Supprimer</button>` +
+                `</div>`;
+            li.querySelector(".ca-hub-card__btn--edit").addEventListener("click", () => {
+                startEdit(a, profile);
+            });
+            li.querySelector(".ca-hub-card__btn--delete").addEventListener("click", async () => {
+                if (!confirm("Supprimer cet avis ? Cette action est définitive.")) return;
+                try {
+                    await deleteReview(a.id, clientUid);
+                    if (editingId === a.id) {
+                        form.reset();
+                        clearEditMode();
+                        resetPhotoPicker(false);
+                        setRating(5);
+                    }
+                    await loadMyReviews();
+                } catch (err) {
+                    alert(getFirebaseErrorMessage(err));
+                }
+            });
             myAvisList.appendChild(li);
         }
     } catch {
+        myAvisEmpty.hidden = true;
+        myAvisList.hidden = false;
         const li = document.createElement("li");
-        li.className = "avis-my-list__empty";
-        li.textContent = "Impossible de charger votre historique d’avis pour le moment.";
+        li.className = "ca-hub-card ca-hub-card--error";
+        li.textContent = "Impossible de charger vos avis pour le moment.";
         myAvisList.appendChild(li);
     }
 }
@@ -188,8 +377,9 @@ async function loadProfessionals() {
             toProSelect.value = pre;
         }
         prosHint.textContent = professionals.length
-            ? "Cliquez dans la liste pour choisir un professionnel."
+            ? "Sélectionnez le professionnel que vous souhaitez évaluer."
             : "Aucun professionnel disponible pour le moment.";
+        updatePreview();
     } catch (_error) {
         prosHint.textContent = "Impossible de charger la liste des professionnels pour le moment.";
     }
@@ -204,6 +394,80 @@ function fileToDataUrl(file) {
     });
 }
 
+async function applyPhotoFile(file) {
+    if (!file) return;
+    const maxSize = 2 * 1024 * 1024;
+    if (file.size > maxSize) {
+        formError.textContent = "La photo est trop volumineuse (max 2 Mo).";
+        formError.hidden = false;
+        return;
+    }
+    pendingPhotoDataUrl = await fileToDataUrl(file);
+    photoDropInner.hidden = true;
+    photoDropPreview.hidden = false;
+    photoPreviewImg.src = pendingPhotoDataUrl;
+    updatePreview();
+}
+
+tabList.addEventListener("click", () => switchTab("list"));
+tabPublish.addEventListener("click", () => switchTab("publish"));
+btnFirstAvis.addEventListener("click", () => switchTab("publish"));
+
+btnCancelEdit.addEventListener("click", () => {
+    form.reset();
+    clearEditMode();
+    resetPhotoPicker(false);
+    setRating(5);
+    switchTab("list");
+});
+
+for (const star of ratingStars.querySelectorAll(".ca-hub-stars__btn")) {
+    star.addEventListener("click", () => setRating(star.dataset.val));
+}
+
+toProSelect.addEventListener("change", updatePreview);
+commentInput.addEventListener("input", updatePreview);
+
+photoDropZone.addEventListener("click", (event) => {
+    if (event.target === btnRemovePhoto) return;
+    photoFileInput.click();
+});
+
+photoDropZone.addEventListener("keydown", (event) => {
+    if (event.key === "Enter" || event.key === " ") {
+        event.preventDefault();
+        photoFileInput.click();
+    }
+});
+
+photoDropZone.addEventListener("dragover", (event) => {
+    event.preventDefault();
+    photoDropZone.classList.add("is-dragover");
+});
+
+photoDropZone.addEventListener("dragleave", () => {
+    photoDropZone.classList.remove("is-dragover");
+});
+
+photoDropZone.addEventListener("drop", async (event) => {
+    event.preventDefault();
+    photoDropZone.classList.remove("is-dragover");
+    const file = event.dataTransfer?.files?.[0];
+    if (file) await applyPhotoFile(file);
+});
+
+photoFileInput.addEventListener("change", async () => {
+    const file = photoFileInput.files?.[0];
+    if (file) await applyPhotoFile(file);
+});
+
+btnRemovePhoto.addEventListener("click", (event) => {
+    event.stopPropagation();
+    pendingPhotoDataUrl = "";
+    if (editingId) editingExistingPhoto = "";
+    resetPhotoPicker(false);
+});
+
 onAuthStateChanged(auth, (user) => {
     if (!user) {
         window.location.href = "login.html";
@@ -211,31 +475,12 @@ onAuthStateChanged(auth, (user) => {
     }
     clientUid = user.uid;
     loadMyReviews();
+    if (pre) switchTab("publish");
 });
 
 loadProfessionals();
-
-function openPhotoPicker() {
-    photoFileInput.click();
-}
-
-photoPickerWrap.addEventListener("click", (event) => {
-    if (event.target !== photoFileInput) openPhotoPicker();
-});
-
-photoPickerWrap.addEventListener("keydown", (event) => {
-    if (event.key === "Enter" || event.key === " ") {
-        event.preventDefault();
-        openPhotoPicker();
-    }
-});
-
-photoFileInput.addEventListener("change", () => {
-    const fileName = photoFileInput.files?.[0]?.name;
-    photoHint.textContent = fileName
-        ? `Photo sélectionnée: ${fileName}`
-        : "Cliquez pour choisir une photo depuis votre galerie (mobile) ou l’explorateur (PC).";
-});
+setRating(5);
+updatePreview();
 
 form.addEventListener("submit", async (e) => {
     e.preventDefault();
@@ -243,25 +488,32 @@ form.addEventListener("submit", async (e) => {
     formOk.hidden = true;
     if (!clientUid) return;
     const toPro = toProSelect.value.trim();
-    const rating = document.getElementById("rating").value;
-    const comment = document.getElementById("comment").value;
+    const rating = ratingInput.value;
+    const comment = commentInput.value;
     const photoFile = photoFileInput.files?.[0] || null;
     btn.disabled = true;
     try {
-        let photoUrl = "";
+        let photoUrl = editingId ? editingExistingPhoto : "";
         if (photoFile) {
-            const maxSize = 2 * 1024 * 1024;
-            if (photoFile.size > maxSize) {
-                throw new Error("La photo est trop volumineuse (max 2 Mo).");
-            }
             photoUrl = await fileToDataUrl(photoFile);
+        } else if (pendingPhotoDataUrl) {
+            photoUrl = pendingPhotoDataUrl;
         }
-        await createReview(clientUid, toPro, rating, comment, photoUrl);
-        formOk.textContent = "Merci, votre avis a été enregistré. Il est visible sur la fiche publique du professionnel.";
+        if (editingId) {
+            await updateReview(editingId, clientUid, { rating, comment, photoUrl });
+            formOk.textContent = "Votre avis a été mis à jour.";
+        } else {
+            await createReview(clientUid, toPro, rating, comment, photoUrl);
+            formOk.textContent = "Merci ! Votre avis est visible sur la fiche publique du professionnel.";
+        }
         formOk.hidden = false;
         form.reset();
+        clearEditMode();
+        resetPhotoPicker(false);
+        setRating(5);
         if (pre) toProSelect.value = pre;
         await loadMyReviews();
+        switchTab("list");
     } catch (err) {
         formError.textContent = getFirebaseErrorMessage(err);
         formError.hidden = false;

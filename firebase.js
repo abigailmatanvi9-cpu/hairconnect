@@ -424,6 +424,26 @@ export async function createReview(fromClientUid, toProUid, rating, comment, pho
     });
 }
 
+export async function updateReview(avisId, fromClientUid, { rating, comment, photoUrl } = {}) {
+    const body = { fromClientUid };
+    if (rating != null) body.rating = Number(rating);
+    if (comment != null) body.comment = String(comment).trim();
+    if (photoUrl !== undefined) body.photoUrl = String(photoUrl || "").trim();
+    const payload = await apiFetch(`/avis/${encodeURIComponent(avisId)}`, {
+        method: "PATCH",
+        body: JSON.stringify(body)
+    });
+    const row = payload.avis || {};
+    return { ...row, createdAt: { toMillis: () => new Date(row.createdAt).getTime() } };
+}
+
+export async function deleteReview(avisId, fromClientUid) {
+    await apiFetch(`/avis/${encodeURIComponent(avisId)}?fromClientUid=${encodeURIComponent(fromClientUid)}`, {
+        method: "DELETE",
+        body: JSON.stringify({ fromClientUid })
+    });
+}
+
 export async function createOffre(
     salonUid,
     salonName,
