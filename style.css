@@ -9326,6 +9326,115 @@ body.hc-theme-pro .pro-card-links a {
     transform: translateY(0);
 }
 
+.cand-card__btn--demande,
+.cand-detail__btn--demande {
+    background: #fff;
+    color: var(--hc-pro-ink, #334155);
+    border-color: var(--hc-pro-line, #e2e8f0);
+}
+
+body.cand-modal-open {
+    overflow: hidden;
+}
+
+.cand-message-modal {
+    position: fixed;
+    inset: 0;
+    z-index: 10000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 1rem;
+}
+
+.cand-message-modal[hidden] {
+    display: none !important;
+}
+
+.cand-message-modal__backdrop {
+    position: absolute;
+    inset: 0;
+    background: rgba(15, 23, 42, 0.45);
+}
+
+.cand-message-modal__dialog {
+    position: relative;
+    z-index: 1;
+    width: min(34rem, 100%);
+    max-height: min(85vh, 40rem);
+    overflow: auto;
+    border-radius: 18px;
+    border: 1px solid var(--hc-pro-line, #e8e8e8);
+    background: #fff;
+    box-shadow: 0 20px 50px rgba(15, 23, 42, 0.2);
+    padding: 1.15rem 1.2rem 1.25rem;
+}
+
+.cand-message-modal__close {
+    position: absolute;
+    top: 0.65rem;
+    right: 0.65rem;
+    width: 2rem;
+    height: 2rem;
+    border: none;
+    border-radius: 50%;
+    background: #f1f5f9;
+    color: #64748b;
+    font-size: 1.25rem;
+    line-height: 1;
+    cursor: pointer;
+}
+
+.cand-message-modal__head {
+    display: flex;
+    gap: 0.85rem;
+    align-items: flex-start;
+    padding-right: 1.75rem;
+    margin-bottom: 1rem;
+}
+
+.cand-message-modal__avatar {
+    width: 3.25rem;
+    height: 3.25rem;
+    border-radius: 50%;
+    object-fit: cover;
+    flex-shrink: 0;
+    border: 2px solid var(--hc-pro-line, #e8e8e8);
+}
+
+.cand-message-modal__avatar--ph {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--hc-pro-purple-soft, #f3f0fa);
+    font-size: 1.35rem;
+}
+
+.cand-message-modal__name {
+    margin: 0;
+    font-size: 1.05rem;
+    font-weight: 800;
+    color: var(--hc-pro-ink, #1e293b);
+}
+
+.cand-message-modal__meta {
+    margin: 0.25rem 0 0.45rem;
+    font-size: 0.84rem;
+    color: var(--hc-pro-muted, #64748b);
+}
+
+.cand-message-modal__body {
+    padding: 1rem 1.05rem;
+    border-radius: 14px;
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    color: var(--hc-pro-ink, #334155);
+    font-size: 0.92rem;
+    line-height: 1.6;
+    white-space: pre-wrap;
+    word-break: break-word;
+}
+
 @media (max-width: 599px) {
     .cand-hub-stats {
         grid-template-columns: repeat(2, minmax(0, 1fr));

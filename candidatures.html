@@ -54,6 +54,14 @@
     </div>
 </div>
 
+<div id="candMessageModal" class="cand-message-modal" hidden aria-hidden="true">
+    <div class="cand-message-modal__backdrop" data-cand-message-close tabindex="-1"></div>
+    <div class="cand-message-modal__dialog" role="dialog" aria-modal="true" aria-labelledby="candMessageTitle">
+        <button type="button" class="cand-message-modal__close" data-cand-message-close aria-label="Fermer">×</button>
+        <div id="candMessageContent"></div>
+    </div>
+</div>
+
 <div id="candToast" class="hc-toast" role="status" aria-live="polite" hidden></div>
 
 <script type="module">
@@ -76,6 +84,8 @@ const errEl = document.getElementById("err");
 const detailEl = document.getElementById("candDetail");
 const layoutEl = document.getElementById("candLayout");
 const toastEl = document.getElementById("candToast");
+const messageModalEl = document.getElementById("candMessageModal");
+const messageContentEl = document.getElementById("candMessageContent");
 const filtersEl = document.getElementById("candFilters");
 const inDashEmbed = window.self !== window.top;
 
@@ -221,6 +231,70 @@ function showToast(message) {
     }, 3200);
 }
 
+function messageButtonHtml(c) {
+    return (
+        '<button type="button" class="cand-card__btn cand-card__btn--ghost cand-card__btn--demande" data-cand-message="' +
+        escapeHtml(c.id) +
+        '">📄 Voir la demande</button>'
+    );
+}
+
+function renderMessageModalHtml(c) {
+    const co = c.coiffeur || {};
+    const off = c.offre || {};
+    const st = normalizeStatus(c.status);
+    const name = String(co.name || "Coiffeur").trim();
+    const offerTitle = String(off.title || "Offre").trim();
+    const dateText = formatDate(c.createdAt);
+    const rawMessage = c.message != null ? String(c.message) : "";
+    const messageHtml = rawMessage.trim() ? escapeHtml(rawMessage) : "(Aucun message joint.)";
+
+    return (
+        '<header class="cand-message-modal__head">' +
+        (co.photoUrl
+            ? '<img class="cand-message-modal__avatar" src="' +
+              escapeHtml(co.photoUrl) +
+              '" alt="" loading="lazy">'
+            : '<span class="cand-message-modal__avatar cand-message-modal__avatar--ph" aria-hidden="true">👩</span>') +
+        '<div class="cand-message-modal__intro">' +
+        '<h2 class="cand-message-modal__name" id="candMessageTitle">' +
+        escapeHtml(name) +
+        "</h2>" +
+        '<p class="cand-message-modal__meta">Pour « ' +
+        escapeHtml(offerTitle) +
+        " »" +
+        (dateText ? " · " + escapeHtml(dateText) : "") +
+        "</p>" +
+        '<span class="cand-card__status cand-card__status--' +
+        escapeHtml(st) +
+        '">' +
+        statusIcon(st) +
+        " " +
+        escapeHtml(statusLabel(st)) +
+        "</span></div></header>" +
+        '<div class="cand-message-modal__body">' +
+        messageHtml +
+        "</div>"
+    );
+}
+
+function openMessageModal(c) {
+    if (!messageModalEl || !messageContentEl || !c) return;
+    messageContentEl.innerHTML = renderMessageModalHtml(c);
+    messageModalEl.hidden = false;
+    messageModalEl.setAttribute("aria-hidden", "false");
+    document.body.classList.add("cand-modal-open");
+    messageModalEl.querySelector(".cand-message-modal__close")?.focus();
+}
+
+function closeMessageModal() {
+    if (!messageModalEl) return;
+    messageModalEl.hidden = true;
+    messageModalEl.setAttribute("aria-hidden", "true");
+    document.body.classList.remove("cand-modal-open");
+    if (messageContentEl) messageContentEl.innerHTML = "";
+}
+
 function renderCardActions(c, st) {
     const id = escapeHtml(c.id);
     if (st === "pending") {
@@ -304,6 +378,7 @@ function renderCandidatureCard(c) {
         escapeHtml(statusLabel(st)) +
         "</span></div>" +
         '<div class="cand-card__actions">' +
+        messageButtonHtml(c) +
         renderCardActions(c, st) +
         '<a class="cand-card__btn cand-card__btn--ghost" href="profil-public.html?uid=' +
         encodeURIComponent(coiffeurUid) +
@@ -421,6 +496,9 @@ function renderDetailPanel(c) {
         portfolioHtml +
         "</section>" +
         '<div class="cand-detail__actions">' +
+        '<button type="button" class="cand-detail__btn cand-detail__btn--demande" data-cand-message="' +
+        escapeHtml(c.id) +
+        '">📄 Voir la demande</button>' +
         detailActions +
         '<a class="cand-detail__btn cand-detail__btn--ghost" href="profil-public.html?uid=' +
         encodeURIComponent(coiffeurUid) +
@@ -545,7 +623,18 @@ if (filtersEl) {
     });
 }
 
+function handleMessageOpen(id) {
+    const c = allRows.find((row) => String(row.id) === String(id));
+    if (c) openMessageModal(c);
+}
+
 listEl.addEventListener("click", (e) => {
+    const messageBtn = e.target.closest("[data-cand-message]");
+    if (messageBtn) {
+        e.stopPropagation();
+        handleMessageOpen(messageBtn.getAttribute("data-cand-message"));
+        return;
+    }
     if (e.target.closest("[data-cand-profile], [data-cand-accept], [data-cand-reject], [data-cand-reaccept], a.cand-card__btn--msg")) {
         e.stopPropagation();
     }
@@ -577,8 +666,27 @@ listEl.addEventListener("click", (e) => {
     }
 });
 
+if (messageModalEl) {
+    messageModalEl.addEventListener("click", (e) => {
+        if (e.target.closest("[data-cand-message-close]")) {
+            closeMessageModal();
+        }
+    });
+}
+
+document.addEventListener("keydown", (e) => {
+    if (e.key === "Escape" && messageModalEl && !messageModalEl.hidden) {
+        closeMessageModal();
+    }
+});
+
 if (detailEl) {
     detailEl.addEventListener("click", (e) => {
+        const messageBtn = e.target.closest("[data-cand-message]");
+        if (messageBtn) {
+            handleMessageOpen(messageBtn.getAttribute("data-cand-message"));
+            return;
+        }
         if (e.target.closest("[data-cand-close]")) {
             closeDetailPanel();
             return;
