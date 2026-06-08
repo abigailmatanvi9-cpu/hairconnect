@@ -573,6 +573,7 @@ import {
     createProAvatarMedia
 } from "./image-utils.js";
 import { normalizeRole as normalizeRoleShared, resolveUserRole, authUserId } from "./role-utils.js";
+import { countUnreadMessages } from "./message-read-utils.js";
 
 const panels = ["panel-client", "panel-coiffeur", "panel-salon", "panel-unknown"];
 
@@ -985,7 +986,7 @@ async function loadClientStats(uid) {
         listAvisByClient(uid),
         countFavoritesForUser(uid)
     ]);
-    const unread = messages.filter((m) => m.toUid === uid).length;
+    const unread = countUnreadMessages(messages, uid);
     setClientStats({ unread, favorites: favoritesCount, reviews: reviews.length });
 }
 
@@ -2646,7 +2647,7 @@ async function loadCoiffeurHubWidgets(uid) {
             listRendezVousForPro(uid),
             listPublications({ targetProUid: uid })
         ]);
-        const unread = messages.filter((m) => m.toUid === uid).length;
+        const unread = countUnreadMessages(messages, uid);
         const matched = offresMatchingCoiffeurCity(offres, profile);
         setCoiffeurStats({
             offersMatch: matched.length,
@@ -3017,7 +3018,7 @@ async function loadSalonHubWidgets(uid) {
             listPublications({ targetProUid: uid })
         ]);
         const myOffres = offres.filter((o) => String(o.salonUid) === String(uid));
-        const unread = messages.filter((m) => m.toUid === uid).length;
+        const unread = countUnreadMessages(messages, uid);
         const upcomingRdv = (rdv || []).filter((r) => {
             const t = new Date(r.scheduledAt).getTime();
             return String(r.status || "planned").toLowerCase() === "planned" && Number.isFinite(t) && t >= Date.now();
@@ -3248,7 +3249,32 @@ function refreshDashHeroesFromProfileCache() {
     }
 }
 
+function refreshDashboardMessageStats() {
+    const u = auth.currentUser;
+    if (!u) return;
+    if (dashActiveRoleKey === "client") {
+        loadClientStats(u.uid).catch(() => setClientStats({ unread: 0, favorites: 0, reviews: 0 }));
+    } else if (dashActiveRoleKey === "coiffeur") {
+        loadCoiffeurStats(u.uid).catch(() => setCoiffeurStats({ offersMatch: 0, unread: 0, candidatures: 0, avis: 0 }));
+    } else if (dashActiveRoleKey === "salon") {
+        loadSalonStats(u.uid).catch(() => setSalonStats({ messages: 0, offres: 0, candidatures: 0 }));
+    }
+}
+
+window.addEventListener("pageshow", refreshDashboardMessageStats);
+window.addEventListener("hc-messages-read", refreshDashboardMessageStats);
+window.addEventListener("storage", (ev) => {
+    if (ev.key && String(ev.key).startsWith("hc-msg-read:")) refreshDashboardMessageStats();
+});
+document.addEventListener("visibilitychange", () => {
+    if (!document.hidden) refreshDashboardMessageStats();
+});
+
 window.addEventListener("message", async (ev) => {
+    if (ev.data && ev.data.type === "hc-messages-read") {
+        refreshDashboardMessageStats();
+        return;
+    }
     if (ev.data && ev.data.type === "hc-dash-close-embed") {
         closeDashEmbed();
         return;

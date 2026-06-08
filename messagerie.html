@@ -80,6 +80,7 @@ import {
 } from "./firebase.js";
 import { onAuthStateChanged } from "./firebase.js";
 import { authUserId, resolveUserRole, isProRole } from "./role-utils.js";
+import { markConversationRead, notifyMessagesReadChanged } from "./message-read-utils.js";
 
 const params = new URLSearchParams(location.search);
 const preTo = params.get("to");
@@ -678,6 +679,20 @@ function renderActiveMessages() {
     }
     chatMessages.scrollTop = chatMessages.scrollHeight;
     updateComposerForGate(activePeerUid);
+    markActiveConversationRead();
+}
+
+function markActiveConversationRead() {
+    if (!myUid || !activePeerUid) return;
+    const incoming = allMessages.filter(
+        (m) => m.toUid === myUid && peerUidOfMessage(m) === activePeerUid
+    );
+    if (!incoming.length) return;
+    const lastMs = incoming.reduce((max, m) => Math.max(max, toMillis(m.createdAt)), 0);
+    if (lastMs > 0) {
+        markConversationRead(myUid, activePeerUid, lastMs);
+        notifyMessagesReadChanged();
+    }
 }
 
 async function refreshList() {
