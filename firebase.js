@@ -721,6 +721,20 @@ export async function listPublications({ targetProUid, authorUid, kind, styleTyp
     }));
 }
 
+export async function updatePublication(id, authorUid, { title, caption, styleType, photoUrl } = {}) {
+    const body = { authorUid: String(authorUid || "").trim() };
+    if (title != null) body.title = String(title).trim();
+    if (caption != null) body.caption = String(caption).trim();
+    if (styleType != null) body.styleType = String(styleType).trim().toLowerCase();
+    if (photoUrl !== undefined) body.photoUrl = String(photoUrl || "").trim();
+    const payload = await apiFetch(`/publications/${encodeURIComponent(id)}`, {
+        method: "PATCH",
+        body: JSON.stringify(body)
+    });
+    const row = payload.publication || {};
+    return { ...row, createdAt: { toMillis: () => new Date(row.createdAt).getTime() } };
+}
+
 export async function deletePublication(id, authorUid) {
     const uid = String(authorUid || "").trim();
     const qs = uid ? `?authorUid=${encodeURIComponent(uid)}` : "";

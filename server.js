@@ -3158,6 +3158,48 @@ app.get("/api/publications", async (req, res) => {
   }
 });
 
+app.patch("/api/publications/:id", async (req, res) => {
+  try {
+    const id = String(req.params.id || "").trim();
+    const authorUid = String(req.body?.authorUid || "").trim();
+    if (!id || !authorUid) {
+      return res.status(400).json({ message: "id et authorUid requis." });
+    }
+    const rows = await readPublications();
+    const idx = rows.findIndex((p) => String(p.id) === id);
+    if (idx === -1) {
+      return res.status(404).json({ message: "Publication introuvable." });
+    }
+    if (String(rows[idx].authorUid) !== authorUid) {
+      return res.status(403).json({ message: "Modification non autorisée." });
+    }
+    if (req.body.title != null) {
+      const title = String(req.body.title || "").trim().slice(0, 120);
+      if (!title) return res.status(400).json({ message: "Le nom de la réalisation est requis." });
+      rows[idx].title = title;
+    }
+    if (req.body.caption != null) {
+      rows[idx].caption = String(req.body.caption || "").trim().slice(0, 500);
+    }
+    if (req.body.styleType != null) {
+      const styleType = normalizePublicationStyleType(req.body.styleType);
+      if (!styleType) {
+        return res.status(400).json({ message: "Type de réalisation invalide." });
+      }
+      rows[idx].styleType = styleType;
+    }
+    if (Object.prototype.hasOwnProperty.call(req.body, "photoUrl")) {
+      const photoUrl = String(req.body.photoUrl || "").trim();
+      if (!photoUrl) return res.status(400).json({ message: "La photo est requise." });
+      rows[idx].photoUrl = photoUrl;
+    }
+    await writePublications(rows);
+    return res.json({ publication: rows[idx] });
+  } catch (error) {
+    return res.status(500).json({ code: "internal/error", message: error.message });
+  }
+});
+
 app.delete("/api/publications/:id", async (req, res) => {
   try {
     const id = String(req.params.id || "").trim();
