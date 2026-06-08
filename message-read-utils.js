@@ -46,9 +46,13 @@ export function markConversationRead(userUid, peerUid, throughMs) {
     if (!Number.isFinite(ms) || ms <= 0) return;
     const state = loadMessageReadState(me);
     const prev = Number(state[peer]) || 0;
-    if (ms <= prev) return;
+    if (ms <= prev) {
+        notifyMessagesReadChanged();
+        return;
+    }
     state[peer] = ms;
     saveMessageReadState(me, state);
+    notifyMessagesReadChanged();
 }
 
 /** Nombre de messages reçus non encore lus. */

@@ -80,7 +80,7 @@ import {
 } from "./firebase.js";
 import { onAuthStateChanged } from "./firebase.js";
 import { authUserId, resolveUserRole, isProRole } from "./role-utils.js";
-import { markConversationRead, notifyMessagesReadChanged } from "./message-read-utils.js";
+import { markConversationRead, notifyMessagesReadChanged, messageMillis } from "./message-read-utils.js";
 
 const params = new URLSearchParams(location.search);
 const preTo = params.get("to");
@@ -462,14 +462,12 @@ async function loadRecipients() {
 }
 
 function toMillis(ts) {
-    if (!ts) return 0;
-    if (typeof ts?.toDate === "function") return ts.toDate().getTime();
-    const d = new Date(ts);
-    return Number.isNaN(d.getTime()) ? 0 : d.getTime();
+    return messageMillis({ createdAt: ts });
 }
 
 function peerUidOfMessage(m) {
-    return m.fromUid === myUid ? m.toUid : m.fromUid;
+    const me = String(myUid || "").trim();
+    return String(m.fromUid || "").trim() === me ? String(m.toUid || "").trim() : String(m.fromUid || "").trim();
 }
 
 function sortByDateAsc(a, b) {
@@ -684,15 +682,17 @@ function renderActiveMessages() {
 
 function markActiveConversationRead() {
     if (!myUid || !activePeerUid) return;
+    const me = String(myUid).trim();
+    const peer = String(activePeerUid).trim();
     const incoming = allMessages.filter(
-        (m) => m.toUid === myUid && peerUidOfMessage(m) === activePeerUid
+        (m) => String(m.toUid || "").trim() === me && peerUidOfMessage(m) === peer
     );
-    if (!incoming.length) return;
-    const lastMs = incoming.reduce((max, m) => Math.max(max, toMillis(m.createdAt)), 0);
-    if (lastMs > 0) {
-        markConversationRead(myUid, activePeerUid, lastMs);
-        notifyMessagesReadChanged();
+    let through = Date.now();
+    if (incoming.length) {
+        const lastMs = incoming.reduce((max, m) => Math.max(max, messageMillis(m)), 0);
+        through = Math.max(through, lastMs);
     }
+    markConversationRead(me, peer, through);
 }
 
 async function refreshList() {
