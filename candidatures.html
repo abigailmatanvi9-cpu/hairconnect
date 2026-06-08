@@ -48,10 +48,7 @@
 
     <p id="err" class="form-error" role="alert" hidden></p>
 
-    <div class="cand-hub-layout" id="candLayout">
-        <ul id="list" class="cand-hub-grid" aria-live="polite"></ul>
-        <aside id="candDetail" class="cand-detail-panel" hidden aria-label="Détail de la candidature"></aside>
-    </div>
+    <ul id="list" class="cand-hub-grid" aria-live="polite"></ul>
 </div>
 
 <div id="candMessageModal" class="cand-message-modal" hidden aria-hidden="true">
@@ -71,7 +68,6 @@ import {
     listCandidaturesForSalon,
     respondCandidature,
     listAvisForPro,
-    listPublications,
     getFirebaseErrorMessage,
     HAIRCONNECT_METIERS
 } from "./firebase.js";
@@ -81,8 +77,6 @@ import { computeAvisSummary, formatAvisAvg } from "./avis-display-utils.js";
 
 const listEl = document.getElementById("list");
 const errEl = document.getElementById("err");
-const detailEl = document.getElementById("candDetail");
-const layoutEl = document.getElementById("candLayout");
 const toastEl = document.getElementById("candToast");
 const messageModalEl = document.getElementById("candMessageModal");
 const messageContentEl = document.getElementById("candMessageContent");
@@ -92,8 +86,8 @@ const inDashEmbed = window.self !== window.top;
 let myUid = null;
 let allRows = [];
 let activeFilter = "all";
-let selectedId = null;
 let coiffeurExtras = {};
+let currentModalCandId = null;
 let toastTimer = null;
 
 const backBtn = document.getElementById("backBtn");
@@ -231,11 +225,36 @@ function showToast(message) {
     }, 3200);
 }
 
-function messageButtonHtml(c) {
+function renderModalActionsHtml(c) {
+    const st = normalizeStatus(c.status);
+    const id = escapeHtml(c.id);
+    const coiffeurUid = String(c.coiffeurUid || c.coiffeur?.id || "").trim();
+    let actions = "";
+    if (st === "pending") {
+        actions =
+            '<button type="button" class="cand-message-modal__btn cand-message-modal__btn--accept" data-cand-accept="' +
+            id +
+            '">✓ Accepter</button>' +
+            '<button type="button" class="cand-message-modal__btn cand-message-modal__btn--reject" data-cand-reject="' +
+            id +
+            '">✗ Refuser</button>';
+    } else if (st === "accepted") {
+        actions =
+            '<a class="cand-message-modal__btn cand-message-modal__btn--msg" href="messagerie.html?to=' +
+            encodeURIComponent(coiffeurUid) +
+            '">💬 Contacter</a>';
+    } else if (st === "rejected") {
+        actions =
+            '<button type="button" class="cand-message-modal__btn cand-message-modal__btn--reopen" data-cand-reaccept="' +
+            id +
+            '">↺ Réexaminer et accepter</button>';
+    }
     return (
-        '<button type="button" class="cand-card__btn cand-card__btn--ghost cand-card__btn--demande" data-cand-message="' +
-        escapeHtml(c.id) +
-        '">📄 Voir la demande</button>'
+        '<div class="cand-message-modal__actions">' +
+        actions +
+        '<a class="cand-message-modal__btn cand-message-modal__btn--ghost" href="profil-public.html?uid=' +
+        encodeURIComponent(coiffeurUid) +
+        '">Voir le profil</a></div>'
     );
 }
 
@@ -274,12 +293,14 @@ function renderMessageModalHtml(c) {
         "</span></div></header>" +
         '<div class="cand-message-modal__body">' +
         messageHtml +
-        "</div>"
+        "</div>" +
+        renderModalActionsHtml(c)
     );
 }
 
 function openMessageModal(c) {
     if (!messageModalEl || !messageContentEl || !c) return;
+    currentModalCandId = c.id;
     messageContentEl.innerHTML = renderMessageModalHtml(c);
     messageModalEl.hidden = false;
     messageModalEl.setAttribute("aria-hidden", "false");
@@ -293,36 +314,7 @@ function closeMessageModal() {
     messageModalEl.setAttribute("aria-hidden", "true");
     document.body.classList.remove("cand-modal-open");
     if (messageContentEl) messageContentEl.innerHTML = "";
-}
-
-function renderCardActions(c, st) {
-    const id = escapeHtml(c.id);
-    if (st === "pending") {
-        return (
-            '<button type="button" class="cand-card__btn cand-card__btn--accept" data-cand-accept="' +
-            id +
-            '">✓ Accepter</button>' +
-            '<button type="button" class="cand-card__btn cand-card__btn--reject" data-cand-reject="' +
-            id +
-            '">✗ Refuser</button>'
-        );
-    }
-    if (st === "accepted") {
-        const uid = String(c.coiffeurUid || c.coiffeur?.id || "").trim();
-        return (
-            '<a class="cand-card__btn cand-card__btn--msg" href="messagerie.html?to=' +
-            encodeURIComponent(uid) +
-            '">💬 Contacter</a>'
-        );
-    }
-    if (st === "rejected") {
-        return (
-            '<button type="button" class="cand-card__btn cand-card__btn--reopen" data-cand-reaccept="' +
-            id +
-            '">↺ Réexaminer</button>'
-        );
-    }
-    return "";
+    currentModalCandId = null;
 }
 
 function renderCandidatureCard(c) {
@@ -336,18 +328,12 @@ function renderCandidatureCard(c) {
     const rating = coiffeurRatingLabel(coiffeurUid);
     const location = formatLocation(co);
     const experience = deriveExperienceLabel(co);
-    const isSelected = String(selectedId) === String(c.id);
-
     const li = document.createElement("li");
-    li.className = "cand-card" + (isSelected ? " is-selected" : "");
+    li.className = "cand-card";
     li.dataset.candId = c.id;
     li.dataset.status = st;
     li.innerHTML =
-        '<div class="cand-card__body" data-cand-open="' +
-        escapeHtml(c.id) +
-        '" role="button" tabindex="0" aria-label="Voir le détail de ' +
-        escapeHtml(name) +
-        '">' +
+        '<div class="cand-card__body">' +
         '<div class="cand-card__top">' +
         (co.photoUrl
             ? '<img class="cand-card__avatar" src="' +
@@ -378,157 +364,12 @@ function renderCandidatureCard(c) {
         escapeHtml(statusLabel(st)) +
         "</span></div>" +
         '<div class="cand-card__actions">' +
-        messageButtonHtml(c) +
-        renderCardActions(c, st) +
-        '<a class="cand-card__btn cand-card__btn--ghost" href="profil-public.html?uid=' +
-        encodeURIComponent(coiffeurUid) +
-        '" data-cand-profile>Voir le profil</a>' +
+        '<button type="button" class="cand-card__btn cand-card__btn--primary" data-cand-message="' +
+        escapeHtml(c.id) +
+        '">Lire la candidature</button>' +
         "</div>";
 
-    li.querySelector("[data-cand-open]")?.addEventListener("keydown", (e) => {
-        if (e.key === "Enter" || e.key === " ") {
-            e.preventDefault();
-            openDetail(c.id);
-        }
-    });
-
     return li;
-}
-
-function renderDetailPanel(c) {
-    const co = c.coiffeur || {};
-    const off = c.offre || {};
-    const coiffeurUid = String(c.coiffeurUid || co.id || "").trim();
-    const st = normalizeStatus(c.status);
-    const extra = coiffeurExtras[coiffeurUid] || {};
-    const rating = coiffeurRatingLabel(coiffeurUid);
-    const rawMessage = c.message != null ? String(c.message) : "";
-    const messageHtml = rawMessage.trim() ? escapeHtml(rawMessage) : "(Aucun message joint.)";
-    const bio = String(co.bio || "").trim();
-    const pubs = Array.isArray(extra.publications) ? extra.publications : [];
-
-    const portfolioHtml = pubs.length
-        ? '<div class="cand-detail__portfolio">' +
-          pubs
-              .slice(0, 4)
-              .map((p) => {
-                  const url = String(p.photoUrl || "").trim();
-                  if (!url) return "";
-                  return (
-                      '<a class="cand-detail__port-cell" href="profil-public.html?uid=' +
-                      encodeURIComponent(coiffeurUid) +
-                      '"><img src="' +
-                      escapeHtml(url) +
-                      '" alt="' +
-                      escapeHtml(String(p.title || "Réalisation")) +
-                      '" loading="lazy"></a>'
-                  );
-              })
-              .join("") +
-          "</div>"
-        : '<p class="cand-detail__empty">Aucune réalisation publiée pour le moment.</p>';
-
-    let detailActions = "";
-    if (st === "pending") {
-        detailActions =
-            '<button type="button" class="cand-detail__btn cand-detail__btn--accept" data-cand-accept="' +
-            escapeHtml(c.id) +
-            '">✓ Accepter</button>' +
-            '<button type="button" class="cand-detail__btn cand-detail__btn--reject" data-cand-reject="' +
-            escapeHtml(c.id) +
-            '">✗ Refuser</button>';
-    } else if (st === "accepted") {
-        detailActions =
-            '<a class="cand-detail__btn cand-detail__btn--msg" href="messagerie.html?to=' +
-            encodeURIComponent(coiffeurUid) +
-            '">💬 Contacter</a>';
-    } else if (st === "rejected") {
-        detailActions =
-            '<button type="button" class="cand-detail__btn cand-detail__btn--reopen" data-cand-reaccept="' +
-            escapeHtml(c.id) +
-            '">↺ Réexaminer et accepter</button>';
-    }
-
-    detailEl.innerHTML =
-        '<div class="cand-detail__inner">' +
-        '<button type="button" class="cand-detail__close" data-cand-close aria-label="Fermer le détail">×</button>' +
-        '<header class="cand-detail__hero">' +
-        (co.photoUrl
-            ? '<img class="cand-detail__avatar" src="' +
-              escapeHtml(co.photoUrl) +
-              '" alt="" loading="lazy">'
-            : '<span class="cand-detail__avatar cand-detail__avatar--ph" aria-hidden="true">👩</span>') +
-        '<div><h2 class="cand-detail__name">' +
-        escapeHtml(co.name || "Coiffeur") +
-        "</h2>" +
-        (rating ? '<p class="cand-detail__rating">' + escapeHtml(rating) + "</p>" : "") +
-        '<p class="cand-detail__meta">💼 ' +
-        escapeHtml(deriveExperienceLabel(co)) +
-        "</p>" +
-        '<p class="cand-detail__meta">📍 ' +
-        escapeHtml(formatLocation(co)) +
-        "</p></div></header>" +
-        '<p class="cand-detail__status cand-card__status cand-card__status--' +
-        escapeHtml(st) +
-        '">' +
-        statusIcon(st) +
-        " " +
-        escapeHtml(statusLabel(st)) +
-        "</p>" +
-        '<section class="cand-detail__section">' +
-        '<h3 class="cand-detail__title">Offre visée</h3>' +
-        '<p class="cand-detail__text">' +
-        escapeHtml(off.title || "—") +
-        (formatDate(c.createdAt) ? " · 📅 " + escapeHtml(formatDate(c.createdAt)) : "") +
-        "</p></section>" +
-        '<section class="cand-detail__section">' +
-        '<h3 class="cand-detail__title">Message de candidature</h3>' +
-        '<p class="cand-detail__message">' +
-        messageHtml +
-        "</p></section>" +
-        (bio
-            ? '<section class="cand-detail__section"><h3 class="cand-detail__title">Expérience / présentation</h3><p class="cand-detail__text">' +
-              escapeHtml(bio) +
-              "</p></section>"
-            : "") +
-        '<section class="cand-detail__section">' +
-        '<h3 class="cand-detail__title">Portfolio</h3>' +
-        portfolioHtml +
-        "</section>" +
-        '<div class="cand-detail__actions">' +
-        '<button type="button" class="cand-detail__btn cand-detail__btn--demande" data-cand-message="' +
-        escapeHtml(c.id) +
-        '">📄 Voir la demande</button>' +
-        detailActions +
-        '<a class="cand-detail__btn cand-detail__btn--ghost" href="profil-public.html?uid=' +
-        encodeURIComponent(coiffeurUid) +
-        '">Voir le profil public</a>' +
-        "</div></div>";
-
-    detailEl.hidden = false;
-    if (layoutEl) layoutEl.classList.add("has-detail");
-}
-
-function closeDetailPanel() {
-    selectedId = null;
-    if (detailEl) {
-        detailEl.hidden = true;
-        detailEl.innerHTML = "";
-    }
-    if (layoutEl) layoutEl.classList.remove("has-detail");
-    for (const card of listEl.querySelectorAll(".cand-card.is-selected")) {
-        card.classList.remove("is-selected");
-    }
-}
-
-function openDetail(id) {
-    const c = allRows.find((row) => String(row.id) === String(id));
-    if (!c) return;
-    selectedId = c.id;
-    for (const card of listEl.querySelectorAll(".cand-card")) {
-        card.classList.toggle("is-selected", String(card.dataset.candId) === String(id));
-    }
-    renderDetailPanel(c);
 }
 
 function renderList() {
@@ -538,7 +379,6 @@ function renderList() {
             ? allRows
             : allRows.filter((c) => normalizeStatus(c.status) === activeFilter);
     if (!rows.length) {
-        closeDetailPanel();
         const li = document.createElement("li");
         li.className = "cand-card cand-card--empty";
         li.textContent =
@@ -551,28 +391,19 @@ function renderList() {
     for (const c of rows) {
         listEl.appendChild(renderCandidatureCard(c));
     }
-    if (selectedId) {
-        const still = rows.find((c) => String(c.id) === String(selectedId));
-        if (still) renderDetailPanel(still);
-        else closeDetailPanel();
-    }
 }
 
 async function loadCoiffeurExtras(rows) {
     const uids = [...new Set(rows.map((r) => String(r.coiffeurUid || r.coiffeur?.id || "").trim()).filter(Boolean))];
     const entries = await Promise.all(
         uids.map(async (uid) => {
-            const [avis, publications] = await Promise.all([
-                listAvisForPro(uid).catch(() => []),
-                listPublications({ targetProUid: uid, kind: "pro" }).catch(() => [])
-            ]);
+            const avis = await listAvisForPro(uid).catch(() => []);
             const summary = computeAvisSummary(avis);
             return [
                 uid,
                 {
                     avg: formatAvisAvg(summary.avg),
-                    avisCount: summary.total,
-                    publications: (publications || []).filter((p) => String(p.photoUrl || "").trim())
+                    avisCount: summary.total
                 }
             ];
         })
@@ -599,9 +430,11 @@ async function handleRespond(id, status, confirmMsg) {
         } else {
             showToast("Candidature refusée");
         }
+        const keepModal = currentModalCandId && String(currentModalCandId) === String(id);
         await loadAll();
-        if (selectedId && String(selectedId) === String(id)) {
-            openDetail(id);
+        if (keepModal) {
+            const refreshed = allRows.find((row) => String(row.id) === String(id));
+            if (refreshed) openMessageModal(refreshed);
         }
     } catch (e) {
         errEl.textContent = getFirebaseErrorMessage(e);
@@ -631,38 +464,7 @@ function handleMessageOpen(id) {
 listEl.addEventListener("click", (e) => {
     const messageBtn = e.target.closest("[data-cand-message]");
     if (messageBtn) {
-        e.stopPropagation();
         handleMessageOpen(messageBtn.getAttribute("data-cand-message"));
-        return;
-    }
-    if (e.target.closest("[data-cand-profile], [data-cand-accept], [data-cand-reject], [data-cand-reaccept], a.cand-card__btn--msg")) {
-        e.stopPropagation();
-    }
-    const openEl = e.target.closest("[data-cand-open]");
-    if (openEl) {
-        openDetail(openEl.getAttribute("data-cand-open"));
-        return;
-    }
-    const acceptBtn = e.target.closest("[data-cand-accept]");
-    const rejectBtn = e.target.closest("[data-cand-reject]");
-    const reacceptBtn = e.target.closest("[data-cand-reaccept]");
-    if (acceptBtn) {
-        e.stopPropagation();
-        handleRespond(acceptBtn.getAttribute("data-cand-accept"), "accepted", "Confirmer : accepter cette candidature ?");
-        return;
-    }
-    if (rejectBtn) {
-        e.stopPropagation();
-        handleRespond(rejectBtn.getAttribute("data-cand-reject"), "rejected", "Confirmer : refuser cette candidature ?");
-        return;
-    }
-    if (reacceptBtn) {
-        e.stopPropagation();
-        handleRespond(
-            reacceptBtn.getAttribute("data-cand-reaccept"),
-            "accepted",
-            "Réexaminer et accepter cette candidature ?"
-        );
     }
 });
 
@@ -670,25 +472,6 @@ if (messageModalEl) {
     messageModalEl.addEventListener("click", (e) => {
         if (e.target.closest("[data-cand-message-close]")) {
             closeMessageModal();
-        }
-    });
-}
-
-document.addEventListener("keydown", (e) => {
-    if (e.key === "Escape" && messageModalEl && !messageModalEl.hidden) {
-        closeMessageModal();
-    }
-});
-
-if (detailEl) {
-    detailEl.addEventListener("click", (e) => {
-        const messageBtn = e.target.closest("[data-cand-message]");
-        if (messageBtn) {
-            handleMessageOpen(messageBtn.getAttribute("data-cand-message"));
-            return;
-        }
-        if (e.target.closest("[data-cand-close]")) {
-            closeDetailPanel();
             return;
         }
         const acceptBtn = e.target.closest("[data-cand-accept]");
@@ -711,6 +494,12 @@ if (detailEl) {
         }
     });
 }
+
+document.addEventListener("keydown", (e) => {
+    if (e.key === "Escape" && messageModalEl && !messageModalEl.hidden) {
+        closeMessageModal();
+    }
+});
 
 onAuthStateChanged(auth, async (user) => {
     if (!user) {
