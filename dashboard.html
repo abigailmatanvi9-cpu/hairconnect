@@ -1556,7 +1556,7 @@ function buildNearCard(p, ratings, profileRet) {
     a.href = "profil-public.html?uid=" + uidEnc + retSuffix;
 
     const title = p.salonName || p.name || "Sans nom";
-    const imgWrap = createProAvatarMedia(title, p.photoUrl);
+    const imgWrap = createProAvatarMedia(title, p.photoUrl, { proUid: p.id });
 
     const body = document.createElement("div");
     body.className = "dash-near-card__body";

@@ -63,22 +63,77 @@ export function applyAvatarElements(img, fb, displayName, url) {
     }
 }
 
-/** Résout une photo pro pour affichage liste (gère les anciennes data URL trop longues). */
-export async function resolveProPhotoUrl(raw) {
-    const u = String(raw || "").trim();
-    if (!u) return "";
-    if (!/^data:image\//i.test(u)) return u;
-    if (u.length <= DISPLAYABLE_DATA_URL_MAX_LEN) return u;
-    try {
-        const blob = await fetch(u).then((res) => res.blob());
-        return URL.createObjectURL(blob);
-    } catch {
-        return "";
+function resolveApiBase() {
+    if (typeof window === "undefined") return "";
+    const override = window.__HAIRCONNECT_API_BASE__;
+    if (override) return String(override).replace(/\/$/, "");
+    if (window.location?.origin && window.location.origin !== "null") {
+        const { hostname, origin } = window.location;
+        if (hostname === "localhost" || hostname === "127.0.0.1") {
+            return "http://localhost:3000/api";
+        }
+        return `${origin}/api`;
     }
+    return "http://localhost:3000/api";
 }
 
-export async function mountProAvatar(img, fb, displayName, rawUrl) {
-    const url = await resolveProPhotoUrl(rawUrl);
+/** URL HTTP de la photo de profil (data URL servie en binaire par l'API). */
+export function profileAvatarApiUrl(proUid) {
+    const id = String(proUid || "").trim();
+    if (!id) return "";
+    return `${resolveApiBase()}/users/${encodeURIComponent(id)}/avatar`;
+}
+
+async function dataUrlToObjectUrl(dataUrl) {
+    try {
+        const blob = await fetch(dataUrl).then((res) => res.blob());
+        return URL.createObjectURL(blob);
+    } catch {
+        /* suite via canvas */
+    }
+    return new Promise((resolve, reject) => {
+        const img = new Image();
+        img.onload = () => {
+            const canvas = document.createElement("canvas");
+            canvas.width = img.naturalWidth || img.width;
+            canvas.height = img.naturalHeight || img.height;
+            const ctx = canvas.getContext("2d");
+            if (!ctx) {
+                reject(new Error("Canvas indisponible."));
+                return;
+            }
+            ctx.drawImage(img, 0, 0);
+            canvas.toBlob(
+                (blob) => (blob ? resolve(URL.createObjectURL(blob)) : reject(new Error("Blob impossible."))),
+                "image/jpeg",
+                0.9
+            );
+        };
+        img.onerror = () => reject(new Error("Image illisible."));
+        img.src = dataUrl;
+    });
+}
+
+/** Résout une photo pro pour affichage (data URL longues → API ou blob local). */
+export async function resolveProPhotoUrl(raw, proUid) {
+    const u = String(raw || "").trim();
+    if (!u) return "";
+    if (/^https?:\/\//i.test(u)) return u;
+    if (/^data:image\//i.test(u)) {
+        const apiUrl = profileAvatarApiUrl(proUid);
+        if (apiUrl) return apiUrl;
+        if (u.length <= DISPLAYABLE_DATA_URL_MAX_LEN) return u;
+        try {
+            return await dataUrlToObjectUrl(u);
+        } catch {
+            return "";
+        }
+    }
+    return u;
+}
+
+export async function mountProAvatar(img, fb, displayName, rawUrl, proUid) {
+    const url = await resolveProPhotoUrl(rawUrl, proUid);
     applyAvatarElements(img, fb, displayName, url);
 }
 
@@ -86,6 +141,7 @@ export function createProAvatarMedia(
     displayName,
     photoUrl,
     {
+        proUid = "",
         wrapClass = "dash-near-card__media",
         imgClass = "dash-near-card__img",
         fbClass = "dash-near-card__fb"
@@ -102,7 +158,7 @@ export function createProAvatarMedia(
     fb.textContent = initialsFromName(displayName);
     imgWrap.appendChild(img);
     imgWrap.appendChild(fb);
-    mountProAvatar(img, fb, displayName, photoUrl);
+    mountProAvatar(img, fb, displayName, photoUrl, proUid);
     return imgWrap;
 }
 

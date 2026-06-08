@@ -156,7 +156,7 @@ import {
     createContactRequest,
     PUBLICATION_STYLE_TYPES
 } from "./firebase.js";
-import { compressImageFile, mountProAvatar, initialsFromName } from "./image-utils.js";
+import { compressImageFile, mountProAvatar } from "./image-utils.js";
 import { parseServicesTarifs, formatServicePriceFcfa } from "./services-tarifs-utils.js";
 
 const pubClientStyleSelect = document.getElementById("pubClientStyle");
@@ -463,7 +463,7 @@ if (!uid) {
     errEl.textContent = "Profil introuvable (paramètre uid manquant).";
     errEl.hidden = false;
 } else {
-    function fillPublicProfile(d) {
+    async function fillPublicProfile(d) {
         const displayName = d.salonName || d.name || "Sans nom";
         document.getElementById("pubRole").textContent = formatRoleLabel(d.role);
         const nameEl = document.getElementById("pubName");
@@ -497,10 +497,9 @@ if (!uid) {
             img.hidden = true;
             const fb = document.createElement("span");
             fb.className = "pp-hero__fb";
-            fb.textContent = initialsFromName(displayName);
             avatarWrap.appendChild(img);
             avatarWrap.appendChild(fb);
-            mountProAvatar(img, fb, displayName, d.photoUrl);
+            await mountProAvatar(img, fb, displayName, d.photoUrl, uid);
         }
 
         const pubServicesEl = document.getElementById("pubServices");
@@ -640,7 +639,7 @@ if (!uid) {
             return;
         }
 
-        fillPublicProfile(d);
+        await fillPublicProfile(d);
         await refreshProfileData();
 
         let myProfile = null;

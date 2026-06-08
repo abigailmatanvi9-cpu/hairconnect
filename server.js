@@ -464,6 +464,38 @@ app.get("/api/users/:id", async (req, res) => {
   }
 });
 
+/** Photo de profil en binaire — évite les limites des data URL dans les balises <img>. */
+function parseDataUrlImageBuffer(dataUrl) {
+  const u = String(dataUrl || "").trim();
+  const m = u.match(/^data:(image\/[a-z0-9.+-]+);base64,([\s\S]+)$/i);
+  if (!m) return null;
+  try {
+    const buf = Buffer.from(String(m[2]).replace(/\s/g, ""), "base64");
+    if (!buf.length) return null;
+    return { mime: m[1], buf };
+  } catch {
+    return null;
+  }
+}
+
+app.get("/api/users/:id/avatar", async (req, res) => {
+  try {
+    const user = await findUserPublicById(req.params.id);
+    const raw = String(user?.photoUrl || "").trim();
+    if (!raw) return res.status(404).end();
+    if (/^https?:\/\//i.test(raw)) {
+      return res.redirect(302, raw);
+    }
+    const parsed = parseDataUrlImageBuffer(raw);
+    if (!parsed) return res.status(404).end();
+    res.setHeader("Content-Type", parsed.mime);
+    res.setHeader("Cache-Control", "public, max-age=86400");
+    return res.send(parsed.buf);
+  } catch {
+    return res.status(500).end();
+  }
+});
+
 app.put("/api/users/:id", async (req, res) => {
   try {
     const id = req.params.id;

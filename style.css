@@ -3785,15 +3785,23 @@ button.dash-home-cat {
 }
 
 .pp-hero__avatar .pp-hero__img {
+    position: relative;
+    z-index: 1;
     display: block;
     width: 100%;
     height: 100%;
     object-fit: cover;
 }
 
+.pp-hero__avatar .pp-hero__img[hidden],
+.pp-hero__avatar .pp-hero__fb[hidden] {
+    display: none !important;
+}
+
 .pp-hero__avatar .pp-hero__fb {
     position: absolute;
     inset: 0;
+    z-index: 0;
     display: flex;
     align-items: center;
     justify-content: center;
