@@ -1,0 +1,443 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Offre d'emploi — HairConnect</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body class="login-page hc-theme-pro job-detail-page">
+
+<div class="login-container subpage-container subpage-wide job-detail-wrap">
+    <header class="login-header">
+        <a href="offres.html" class="login-back" aria-label="Retour aux offres">
+            <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M15.75 19.5 8.25 12l7.5-7.5"/></svg>
+        </a>
+        <h1 class="login-title">Offre d'emploi</h1>
+    </header>
+
+    <p id="err" class="form-error" role="alert" hidden></p>
+    <p id="ok" class="form-success" role="status" hidden></p>
+
+    <div id="jobDetail" class="job-detail" hidden>
+        <div class="job-detail__layout">
+            <main class="job-detail__main">
+                <section class="job-detail__hero" aria-label="En-tête de l'offre">
+                    <div class="job-detail__hero-media">
+                        <div class="job-detail__hero-avatar-wrap">
+                            <img id="salonAvatar" class="job-detail__hero-avatar" alt="" hidden>
+                            <span id="salonAvatarFb" class="job-detail__hero-avatar-fb" hidden>?</span>
+                        </div>
+                    </div>
+                    <div class="job-detail__hero-body">
+                        <p class="job-detail__role" id="jobRole"></p>
+                        <h2 class="job-detail__salon" id="jobSalon"></h2>
+                        <p class="job-detail__hero-line" id="jobLocation"></p>
+                        <p class="job-detail__hero-line" id="jobPay"></p>
+                        <p class="job-detail__hero-line" id="jobPublished"></p>
+                    </div>
+                </section>
+
+                <section class="job-detail__keys" aria-labelledby="jobKeysTitle">
+                    <h3 id="jobKeysTitle" class="job-detail__section-title">Informations clés</h3>
+                    <ul class="job-detail__key-grid" id="jobKeys"></ul>
+                </section>
+
+                <section class="job-detail__sections" id="jobSections"></section>
+
+                <section id="candidature" class="job-detail__apply" hidden>
+                    <h3 class="job-detail__section-title">Votre candidature</h3>
+                    <form id="applyForm" class="register-form">
+                        <div class="field-group">
+                            <label class="field-label" for="msg">Message au salon</label>
+                            <textarea id="msg" class="field-textarea" rows="6" required placeholder="Présentez-vous : expérience, formations, disponibilités…"></textarea>
+                        </div>
+                        <button type="submit" class="register-submit" id="applyBtn">Envoyer la candidature</button>
+                    </form>
+                </section>
+
+                <div id="ownerActions" class="job-detail__owner" hidden></div>
+            </main>
+
+            <aside class="job-detail__sidebar" aria-labelledby="salonAboutTitle">
+                <h3 id="salonAboutTitle" class="job-detail__section-title">À propos du salon</h3>
+                <div class="job-detail__salon-card">
+                    <div class="job-detail__salon-card-avatar">
+                        <img id="sideAvatar" alt="" hidden>
+                        <span id="sideAvatarFb" hidden>?</span>
+                    </div>
+                    <p class="job-detail__salon-card-name" id="sideSalonName"></p>
+                    <ul class="job-detail__salon-stats" id="sideSalonStats"></ul>
+                    <a id="sideContact" class="job-detail__salon-link" href="#">📞 Contacter</a>
+                    <a id="sideProfile" class="job-detail__salon-link job-detail__salon-link--ghost" href="#">Voir le profil public</a>
+                </div>
+            </aside>
+        </div>
+    </div>
+</div>
+
+<nav id="jobActionsBar" class="job-detail__actions-bar" aria-label="Actions" hidden>
+    <button type="button" class="job-detail__action job-detail__action--primary" id="actApply">Postuler</button>
+    <a class="job-detail__action" id="actContact" href="#">Contacter le salon</a>
+    <button type="button" class="job-detail__action" id="actFavorite">Ajouter aux favoris</button>
+</nav>
+
+<script type="module">
+import {
+    auth,
+    onAuthStateChanged,
+    fetchOffreById,
+    fetchUserProfile,
+    createCandidature,
+    listCandidaturesForCoiffeur,
+    listAvisForPro,
+    listPublications,
+    countFavoritesForPro,
+    addFavorite,
+    removeFavorite,
+    listFavorites,
+    deleteOffre,
+    updateOffreStatus,
+    getFirebaseErrorMessage
+} from "./firebase.js";
+import { mountProAvatar } from "./image-utils.js";
+import { computeAvisSummary, formatAvisAvg } from "./avis-display-utils.js";
+import {
+    escapeHtml,
+    getContractType,
+    getContractLabel,
+    formatOfferLocation,
+    formatOfferRemuneration,
+    formatOfferPublishedRelative,
+    formatOfferPublishedLong,
+    parseOfferDescription,
+    renderBulletList
+} from "./offre-display-utils.js";
+
+const params = new URLSearchParams(location.search);
+const offerId = params.get("offre");
+
+let myUid = null;
+let myRole = "";
+let currentOffer = null;
+let salonUid = null;
+let isFavorite = false;
+let canApply = false;
+let alreadyApplied = false;
+
+function showErr(msg) {
+    const el = document.getElementById("err");
+    if (!msg) { el.hidden = true; el.textContent = ""; return; }
+    el.textContent = msg;
+    el.hidden = false;
+}
+
+function showOk(msg) {
+    const el = document.getElementById("ok");
+    if (!msg) { el.hidden = true; el.textContent = ""; return; }
+    el.textContent = msg;
+    el.hidden = false;
+}
+
+function renderSections(desc) {
+    const wrap = document.getElementById("jobSections");
+    const { intro, benefits, requirements } = parseOfferDescription(desc);
+    let html = "";
+    if (intro) {
+        html +=
+            `<section class="job-detail__block">` +
+            `<h3 class="job-detail__section-title">Description</h3>` +
+            `<p class="job-detail__text">${escapeHtml(intro).replace(/\n/g, "<br>")}</p>` +
+            `</section>`;
+    }
+    if (benefits.length) {
+        html +=
+            `<section class="job-detail__block">` +
+            `<h3 class="job-detail__section-title">Ce que nous offrons</h3>` +
+            renderBulletList(benefits) +
+            `</section>`;
+    }
+    if (requirements.length) {
+        html +=
+            `<section class="job-detail__block">` +
+            `<h3 class="job-detail__section-title">Profil recherché</h3>` +
+            renderBulletList(requirements) +
+            `</section>`;
+    }
+    if (!html) {
+        html =
+            `<section class="job-detail__block">` +
+            `<h3 class="job-detail__section-title">Description</h3>` +
+            `<p class="job-detail__text">Le salon recherche un profil motivé pour rejoindre l'équipe.</p>` +
+            `</section>`;
+    }
+    wrap.innerHTML = html;
+}
+
+function renderKeyFacts(offer, contractType) {
+    const list = document.getElementById("jobKeys");
+    const isFilled = String(offer.status || "").toLowerCase() === "filled";
+    const items = [
+        { icon: "📍", label: formatOfferLocation(offer) },
+        { icon: "💰", label: formatOfferRemuneration(offer, { short: true }) },
+        { icon: "🏪", label: "Travail en salon" },
+        { icon: "⏰", label: getContractLabel(contractType) },
+        { icon: "📅", label: isFilled ? "Poste pourvu" : "Disponible immédiatement" }
+    ];
+    list.innerHTML = items
+        .map(
+            (it) =>
+                `<li class="job-detail__key">` +
+                `<span class="job-detail__key-icon" aria-hidden="true">${it.icon}</span>` +
+                `<span>${escapeHtml(it.label)}</span>` +
+                `</li>`
+        )
+        .join("");
+}
+
+async function loadSalonSidebar(salonProfile, salonId) {
+    const [avis, publications, favCount] = await Promise.all([
+        listAvisForPro(salonId).catch(() => []),
+        listPublications({ targetProUid: salonId, kind: "pro" }).catch(() => []),
+        countFavoritesForPro(salonId).catch(() => 0)
+    ]);
+    const summary = computeAvisSummary(avis);
+    const avg = formatAvisAvg(summary.avg);
+    const loc = formatOfferLocation({ city: salonProfile?.city, quartier: salonProfile?.quartier });
+    const name = salonProfile?.salonName || salonProfile?.name || "Salon";
+
+    document.getElementById("sideSalonName").textContent = name;
+    const stats = [
+        loc ? `📍 ${loc}` : null,
+        avg ? `⭐ ${avg}/5` : null,
+        summary.total ? `📝 ${summary.total} avis` : null,
+        publications.length ? `📸 ${publications.length} réalisations` : null,
+        favCount ? `❤️ ${favCount} favoris` : null
+    ].filter(Boolean);
+    document.getElementById("sideSalonStats").innerHTML = stats
+        .map((s) => `<li>${escapeHtml(s)}</li>`)
+        .join("");
+
+    const contactHref = `messagerie.html?to=${encodeURIComponent(salonId)}`;
+    document.getElementById("sideContact").href = contactHref;
+    document.getElementById("sideProfile").href = `profil-public.html?uid=${encodeURIComponent(salonId)}`;
+    document.getElementById("actContact").href = contactHref;
+
+    await mountProAvatar(
+        document.getElementById("sideAvatar"),
+        document.getElementById("sideAvatarFb"),
+        name,
+        salonProfile?.photoUrl,
+        salonId
+    );
+}
+
+function updateActionsBar() {
+    const bar = document.getElementById("jobActionsBar");
+    const applyBtn = document.getElementById("actApply");
+    const favBtn = document.getElementById("actFavorite");
+    const isOwner = myRole === "salon" && String(currentOffer?.salonUid) === String(myUid);
+    const isFilled = String(currentOffer?.status || "").toLowerCase() === "filled";
+
+    if (isOwner || myRole === "client") {
+        bar.hidden = true;
+        return;
+    }
+    bar.hidden = false;
+
+    if (myRole === "coiffeur") {
+        applyBtn.hidden = false;
+        favBtn.hidden = false;
+        if (isFilled || alreadyApplied) {
+            applyBtn.disabled = true;
+            applyBtn.textContent = isFilled ? "Poste pourvu" : "Déjà postulé";
+        } else {
+            applyBtn.disabled = false;
+            applyBtn.textContent = "Postuler";
+        }
+        favBtn.textContent = isFavorite ? "Retirer des favoris" : "Ajouter aux favoris";
+    } else {
+        applyBtn.hidden = true;
+        favBtn.hidden = true;
+    }
+}
+
+async function renderOffer(offer, salonProfile) {
+    currentOffer = offer;
+    salonUid = offer.salonUid;
+    const contractType = getContractType(offer);
+    const salonName = offer.salonName || salonProfile?.salonName || salonProfile?.name || "Salon";
+    const summary = computeAvisSummary(await listAvisForPro(salonUid).catch(() => []));
+    const avg = formatAvisAvg(summary.avg);
+
+    document.getElementById("jobRole").textContent = offer.title || "Poste";
+    document.getElementById("jobSalon").textContent = avg ? `${salonName} ⭐ ${avg}` : salonName;
+    document.getElementById("jobLocation").textContent = `📍 ${formatOfferLocation(offer)}`;
+    document.getElementById("jobPay").textContent = `💰 ${formatOfferRemuneration(offer, { short: true })}`;
+    const rel = formatOfferPublishedRelative(offer.createdAt);
+    const long = formatOfferPublishedLong(offer.createdAt);
+    document.getElementById("jobPublished").textContent = long ? `📅 ${rel} · ${long}` : `📅 ${rel}`;
+
+    await mountProAvatar(
+        document.getElementById("salonAvatar"),
+        document.getElementById("salonAvatarFb"),
+        salonName,
+        salonProfile?.photoUrl,
+        salonUid
+    );
+
+    renderKeyFacts(offer, contractType);
+    renderSections(offer.description);
+    await loadSalonSidebar(salonProfile, salonUid);
+
+    document.getElementById("jobDetail").hidden = false;
+    document.title = `${offer.title || "Offre"} — ${salonName}`;
+
+    const isOwner = myRole === "salon" && String(offer.salonUid) === String(myUid);
+    const ownerEl = document.getElementById("ownerActions");
+    if (isOwner) {
+        const isFilled = String(offer.status || "").toLowerCase() === "filled";
+        ownerEl.hidden = false;
+        ownerEl.innerHTML =
+            `<p class="job-detail__owner-title">Gestion salon</p>` +
+            `<div class="job-detail__owner-actions">` +
+            (isFilled
+                ? `<button type="button" class="jobs-card__status-btn" id="ownerReopen">Rouvrir l'offre</button>`
+                : `<button type="button" class="jobs-card__status-btn" id="ownerFill">Marquer comme pourvue</button>`) +
+            `<button type="button" class="jobs-card__delete" id="ownerDelete">Retirer l'offre</button>` +
+            `</div>`;
+    } else {
+        ownerEl.hidden = true;
+    }
+
+    updateActionsBar();
+}
+
+async function initUserState(user) {
+    myUid = user.uid;
+    const prof = await fetchUserProfile(user.uid);
+    myRole = String(prof?.role || "").trim().toLowerCase();
+    if (myRole === "client") {
+        window.location.replace("dashboard.html");
+        return false;
+    }
+
+    canApply = myRole === "coiffeur";
+    const isFilled = String(currentOffer?.status || "").toLowerCase() === "filled";
+
+    if (canApply && !isFilled) {
+        try {
+            const mine = await listCandidaturesForCoiffeur(myUid);
+            alreadyApplied = mine.some((c) => String(c.offerId) === String(offerId));
+            if (alreadyApplied) {
+                showOk("Vous avez déjà postulé à cette offre.");
+            } else {
+                document.getElementById("candidature").hidden = false;
+            }
+        } catch {
+            document.getElementById("candidature").hidden = false;
+        }
+        try {
+            const favs = await listFavorites(myUid);
+            isFavorite = favs.some((f) => String(f.proId) === String(salonUid));
+        } catch {
+            isFavorite = false;
+        }
+    }
+
+    updateActionsBar();
+    return true;
+}
+
+document.getElementById("actApply")?.addEventListener("click", () => {
+    document.getElementById("candidature")?.scrollIntoView({ behavior: "smooth" });
+    document.getElementById("msg")?.focus();
+});
+
+document.getElementById("actFavorite")?.addEventListener("click", async () => {
+    if (!myUid || !salonUid || myRole !== "coiffeur") return;
+    try {
+        if (isFavorite) {
+            await removeFavorite(myUid, salonUid);
+            isFavorite = false;
+        } else {
+            await addFavorite(myUid, salonUid);
+            isFavorite = true;
+        }
+        updateActionsBar();
+    } catch (e) {
+        showErr(getFirebaseErrorMessage(e));
+    }
+});
+
+document.getElementById("applyForm")?.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    showErr("");
+    showOk("");
+    if (!myUid || !salonUid || !offerId || !canApply || alreadyApplied) return;
+    const msg = String(document.getElementById("msg")?.value || "").trim();
+    if (!msg) {
+        showErr("Rédigez un message pour le salon.");
+        return;
+    }
+    const btn = document.getElementById("applyBtn");
+    btn.disabled = true;
+    try {
+        await createCandidature(offerId, myUid, salonUid, msg);
+        alreadyApplied = true;
+        document.getElementById("candidature").hidden = true;
+        showOk("Candidature envoyée — le salon vous répondra par messagerie.");
+        updateActionsBar();
+    } catch (err) {
+        showErr(getFirebaseErrorMessage(err));
+    } finally {
+        btn.disabled = false;
+    }
+});
+
+document.getElementById("jobDetail")?.addEventListener("click", async (e) => {
+    if (!myUid || myRole !== "salon") return;
+    if (e.target.id === "ownerFill") {
+        await updateOffreStatus(offerId, myUid, "filled");
+        location.reload();
+    }
+    if (e.target.id === "ownerReopen") {
+        await updateOffreStatus(offerId, myUid, "open");
+        location.reload();
+    }
+    if (e.target.id === "ownerDelete") {
+        if (!confirm("Retirer cette offre ?")) return;
+        await deleteOffre(offerId, myUid);
+        window.location.href = "offres.html";
+    }
+});
+
+if (!offerId) {
+    showErr("Offre introuvable.");
+} else {
+    onAuthStateChanged(auth, async (user) => {
+        if (!user) {
+            window.location.href = "login.html";
+            return;
+        }
+        try {
+            const offer = await fetchOffreById(offerId);
+            if (!offer) {
+                showErr("Cette offre n'existe plus.");
+                return;
+            }
+            const salonProfile = await fetchUserProfile(offer.salonUid).catch(() => null);
+            await renderOffer(offer, salonProfile);
+            await initUserState(user);
+            if (location.hash === "#candidature" && canApply && !alreadyApplied) {
+                document.getElementById("candidature")?.scrollIntoView({ behavior: "smooth" });
+            }
+        } catch (e) {
+            showErr(getFirebaseErrorMessage(e));
+        }
+    });
+}
+</script>
+
+</body>
+</html>

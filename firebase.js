@@ -494,7 +494,12 @@ export async function createOffre(
 export async function fetchOffreById(offerId) {
     try {
         const payload = await apiFetch(`/offres/${encodeURIComponent(offerId)}`);
-        return payload.offre ? { id: payload.offre.id, ...payload.offre } : null;
+        const row = payload.offre ? { id: payload.offre.id, ...payload.offre } : null;
+        if (!row) return null;
+        return {
+            ...row,
+            createdAt: { toMillis: () => new Date(row.createdAt).getTime() }
+        };
     } catch (error) {
         if (error.message.includes("introuvable")) return null;
         throw error;

@@ -125,12 +125,22 @@ import {
     createOffre,
     deleteOffre,
     listOffres,
+    listAvisForPro,
     listCandidaturesForCoiffeur,
     updateOffreStatus,
     getFirebaseErrorMessage
 } from "./firebase.js";
 import { onAuthStateChanged } from "./firebase.js";
 import { initLocationFields, readLocationFromFields } from "./location-utils.js";
+import { computeAvisSummary, formatAvisAvg } from "./avis-display-utils.js";
+import {
+    escapeHtml,
+    getContractType,
+    getContractLabel,
+    formatOfferLocation,
+    formatOfferRemuneration,
+    formatOfferPublishedRelative
+} from "./offre-display-utils.js";
 
 const listEl = document.getElementById("offresList");
 const errEl = document.getElementById("err");
@@ -148,65 +158,26 @@ let myCandidatureStatusByOffer = new Map();
 let activeFilter = "all";
 let searchTerm = "";
 let cachedRows = [];
-
-function escapeHtml(s) {
-    return String(s)
-        .replace(/&/g, "&amp;")
-        .replace(/</g, "&lt;")
-        .replace(/>/g, "&gt;")
-        .replace(/"/g, "&quot;");
-}
+const salonRatingByUid = new Map();
 
 function isSalonRole(raw) {
     return String(raw || "").trim().toLowerCase() === "salon";
 }
 
-function getContractType(offer) {
-    if (typeof offer?.contractType === "string" && offer.contractType.trim()) {
-        return offer.contractType.trim().toLowerCase();
-    }
-    const text = `${offer?.title || ""} ${offer?.description || ""}`.toLowerCase();
-    if (text.includes("temps plein") || text.includes("full time") || text.includes("full-time") || text.includes("cdi")) {
-        return "full-time";
-    }
-    if (text.includes("temps partiel") || text.includes("mi-temps") || text.includes("part time") || text.includes("part-time")) {
-        return "part-time";
-    }
-    if (text.includes("cdd")) {
-        return "cdd";
-    }
-    return "all";
-}
-
-function getContractLabel(type) {
-    if (type === "full-time") return "Temps plein";
-    if (type === "part-time") return "Temps partiel";
-    if (type === "cdd") return "CDD";
-    return "Offre";
-}
-
-function formatOfferLocation(offer) {
-    const city = String(offer?.city || "").trim();
-    const quartier = String(offer?.quartier || "").trim();
-    if (city && quartier) return `${city}, ${quartier}`;
-    return city || quartier || "Lieu à préciser";
-}
-
-function formatOfferRemuneration(offer) {
-    const type = String(offer?.remunerationType || "").trim().toLowerCase();
-    const note = String(offer?.remunerationNote || "").trim();
-    if (type === "monthly") {
-        const amount = Number(offer?.salaryFcfa);
-        const base =
-            Number.isFinite(amount) && amount > 0
-                ? `${amount.toLocaleString("fr-FR")} FCFA / mois`
-                : "Salaire mensuel (montant à préciser)";
-        return note ? `${base} — ${note}` : base;
-    }
-    if (type === "per_prestation") {
-        return note ? `Paiement à la prestation — ${note}` : "Paiement à chaque prestation";
-    }
-    return "Rémunération à préciser";
+async function refreshSalonRatings(rows) {
+    const uids = [...new Set(rows.map((o) => String(o.salonUid || "").trim()).filter(Boolean))];
+    await Promise.all(
+        uids.map(async (uid) => {
+            if (salonRatingByUid.has(uid)) return;
+            try {
+                const avis = await listAvisForPro(uid);
+                const summary = computeAvisSummary(avis);
+                salonRatingByUid.set(uid, formatAvisAvg(summary.avg));
+            } catch {
+                salonRatingByUid.set(uid, null);
+            }
+        })
+    );
 }
 
 function syncRemunerationFields() {
@@ -233,23 +204,6 @@ function syncRemunerationFields() {
     }
 }
 
-function formatDate(raw) {
-    if (!raw) return "";
-    try {
-        let d = raw;
-        if (typeof raw?.toDate === "function") d = raw.toDate();
-        if (!(d instanceof Date)) d = new Date(d);
-        if (Number.isNaN(d.getTime())) return "";
-        return new Intl.DateTimeFormat("fr-FR", {
-            day: "numeric",
-            month: "long",
-            year: "numeric"
-        }).format(d);
-    } catch {
-        return "";
-    }
-}
-
 function offerMatchesFilters(offer) {
     const query = searchTerm.trim().toLowerCase();
     const type = getContractType(offer);
@@ -273,90 +227,59 @@ function renderList(rows) {
     }
     for (const o of visible) {
         const type = getContractType(o);
-        const createdAt = formatDate(o.createdAt || o.created_at);
-        const dateText = createdAt ? `Publié le ${createdAt}` : "Publication récente";
+        const dateText = formatOfferPublishedRelative(o.createdAt);
         const location = formatOfferLocation(o);
-        const remuneration = formatOfferRemuneration(o);
+        const remuneration = formatOfferRemuneration(o, { short: true });
         const desc = (o.description || "").trim() || "Le salon recherche un profil motivé pour rejoindre son équipe.";
-        const shortDesc = desc.length > 220 ? `${desc.slice(0, 220)}...` : desc;
+        const shortDesc = desc.length > 140 ? `${desc.slice(0, 140)}…` : desc;
+        const detailUrl = "offre-detail.html?offre=" + encodeURIComponent(o.id);
+        const salonUid = String(o.salonUid || "");
+        const rating = salonRatingByUid.get(salonUid);
+        const salonLine =
+            escapeHtml(o.salonName || "Salon partenaire") + (rating ? ` <span class="jobs-card__rating">⭐ ${escapeHtml(rating)}</span>` : "");
 
-        const isOwner = isSalon && String(o.salonUid || "") === String(myUid || "");
+        const isOwner = isSalon && salonUid === String(myUid || "");
         const isFilled = String(o.status || "").trim().toLowerCase() === "filled";
-        const deleteBtn =
-            isOwner
-                ? "<button type=\"button\" class=\"jobs-card__delete\" data-offre-delete=\"" +
-                  escapeHtml(o.id) +
-                  "\" aria-label=\"Retirer cette offre\">Retirer l’offre</button>"
-                : "";
+        const deleteBtn = isOwner
+            ? `<button type="button" class="jobs-card__delete" data-offre-delete="${escapeHtml(o.id)}">Retirer</button>`
+            : "";
         const statusBtn = isOwner
             ? isFilled
-                ? "<button type=\"button\" class=\"jobs-card__status-btn\" data-offre-reopen=\"" +
-                  escapeHtml(o.id) +
-                  "\">Rouvrir l’offre</button>"
-                : "<button type=\"button\" class=\"jobs-card__status-btn\" data-offre-fill=\"" +
-                  escapeHtml(o.id) +
-                  "\">Marquer comme pourvue</button>"
+                ? `<button type="button" class="jobs-card__status-btn" data-offre-reopen="${escapeHtml(o.id)}">Rouvrir</button>`
+                : `<button type="button" class="jobs-card__status-btn" data-offre-fill="${escapeHtml(o.id)}">Pourvue</button>`
             : "";
-        const candSt = isCoiffeur ? myCandidatureStatusByOffer.get(String(o.id || "")) : null;
-        const alreadyApplied = Boolean(candSt);
-        const candLabel =
-            candSt === "accepted"
-                ? "Candidature acceptée"
-                : candSt === "rejected"
-                  ? "Candidature refusée"
-                  : candSt === "pending"
-                    ? "Candidature en attente"
-                    : "";
-        const applyControl = isSalon
-            ? "<span class=\"jobs-card__apply jobs-card__apply--disabled\" aria-disabled=\"true\">Postuler (réservé aux coiffeurs)</span>"
-            : isFilled
-              ? "<span class=\"jobs-card__apply jobs-card__apply--disabled\" aria-disabled=\"true\">Poste pourvu</span>"
-              : alreadyApplied
-                ? "<span class=\"jobs-card__apply jobs-card__apply--disabled\" aria-disabled=\"true\">" +
-                  escapeHtml(candLabel || "Déjà postulé") +
-                  "</span>"
-                : "<a class=\"jobs-card__apply\" href=\"postuler.html?offre=" +
-                  encodeURIComponent(o.id) +
-                  "\">Postuler</a>";
-
-        const filledBadge = isFilled
-            ? "<span class=\"jobs-badge jobs-badge--filled\">Poste pourvu</span>"
-            : "";
+        const filledBadge = isFilled ? `<span class="jobs-badge jobs-badge--filled">Poste pourvu</span>` : "";
 
         const li = document.createElement("li");
         li.className = "jobs-item";
         li.innerHTML =
-            "<article class=\"jobs-card\">" +
-            "<div class=\"jobs-card__top\">" +
-            "<div class=\"jobs-card__thumb\" aria-hidden=\"true\"></div>" +
-            "<div class=\"jobs-card__head\">" +
-            "<h3 class=\"jobs-card__title\">" + escapeHtml(o.title || "Offre de coiffeur/se") + "</h3>" +
-            "<p class=\"jobs-card__salon\">" + escapeHtml(o.salonName || "Salon partenaire") + "</p>" +
-            "<p class=\"jobs-card__meta\">" +
-            "<span class=\"jobs-card__meta-icon\">📍</span>" +
-            escapeHtml(location) +
-            "</p>" +
-            "</div>" +
-            "<span class=\"jobs-badge\">" + getContractLabel(type) + "</span>" +
+            `<article class="jobs-card jobs-card--v2">` +
+            `<div class="jobs-card__top">` +
+            `<div class="jobs-card__thumb" aria-hidden="true"></div>` +
+            `<div class="jobs-card__head">` +
+            `<h3 class="jobs-card__title">${escapeHtml(o.title || "Offre")}</h3>` +
+            `<p class="jobs-card__salon">${salonLine}</p>` +
+            `<p class="jobs-card__meta"><span class="jobs-card__meta-icon">📍</span>${escapeHtml(location)}</p>` +
+            `<p class="jobs-card__meta"><span class="jobs-card__meta-icon">💰</span>${escapeHtml(remuneration)}</p>` +
+            `</div>` +
+            `<span class="jobs-badge">${escapeHtml(getContractLabel(type))}</span>` +
             filledBadge +
-            "</div>" +
-            "<p class=\"jobs-card__salary\">💰 " + escapeHtml(remuneration) + "</p>" +
-            "<p class=\"jobs-card__desc\">" + escapeHtml(shortDesc) + "</p>" +
-            "<div class=\"jobs-card__foot\">" +
-            "<span class=\"jobs-card__date\">⏱ " + escapeHtml(dateText) + "</span>" +
-            "<div class=\"jobs-card__foot-actions\">" +
+            `</div>` +
+            `<p class="jobs-card__desc">${escapeHtml(shortDesc)}</p>` +
+            `<div class="jobs-card__foot">` +
+            `<span class="jobs-card__date">📅 ${escapeHtml(dateText)}</span>` +
+            `<div class="jobs-card__foot-actions">` +
             deleteBtn +
             statusBtn +
-            applyControl +
-            "</div>" +
-            "</div>" +
-            "</article>";
+            `<a class="jobs-card__view" href="${detailUrl}">Voir l'offre</a>` +
+            `</div></div></article>`;
         listEl.appendChild(li);
     }
 }
 
 async function loadList() {
     cachedRows = await listOffres(isSalon ? myUid : undefined);
+    await refreshSalonRatings(cachedRows);
     renderList(cachedRows);
 }
 
