@@ -2942,6 +2942,19 @@ app.get("/api/favorites", async (req, res) => {
   }
 });
 
+app.get("/api/favorites/count", async (req, res) => {
+  try {
+    const proId = req.query.proId ? String(req.query.proId).trim() : "";
+    if (!proId) {
+      return res.status(400).json({ message: "proId requis." });
+    }
+    const count = await prisma.favorite.count({ where: { proId } });
+    return res.json({ count });
+  } catch (error) {
+    return res.status(500).json({ code: "internal/error", message: error.message });
+  }
+});
+
 const PUBLICATION_STYLE_TYPE_SLUGS = new Set([
   "tresses",
   "coupe",

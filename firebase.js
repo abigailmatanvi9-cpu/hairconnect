@@ -666,6 +666,11 @@ export async function listFavorites(clientId) {
     return (payload.favorites || []).map((f) => ({ ...f, createdAt: { toMillis: () => new Date(f.createdAt).getTime() } }));
 }
 
+export async function countFavoritesForPro(proId) {
+    const payload = await apiFetch(`/favorites/count?proId=${encodeURIComponent(proId)}`);
+    return Number(payload.count) || 0;
+}
+
 export async function createPublication({ authorUid, targetProUid, photoUrl, title, caption, kind, styleType }) {
     await apiFetch("/publications", {
         method: "POST",

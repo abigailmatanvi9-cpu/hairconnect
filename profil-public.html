@@ -8,7 +8,7 @@
 </head>
 <body class="login-page hc-theme-pro">
 
-<div class="login-container subpage-container">
+<div class="login-container subpage-container subpage-wide">
     <header class="login-header">
         <button type="button" id="profileBackBtn" class="login-back" aria-label="Retour">
             <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M15.75 19.5 8.25 12l7.5-7.5"/></svg>
@@ -17,91 +17,124 @@
     </header>
 
     <p id="err" class="form-error" role="alert" hidden></p>
-    <div id="content" class="public-profile" hidden>
-        <p class="public-role" id="pubRole"></p>
-        <h2 class="public-name" id="pubName"></h2>
-        <p class="public-meta" id="pubCity"></p>
-        <p class="public-bio" id="pubBio"></p>
-        <h3 class="public-publications__title" id="pubTarifsTitle" hidden>Services et tarifs</h3>
-        <ul class="public-services-list" id="pubServices" hidden></ul>
-        <div class="public-actions">
-            <div id="contactRequestPanel" class="public-contact-request" hidden>
-                <p id="contactRequestStatus" class="public-contact-request__status" aria-live="polite"></p>
-                <label class="field-label" for="contactRequestNote">Message au professionnel (optionnel)</label>
-                <textarea id="contactRequestNote" class="field-textarea public-contact-request__note" rows="2" maxlength="2000" placeholder="Bonjour, je souhaiterais…"></textarea>
-                <button type="button" class="register-submit public-btn" id="contactRequestBtn">Envoyer une demande de contact</button>
+    <div id="content" class="public-profile-v2" hidden>
+        <header class="pp-hero">
+            <div id="pubAvatarWrap" class="pp-hero__avatar" aria-hidden="true"></div>
+            <div class="pp-hero__body">
+                <p class="pp-hero__role" id="pubRole"></p>
+                <h2 class="pp-hero__name" id="pubName"></h2>
+                <p class="pp-hero__rating" id="pubRating" hidden></p>
+                <p class="pp-hero__loc" id="pubCity"></p>
+                <div class="pp-hero__meta" id="pubMetaChips"></div>
             </div>
-            <a class="register-submit public-btn" id="linkMsg" href="login.html">Message</a>
-            <button class="register-submit public-btn public-btn--ghost" id="favBtn" hidden>Ajouter aux favoris</button>
+        </header>
+
+        <div class="pp-actions-bar" id="pubActionsBar" hidden>
+            <button type="button" class="pp-actions-bar__btn" id="pubContactBarBtn">Contacter</button>
+            <a class="pp-actions-bar__btn" id="linkMsg" href="login.html" hidden>Message</a>
+            <button type="button" class="pp-actions-bar__btn pp-actions-bar__btn--ghost" id="favBtn" hidden>Ajouter aux favoris</button>
+            <button type="button" class="pp-actions-bar__btn pp-actions-bar__btn--accent" id="pubRdvBtn">Prendre rendez-vous</button>
         </div>
-        <section class="public-publications">
-            <h3 class="public-publications__title">Avis clients</h3>
+
+        <div id="contactRequestPanel" class="pp-contact-panel" hidden>
+            <p id="contactRequestStatus" class="pp-contact-panel__status" aria-live="polite"></p>
+            <label class="field-label" for="contactRequestNote">Message au professionnel (optionnel)</label>
+            <textarea id="contactRequestNote" class="field-textarea public-contact-request__note" rows="2" maxlength="2000" placeholder="Bonjour, je souhaiterais…"></textarea>
+            <button type="button" class="register-submit public-btn" id="contactRequestBtn">Envoyer une demande de contact</button>
+        </div>
+
+        <section class="pp-stats" id="pubStats" aria-label="Statistiques du profil">
+            <div class="pp-stat"><span class="pp-stat__val" id="pubStatRating">—</span> note</div>
+            <div class="pp-stat"><span class="pp-stat__val" id="pubStatAvis">0</span> avis</div>
+            <div class="pp-stat"><span class="pp-stat__val" id="pubStatFavs">0</span> favoris</div>
+            <div class="pp-stat"><span class="pp-stat__val" id="pubStatPhotos">0</span> réalisations</div>
+        </section>
+
+        <section class="pp-services-section" id="pubServicesSection" hidden>
+            <h3 class="pp-section-title" id="pubTarifsTitle">Services &amp; tarifs</h3>
+            <ul class="pp-services-grid" id="pubServices"></ul>
+        </section>
+
+        <nav class="pp-tabs" role="tablist" aria-label="Sections du profil">
+            <button type="button" class="pp-tab is-active" role="tab" aria-selected="true" data-pp-tab="avis" id="ppTabAvis">Avis clients</button>
+            <button type="button" class="pp-tab" role="tab" aria-selected="false" data-pp-tab="photos" id="ppTabPhotos">Photos</button>
+            <button type="button" class="pp-tab" role="tab" aria-selected="false" data-pp-tab="about" id="ppTabAbout">À propos</button>
+        </nav>
+
+        <div id="ppPanelAvis" class="pp-tab-panel" role="tabpanel" aria-labelledby="ppTabAvis">
+            <ul class="pp-avis-list" id="pubAvisList"></ul>
+            <a id="pubAvisAllLink" class="pp-gallery-more" href="#">Voir tous les avis</a>
             <p id="pubAvisErr" class="form-error" role="alert" hidden></p>
             <p id="pubAvisOk" class="form-success" role="status" hidden></p>
-            <form id="pubAvisForm" class="public-publications__form" hidden>
-                <p class="public-publications__hint">Partagez votre retour directement depuis cette fiche.</p>
-                <div class="field-group">
-                    <label class="field-label" for="pubAvisRating">Note / 5</label>
-                    <div class="field-input-wrap">
-                        <input type="number" id="pubAvisRating" min="1" max="5" value="5" required>
+            <details class="pp-form-fold" id="pubAvisFold">
+                <summary>Laisser un avis</summary>
+                <form id="pubAvisForm" class="public-publications__form" hidden>
+                    <p class="public-publications__hint">Partagez votre retour directement depuis cette fiche.</p>
+                    <div class="field-group">
+                        <label class="field-label" for="pubAvisRating">Note / 5</label>
+                        <div class="field-input-wrap">
+                            <input type="number" id="pubAvisRating" min="1" max="5" value="5" required>
+                        </div>
                     </div>
-                </div>
-                <div class="field-group">
-                    <label class="field-label" for="pubAvisComment">Commentaire</label>
-                    <textarea id="pubAvisComment" class="field-textarea" rows="3" placeholder="Partagez votre experience..." required></textarea>
-                </div>
-                <div class="field-group">
-                    <label class="field-label" for="pubAvisPhoto">Photo de la prestation (optionnel)</label>
-                    <div class="field-input-wrap">
-                        <input type="file" id="pubAvisPhoto" accept="image/*">
+                    <div class="field-group">
+                        <label class="field-label" for="pubAvisComment">Commentaire</label>
+                        <textarea id="pubAvisComment" class="field-textarea" rows="3" placeholder="Partagez votre expérience..." required></textarea>
                     </div>
-                    <p class="field-hint" id="pubAvisPhotoHint">JPG, PNG… — max 2 Mo. Visible sur la page « Tous les avis ».</p>
-                </div>
-                <button type="submit" class="register-submit" id="pubAvisBtn">Publier mon avis</button>
-            </form>
-            <div class="public-avis-compact" id="pubAvisCompact">
-                <p id="pubAvisSummaryText" class="public-avis-compact__summary"></p>
-                <a id="pubAvisAllLink" class="register-submit public-btn" href="#">Voir tous les avis</a>
-            </div>
-        </section>
-        <section class="public-publications" id="pubPublicationsSection">
-            <h3 class="public-publications__title">Photos clients</h3>
+                    <div class="field-group">
+                        <label class="field-label" for="pubAvisPhoto">Photo de la prestation (optionnel)</label>
+                        <div class="field-input-wrap">
+                            <input type="file" id="pubAvisPhoto" accept="image/*">
+                        </div>
+                        <p class="field-hint" id="pubAvisPhotoHint">JPG, PNG… — max 2 Mo. Visible sur la page « Tous les avis ».</p>
+                    </div>
+                    <button type="submit" class="register-submit" id="pubAvisBtn">Publier mon avis</button>
+                </form>
+            </details>
+        </div>
+
+        <div id="ppPanelPhotos" class="pp-tab-panel" role="tabpanel" aria-labelledby="ppTabPhotos" hidden>
+            <div id="pubGalleryGrid" class="pp-gallery-grid"></div>
+            <a id="pubGalleryAllLink" class="pp-gallery-more" href="#">Voir toutes les photos</a>
             <p id="pubPostErr" class="form-error" role="alert" hidden></p>
             <p id="pubPostOk" class="form-success" role="status" hidden></p>
-            <form id="pubClientPostForm" class="public-publications__form" hidden>
-                <p class="public-publications__hint">Partagez votre photo après prestation.</p>
-                <div class="field-group">
-                    <label class="field-label" for="pubClientPhoto">Photo</label>
-                    <div class="field-input-wrap">
-                        <input type="file" id="pubClientPhoto" accept="image/*">
+            <details class="pp-form-fold" id="pubPhotoFold">
+                <summary>Partager votre photo</summary>
+                <form id="pubClientPostForm" class="public-publications__form" hidden>
+                    <p class="public-publications__hint">Partagez votre photo après prestation.</p>
+                    <div class="field-group">
+                        <label class="field-label" for="pubClientPhoto">Photo</label>
+                        <div class="field-input-wrap">
+                            <input type="file" id="pubClientPhoto" accept="image/*">
+                        </div>
                     </div>
-                </div>
-                <div class="field-group">
-                    <label class="field-label" for="pubClientTitle">Nom de la photo</label>
-                    <div class="field-input-wrap">
-                        <input type="text" id="pubClientTitle" class="field-input" required maxlength="120" placeholder="Ex. Mes tresses boho">
+                    <div class="field-group">
+                        <label class="field-label" for="pubClientTitle">Nom de la photo</label>
+                        <div class="field-input-wrap">
+                            <input type="text" id="pubClientTitle" class="field-input" required maxlength="120" placeholder="Ex. Mes tresses boho">
+                        </div>
                     </div>
-                </div>
-                <div class="field-group">
-                    <label class="field-label" for="pubClientStyle">Type de réalisation</label>
-                    <div class="field-input-wrap">
-                        <select id="pubClientStyle" class="field-select" required>
-                            <option value="">Choisir…</option>
-                        </select>
+                    <div class="field-group">
+                        <label class="field-label" for="pubClientStyle">Type de réalisation</label>
+                        <div class="field-input-wrap">
+                            <select id="pubClientStyle" class="field-select" required>
+                                <option value="">Choisir…</option>
+                            </select>
+                        </div>
+                        <p class="field-hint">Permet aux autres clients de filtrer par style dans « S'inspirer ».</p>
                     </div>
-                    <p class="field-hint">Permet aux autres clients de filtrer par style dans « S'inspirer ».</p>
-                </div>
-                <div class="field-group">
-                    <label class="field-label" for="pubClientCaption">Légende (optionnel)</label>
-                    <textarea id="pubClientCaption" class="field-textarea" rows="3" placeholder="Ex. Merci pour cette coupe !"></textarea>
-                </div>
-                <button type="submit" class="register-submit">Partager ma photo</button>
-            </form>
-            <div class="public-gallery-compact" id="pubGalleryCompact">
-                <p id="pubGallerySummaryText" class="public-avis-compact__summary"></p>
-                <a id="pubGalleryAllLink" class="register-submit public-btn public-btn--ghost" href="#">Voir toutes les photos</a>
-            </div>
-        </section>
+                    <div class="field-group">
+                        <label class="field-label" for="pubClientCaption">Légende (optionnel)</label>
+                        <textarea id="pubClientCaption" class="field-textarea" rows="3" placeholder="Ex. Merci pour cette coupe !"></textarea>
+                    </div>
+                    <button type="submit" class="register-submit">Partager ma photo</button>
+                </form>
+            </details>
+        </div>
+
+        <div id="ppPanelAbout" class="pp-tab-panel" role="tabpanel" aria-labelledby="ppTabAbout" hidden>
+            <p class="pp-about-text" id="pubBio"></p>
+            <p class="pp-about-empty" id="pubBioEmpty" hidden>Aucune description pour le moment.</p>
+        </div>
     </div>
 </div>
 
@@ -117,12 +150,13 @@ import {
     listAvisForPro,
     listPublications,
     createPublication,
+    countFavoritesForPro,
     getFirebaseErrorMessage,
     getContactRequestBetween,
     createContactRequest,
     PUBLICATION_STYLE_TYPES
 } from "./firebase.js";
-import { compressImageFile } from "./image-utils.js";
+import { compressImageFile, mountProAvatar, initialsFromName } from "./image-utils.js";
 import { parseServicesTarifs, formatServicePriceFcfa } from "./services-tarifs-utils.js";
 
 const pubClientStyleSelect = document.getElementById("pubClientStyle");
@@ -137,7 +171,6 @@ if (pubClientStyleSelect) {
 
 const params = new URLSearchParams(location.search);
 const uid = params.get("uid");
-/** Retour explicite depuis la liste « Proximité » du tableau de bord (évite history.back vers une iframe ou une autre page). */
 const PROFILE_RET_DASH_NEARBY = new Set(["nearby-embed", "nearby-home"]);
 
 function profileRetQuerySuffix() {
@@ -160,10 +193,17 @@ const pubAvisComment = document.getElementById("pubAvisComment");
 const pubAvisBtn = document.getElementById("pubAvisBtn");
 const pubAvisErr = document.getElementById("pubAvisErr");
 const pubAvisOk = document.getElementById("pubAvisOk");
-const pubAvisSummaryText = document.getElementById("pubAvisSummaryText");
 const pubAvisAllLink = document.getElementById("pubAvisAllLink");
-const pubGallerySummaryText = document.getElementById("pubGallerySummaryText");
 const pubGalleryAllLink = document.getElementById("pubGalleryAllLink");
+const pubAvisList = document.getElementById("pubAvisList");
+const pubGalleryGrid = document.getElementById("pubGalleryGrid");
+const pubActionsBar = document.getElementById("pubActionsBar");
+const pubContactBarBtn = document.getElementById("pubContactBarBtn");
+const pubRdvBtn = document.getElementById("pubRdvBtn");
+
+let cachedFavCount = 0;
+let cachedAvis = [];
+let cachedPublications = [];
 
 if (profileBackBtn) {
     profileBackBtn.addEventListener("click", () => {
@@ -188,36 +228,235 @@ function escapeHtml(s) {
         .replace(/"/g, "&quot;");
 }
 
-async function refreshAvisSummary() {
-    if (!uid || !pubAvisSummaryText || !pubAvisAllLink) return;
-    pubAvisAllLink.href = "profil-avis.html?uid=" + encodeURIComponent(uid) + profileRetQuerySuffix();
-    const avis = await listAvisForPro(uid).catch(() => []);
-    if (!avis.length) {
-        pubAvisSummaryText.textContent = "Pas encore d’avis publié.";
-        return;
-    }
+function formatRoleLabel(role) {
+    const r = String(role || "").trim().toLowerCase();
+    if (r === "salon") return "Salon";
+    if (r.includes("coiffeuse")) return "Coiffeuse";
+    if (r.includes("coiffeur")) return "Coiffeur";
+    if (r === "client") return "Client";
+    return String(role || "—");
+}
+
+function avisAvg(avis) {
+    if (!avis.length) return null;
     let sum = 0;
     for (const a of avis) {
         sum += Math.max(0, Math.min(5, Number(a.rating) || 0));
     }
     const avgRaw = sum / avis.length;
-    const avg = Number.isInteger(avgRaw) ? String(avgRaw) : avgRaw.toFixed(1);
-    const withPhoto = avis.filter((a) => String(a.photoUrl || "").trim()).length;
-    pubAvisSummaryText.textContent =
-        `${avis.length} avis · moyenne ${avg}/5` +
-        (withPhoto ? ` · ${withPhoto} avec photo` : "") +
-        " — ouvrez la page dédiée pour tout lire.";
+    return Number.isInteger(avgRaw) ? String(avgRaw) : avgRaw.toFixed(1);
 }
 
-async function refreshGallerySummary() {
-    if (!uid || !pubGallerySummaryText || !pubGalleryAllLink) return;
-    pubGalleryAllLink.href = "profil-galerie.html?uid=" + encodeURIComponent(uid) + profileRetQuerySuffix();
-    const publications = await listPublications({ targetProUid: uid }).catch(() => []);
-    const n = publications.length;
-    pubGallerySummaryText.textContent =
-        n === 0
-            ? "Aucune photo partagée par des clients pour le moment."
-            : `${n} photo${n > 1 ? "s" : ""} après prestation — voir la galerie pour les parcourir.`;
+function formatRelativeFr(createdAt) {
+    const ms = createdAt?.toMillis ? createdAt.toMillis() : new Date(createdAt || 0).getTime();
+    if (!ms) return "";
+    const diff = Date.now() - ms;
+    const mins = Math.floor(diff / 60000);
+    if (mins < 60) return "À l'instant";
+    const hours = Math.floor(diff / 3600000);
+    if (hours < 24) return hours === 1 ? "Il y a 1 heure" : `Il y a ${hours} heures`;
+    const days = Math.floor(diff / 86400000);
+    if (days === 1) return "Il y a 1 jour";
+    if (days < 30) return `Il y a ${days} jours`;
+    return new Date(ms).toLocaleDateString("fr-FR", { day: "2-digit", month: "short", year: "numeric" });
+}
+
+function clientDisplayShort(profile) {
+    const n = String(profile?.name || "").trim();
+    if (!n) return "Cliente";
+    const parts = n.split(/\s+/).filter(Boolean);
+    if (parts.length === 1) return parts[0];
+    return parts[0] + " " + parts[parts.length - 1].charAt(0).toUpperCase() + ".";
+}
+
+function renderStars(rating) {
+    const r = Math.max(0, Math.min(5, Math.round(Number(rating) || 0)));
+    return "★".repeat(r) + "☆".repeat(5 - r);
+}
+
+function updateStats(avis, publications, favCount) {
+    const avg = avisAvg(avis);
+    const ratingEl = document.getElementById("pubStatRating");
+    const avisEl = document.getElementById("pubStatAvis");
+    const favsEl = document.getElementById("pubStatFavs");
+    const photosEl = document.getElementById("pubStatPhotos");
+    const pubRating = document.getElementById("pubRating");
+    const nameEl = document.getElementById("pubName");
+    const baseName = nameEl?.dataset?.baseName || nameEl?.textContent || "";
+    if (ratingEl) ratingEl.textContent = avg ? `⭐ ${avg}` : "—";
+    if (avisEl) avisEl.textContent = String(avis.length);
+    if (favsEl) favsEl.textContent = String(favCount);
+    if (photosEl) photosEl.textContent = String(publications.length);
+    if (nameEl && baseName) {
+        nameEl.textContent = avg ? `${baseName} ⭐ ${avg}` : baseName;
+    }
+    if (pubRating) pubRating.hidden = true;
+}
+
+function updateMetaChips(avis, publications) {
+    const el = document.getElementById("pubMetaChips");
+    if (!el) return;
+    const chips = [];
+    if (publications.length) {
+        chips.push(`<span class="pp-hero__chip">📸 ${publications.length} réalisation${publications.length > 1 ? "s" : ""}</span>`);
+    }
+    if (avis.length) {
+        chips.push(`<span class="pp-hero__chip">📝 ${avis.length} avis</span>`);
+    }
+    el.innerHTML = chips.join("");
+    el.hidden = !chips.length;
+}
+
+async function buildClientNameMap(avis) {
+    const uids = [...new Set(avis.map((a) => String(a.fromClientUid || "").trim()).filter(Boolean))];
+    const map = {};
+    await Promise.all(
+        uids.map(async (id) => {
+            const p = await fetchUserProfile(id).catch(() => null);
+            if (p) map[id] = p;
+        })
+    );
+    return map;
+}
+
+async function renderAvisList(avis) {
+    if (!pubAvisList) return;
+    cachedAvis = avis;
+    pubAvisList.innerHTML = "";
+    if (!avis.length) {
+        const li = document.createElement("li");
+        li.className = "pp-avis-empty";
+        li.textContent = "Pas encore d'avis publié.";
+        pubAvisList.appendChild(li);
+        return;
+    }
+    const sorted = [...avis].sort((a, b) => {
+        const ta = a?.createdAt?.toMillis ? a.createdAt.toMillis() : new Date(a.createdAt || 0).getTime();
+        const tb = b?.createdAt?.toMillis ? b.createdAt.toMillis() : new Date(b.createdAt || 0).getTime();
+        return tb - ta;
+    });
+    const preview = sorted.slice(0, 5);
+    const nameMap = await buildClientNameMap(preview);
+    for (const avis of preview) {
+        const li = document.createElement("li");
+        li.className = "pp-avis-card";
+        const rating = Math.max(1, Math.min(5, Number(avis.rating || 0))) || 0;
+        const photoUrl = String(avis.photoUrl || "").trim();
+        const author = clientDisplayShort(nameMap[avis.fromClientUid]);
+        const rel = formatRelativeFr(avis.createdAt);
+        const photoBlock = photoUrl
+            ? `<p class="pp-avis-card__photo-label">📷 Photo jointe</p>` +
+              `<div class="pp-avis-card__photo">` +
+              `<a href="${escapeHtml(photoUrl)}" target="_blank" rel="noopener noreferrer">` +
+              `<img src="${escapeHtml(photoUrl)}" alt="Photo de l'avis" loading="lazy" decoding="async">` +
+              `</a></div>`
+            : "";
+        li.innerHTML =
+            `<p class="pp-avis-card__stars">${escapeHtml(renderStars(rating))}</p>` +
+            `<p class="pp-avis-card__comment">${escapeHtml(String(avis.comment || "Sans commentaire."))}</p>` +
+            `<p class="pp-avis-card__author">— ${escapeHtml(author)}${rel ? " · " + escapeHtml(rel) : ""}</p>` +
+            photoBlock;
+        pubAvisList.appendChild(li);
+    }
+}
+
+function renderGalleryGrid(publications) {
+    if (!pubGalleryGrid) return;
+    cachedPublications = publications;
+    pubGalleryGrid.innerHTML = "";
+    if (!publications.length) {
+        pubGalleryGrid.innerHTML =
+            '<p class="pp-gallery-empty">Aucune photo partagée pour le moment.</p>';
+        return;
+    }
+    const sorted = [...publications].sort((a, b) => {
+        const ta = a?.createdAt?.toMillis ? a.createdAt.toMillis() : new Date(a.createdAt || 0).getTime();
+        const tb = b?.createdAt?.toMillis ? b.createdAt.toMillis() : new Date(b.createdAt || 0).getTime();
+        return tb - ta;
+    });
+    const preview = sorted.slice(0, 6);
+    const galUrl = "profil-galerie.html?uid=" + encodeURIComponent(uid) + profileRetQuerySuffix();
+    for (const pub of preview) {
+        const url = String(pub.photoUrl || "").trim();
+        if (!url) continue;
+        const cell = document.createElement("a");
+        cell.className = "pp-gallery-cell";
+        cell.href = galUrl;
+        cell.title = String(pub.title || "Voir la galerie");
+        cell.innerHTML = `<img src="${escapeHtml(url)}" alt="${escapeHtml(pub.title || "Photo client")}" loading="lazy" decoding="async">`;
+        pubGalleryGrid.appendChild(cell);
+    }
+    if (!pubGalleryGrid.children.length) {
+        const p = document.createElement("p");
+        p.className = "pp-gallery-empty";
+        p.textContent = "Aucune photo partagée pour le moment.";
+        pubGalleryGrid.appendChild(p);
+    }
+}
+
+async function refreshProfileData() {
+    if (!uid) return;
+    if (pubAvisAllLink) {
+        pubAvisAllLink.href = "profil-avis.html?uid=" + encodeURIComponent(uid) + profileRetQuerySuffix();
+    }
+    if (pubGalleryAllLink) {
+        pubGalleryAllLink.href = "profil-galerie.html?uid=" + encodeURIComponent(uid) + profileRetQuerySuffix();
+    }
+    const [avis, publications, favCount] = await Promise.all([
+        listAvisForPro(uid).catch(() => []),
+        listPublications({ targetProUid: uid }).catch(() => []),
+        countFavoritesForPro(uid).catch(() => 0)
+    ]);
+    cachedFavCount = favCount;
+    updateStats(avis, publications, favCount);
+    updateMetaChips(avis, publications);
+    await renderAvisList(avis);
+    renderGalleryGrid(publications);
+}
+
+function setupPpTabs() {
+    const tabs = document.querySelectorAll("[data-pp-tab]");
+    const panels = {
+        avis: document.getElementById("ppPanelAvis"),
+        photos: document.getElementById("ppPanelPhotos"),
+        about: document.getElementById("ppPanelAbout")
+    };
+    tabs.forEach((btn) => {
+        btn.addEventListener("click", () => {
+            const key = btn.dataset.ppTab;
+            tabs.forEach((t) => {
+                const active = t === btn;
+                t.classList.toggle("is-active", active);
+                t.setAttribute("aria-selected", active ? "true" : "false");
+            });
+            Object.entries(panels).forEach(([k, el]) => {
+                if (el) el.hidden = k !== key;
+            });
+        });
+    });
+}
+
+function scrollToContactPanel() {
+    const panel = document.getElementById("contactRequestPanel");
+    if (!panel || panel.hidden) return;
+    panel.scrollIntoView({ behavior: "smooth", block: "nearest" });
+    document.getElementById("contactRequestNote")?.focus();
+}
+
+setupPpTabs();
+
+if (pubContactBarBtn) {
+    pubContactBarBtn.addEventListener("click", scrollToContactPanel);
+}
+
+if (pubRdvBtn) {
+    pubRdvBtn.addEventListener("click", () => {
+        const note = document.getElementById("contactRequestNote");
+        if (note && !String(note.value || "").trim()) {
+            note.value = "Bonjour, je souhaiterais prendre rendez-vous.";
+        }
+        scrollToContactPanel();
+    });
 }
 
 if (!uid) {
@@ -225,50 +464,68 @@ if (!uid) {
     errEl.hidden = false;
 } else {
     function fillPublicProfile(d) {
-        document.getElementById("pubRole").textContent = d.role || "—";
-        document.getElementById("pubName").textContent = d.salonName || d.name || "Sans nom";
+        const displayName = d.salonName || d.name || "Sans nom";
+        document.getElementById("pubRole").textContent = formatRoleLabel(d.role);
+        const nameEl = document.getElementById("pubName");
+        if (nameEl) {
+            nameEl.textContent = displayName;
+            nameEl.dataset.baseName = displayName;
+        }
+
         const cityStr = String(d.city || "").trim();
         const quartStr = String(d.quartier || "").trim();
         const locParts = [];
-        if (cityStr) locParts.push("Ville : " + cityStr);
-        if (quartStr) locParts.push("Proximité : " + quartStr);
-        document.getElementById("pubCity").textContent = locParts.join(" · ");
+        if (quartStr) locParts.push(quartStr);
+        if (cityStr) locParts.push(cityStr);
+        document.getElementById("pubCity").textContent = locParts.length ? "📍 " + locParts.join(", ") : "";
+
         const bioEl = document.getElementById("pubBio");
+        const bioEmpty = document.getElementById("pubBioEmpty");
+        const bioText = String(d.bio || "").trim();
         if (bioEl) {
-            const bioText = String(d.bio || "").trim();
             bioEl.textContent = bioText;
             bioEl.hidden = !bioText;
         }
+        if (bioEmpty) bioEmpty.hidden = !!bioText;
+
+        const avatarWrap = document.getElementById("pubAvatarWrap");
+        if (avatarWrap) {
+            avatarWrap.innerHTML = "";
+            const img = document.createElement("img");
+            img.className = "pp-hero__img";
+            img.alt = "";
+            img.hidden = true;
+            const fb = document.createElement("span");
+            fb.className = "pp-hero__fb";
+            fb.textContent = initialsFromName(displayName);
+            avatarWrap.appendChild(img);
+            avatarWrap.appendChild(fb);
+            mountProAvatar(img, fb, displayName, d.photoUrl);
+        }
+
         const pubServicesEl = document.getElementById("pubServices");
-        const pubTarifsTitle = document.getElementById("pubTarifsTitle");
+        const pubServicesSection = document.getElementById("pubServicesSection");
         const textTarifs = String(d.servicesTarifs || "").trim();
-        const isProProfile =
-            String(d.role || "")
-                .trim()
-                .toLowerCase() !== "client";
-        if (pubServicesEl && pubTarifsTitle) {
+        const isProProfile = String(d.role || "").trim().toLowerCase() !== "client";
+        if (pubServicesEl && pubServicesSection) {
             const services = parseServicesTarifs(textTarifs);
             if (services.length && isProProfile) {
                 pubServicesEl.innerHTML = services
                     .map((s) => {
                         const price = formatServicePriceFcfa(s.price, s.fromPrice);
-                        const priceHtml = price
-                            ? `<span class="public-services-list__price">${escapeHtml(price)}</span>`
-                            : "";
+                        const priceLabel = price ? (s.fromPrice ? `À partir de ${price}` : price) : "";
                         return (
-                            `<li class="public-services-list__item">` +
-                            `<span class="public-services-list__name">${escapeHtml(s.name)}</span>` +
-                            priceHtml +
+                            `<li class="pp-service-card">` +
+                            `<span class="pp-service-card__name">${escapeHtml(s.name)}</span>` +
+                            (priceLabel ? `<span class="pp-service-card__price">${escapeHtml(priceLabel)}</span>` : "") +
                             `</li>`
                         );
                     })
                     .join("");
-                pubServicesEl.hidden = false;
-                pubTarifsTitle.hidden = false;
+                pubServicesSection.hidden = false;
             } else {
                 pubServicesEl.innerHTML = "";
-                pubServicesEl.hidden = true;
-                pubTarifsTitle.hidden = true;
+                pubServicesSection.hidden = true;
             }
         }
     }
@@ -295,19 +552,24 @@ if (!uid) {
         if (req?.status === "accepted") {
             contactRequestPanel.hidden = true;
             linkMsgEl.hidden = false;
-            linkMsgEl.textContent = "Ouvrir la messagerie";
+            linkMsgEl.textContent = "Message";
+            if (pubContactBarBtn) pubContactBarBtn.hidden = true;
             pubContactPair = null;
             return;
         }
 
         contactRequestPanel.hidden = false;
         linkMsgEl.hidden = true;
+        if (pubContactBarBtn) {
+            pubContactBarBtn.hidden = false;
+            pubContactBarBtn.textContent = "Contacter";
+        }
         pubContactPair = { clientUid, proUid };
 
         if (!req) {
             if (contactRequestStatus) {
                 contactRequestStatus.textContent =
-                    "Envoyez une demande : le professionnel devra l’accepter avant que vous puissiez discuter par messagerie.";
+                    "Envoyez une demande : le professionnel devra l'accepter avant que vous puissiez discuter par messagerie.";
             }
             if (contactRequestBtn) {
                 contactRequestBtn.hidden = false;
@@ -321,7 +583,7 @@ if (!uid) {
         if (req.status === "pending") {
             if (contactRequestStatus) {
                 contactRequestStatus.textContent =
-                    "Demande envoyée — en attente de réponse. Vous serez informé lorsque le professionnel aura accepté ou refusé (rechargez cette page ou ouvrez la messagerie).";
+                    "Demande envoyée — en attente de réponse. Rechargez cette page ou ouvrez la messagerie une fois acceptée.";
             }
             if (contactRequestBtn) contactRequestBtn.hidden = true;
             if (contactRequestNote) contactRequestNote.disabled = true;
@@ -331,7 +593,7 @@ if (!uid) {
         if (req.status === "rejected") {
             if (contactRequestStatus) {
                 contactRequestStatus.textContent =
-                    "Votre demande a été refusée. La messagerie avec ce professionnel reste fermée, sauf si vous envoyez une nouvelle demande.";
+                    "Votre demande a été refusée. Vous pouvez envoyer une nouvelle demande ci-dessous.";
             }
             if (contactRequestBtn) {
                 contactRequestBtn.hidden = false;
@@ -373,14 +635,13 @@ if (!uid) {
             return;
         }
         if (!d) {
-            errEl.textContent = "Ce profil n’existe pas.";
+            errEl.textContent = "Ce profil n'existe pas.";
             errEl.hidden = false;
             return;
         }
 
         fillPublicProfile(d);
-        await refreshAvisSummary();
-        await refreshGallerySummary();
+        await refreshProfileData();
 
         let myProfile = null;
         myProfile = await fetchUserProfile(user.uid).catch(() => null);
@@ -391,8 +652,9 @@ if (!uid) {
 
         linkMsgEl.href = "messagerie.html?to=" + encodeURIComponent(uid);
         linkMsgEl.textContent = "Message";
-        linkMsgEl.hidden = false;
+        linkMsgEl.hidden = true;
         if (contactRequestPanel) contactRequestPanel.hidden = true;
+        if (pubActionsBar) pubActionsBar.hidden = true;
         content.hidden = false;
 
         const targetRole = String(d.role || "").toLowerCase();
@@ -408,38 +670,47 @@ if (!uid) {
         if (selfProfile) {
             linkMsgEl.hidden = true;
             if (contactRequestPanel) contactRequestPanel.hidden = true;
+            if (pubActionsBar) pubActionsBar.hidden = true;
             favBtn.hidden = true;
         } else if (user.uid !== uid && isTargetPro && amClient) {
+            if (pubActionsBar) pubActionsBar.hidden = false;
             await syncContactRequestUi(user.uid, uid);
-        } else {
+        } else if (user.uid !== uid && isTargetPro) {
+            if (pubActionsBar) pubActionsBar.hidden = false;
             linkMsgEl.hidden = false;
+            if (pubContactBarBtn) pubContactBarBtn.hidden = true;
+            if (pubRdvBtn) pubRdvBtn.hidden = true;
             if (contactRequestPanel) contactRequestPanel.hidden = true;
         }
 
-        if (pubAvisForm) {
-            pubAvisForm.hidden = !(user.uid !== uid && isTargetPro && amClient);
-        }
-        if (pubClientForm) {
-            pubClientForm.hidden = !(user.uid !== uid && isTargetPro && amClient);
-        }
+        const canInteract = user.uid !== uid && isTargetPro && amClient;
+        if (pubAvisForm) pubAvisForm.hidden = !canInteract;
+        if (pubClientForm) pubClientForm.hidden = !canInteract;
+        const avisFold = document.getElementById("pubAvisFold");
+        const photoFold = document.getElementById("pubPhotoFold");
+        if (avisFold) avisFold.hidden = !canInteract;
+        if (photoFold) photoFold.hidden = !canInteract;
 
         if (user.uid !== uid && isTargetPro) {
             try {
                 const favorites = await listFavorites(user.uid);
-                let isFavorite = favorites.some(f => f.proId === uid);
+                let isFavorite = favorites.some((f) => f.proId === uid);
                 favBtn.textContent = isFavorite ? "Retirer des favoris" : "Ajouter aux favoris";
-                favBtn.hidden = false;
+                favBtn.hidden = selfProfile;
                 favBtn.onclick = async () => {
                     try {
                         if (isFavorite) {
                             await removeFavorite(user.uid, uid);
                             isFavorite = false;
                             favBtn.textContent = "Ajouter aux favoris";
+                            cachedFavCount = Math.max(0, cachedFavCount - 1);
                         } else {
                             await addFavorite(user.uid, uid);
                             isFavorite = true;
                             favBtn.textContent = "Retirer des favoris";
+                            cachedFavCount += 1;
                         }
+                        updateStats(cachedAvis, cachedPublications, cachedFavCount);
                     } catch (error) {
                         alert("Erreur: " + error.message);
                     }
@@ -468,13 +739,9 @@ if (pubClientForm) {
         }
         try {
             const photoTitle = String(document.getElementById("pubClientTitle")?.value || "").trim();
-            if (!photoTitle) {
-                throw new Error("Indiquez un nom pour votre photo.");
-            }
+            if (!photoTitle) throw new Error("Indiquez un nom pour votre photo.");
             const styleType = String(pubClientStyleSelect?.value || "").trim();
-            if (!styleType) {
-                throw new Error("Choisissez le type dans la liste (tresses, coupe, etc.).");
-            }
+            if (!styleType) throw new Error("Choisissez le type dans la liste (tresses, coupe, etc.).");
             const photoUrl = await compressImageFile(file);
             await createPublication({
                 authorUid: user.uid,
@@ -493,7 +760,7 @@ if (pubClientForm) {
                 pubPostOk.textContent = "Photo partagée.";
                 pubPostOk.hidden = false;
             }
-            await refreshGallerySummary();
+            await refreshProfileData();
         } catch (err) {
             if (pubPostErr) {
                 pubPostErr.textContent = getFirebaseErrorMessage(err);
@@ -536,7 +803,7 @@ if (pubAvisForm) {
         try {
             const rating = Number(pubAvisRating?.value || 0);
             const comment = String(pubAvisComment?.value || "").trim();
-            if (rating < 1 || rating > 5) throw new Error("La note doit etre comprise entre 1 et 5.");
+            if (rating < 1 || rating > 5) throw new Error("La note doit être comprise entre 1 et 5.");
             if (!comment) throw new Error("Ajoutez un commentaire avant de publier votre avis.");
             let photoUrl = "";
             const file = pubAvisPhotoInput?.files?.[0] || null;
@@ -551,10 +818,10 @@ if (pubAvisForm) {
                 pubAvisPhotoHint.textContent = "JPG, PNG… — max 2 Mo. Visible sur la page « Tous les avis ».";
             }
             if (pubAvisOk) {
-                pubAvisOk.textContent = "Merci, votre avis a ete publie.";
+                pubAvisOk.textContent = "Merci, votre avis a été publié.";
                 pubAvisOk.hidden = false;
             }
-            await refreshAvisSummary();
+            await refreshProfileData();
         } catch (err) {
             if (pubAvisErr) {
                 pubAvisErr.textContent = getFirebaseErrorMessage(err);
