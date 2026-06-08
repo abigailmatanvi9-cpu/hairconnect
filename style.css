@@ -11488,57 +11488,61 @@ body.hc-theme-pro .form-success {
 }
 
 /* -------------------------------------------------------------------------
-   Accueil ? style spa / salon (Blossom-like)
+   Accueil — landing salon (lilas doux, mauve, blanc)
    ------------------------------------------------------------------------- */
 body.hc-marketing--spa {
     display: block;
     padding: 0;
     background: #ffffff;
-    color: var(--hc-pro-ink);
-}
-
-.spa-topbar {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    padding: 0.55rem clamp(1rem, 4vw, 2.5rem);
-    background: var(--hc-pro-surface);
-    border-bottom: 1px solid var(--hc-pro-line);
-    font-size: 0.78rem;
-    color: var(--hc-pro-muted);
-    text-align: center;
-}
-
-.spa-topbar__msg {
-    margin: 0;
+    color: var(--hc-dash-mauve-deep, #4a47a8);
+    --hc-marketing-mauve: var(--hc-dash-mauve-deep, #4a47a8);
+    --hc-marketing-mauve-mid: var(--hc-dash-mauve, #5e5bb8);
+    --hc-marketing-lilac: var(--hc-dash-sidebar, #e6e1f9);
 }
 
 .spa-header {
     background: #fff;
     border-bottom: 1px solid var(--hc-pro-line);
+    position: sticky;
+    top: 0;
+    z-index: 40;
 }
 
 .spa-header__info {
-    display: none;
+    display: flex;
     flex-wrap: wrap;
-    gap: 1.25rem;
-    padding: 0.5rem clamp(1rem, 4vw, 2.5rem);
-    background: var(--hc-pro-surface);
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.45rem 1rem;
+    padding: 0.55rem clamp(1rem, 4vw, 2.5rem);
+    background: var(--hc-marketing-lilac, #e6e1f9);
     font-size: 0.78rem;
-    color: var(--hc-pro-muted);
-    border-bottom: 1px solid var(--hc-pro-line);
+    font-weight: 500;
+    color: var(--hc-marketing-mauve, #4a47a8);
+    border-bottom: 1px solid rgba(74, 71, 168, 0.08);
 }
 
-@media (min-width: 768px) {
-    .spa-header__info {
-        display: flex;
-    }
+.spa-header__info-left {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.85rem 1.25rem;
+}
+
+.spa-header__info-hours {
+    font-weight: 500;
+    white-space: nowrap;
 }
 
 .spa-header__info-item {
     display: inline-flex;
     align-items: center;
     gap: 0.35rem;
+}
+
+.spa-header__info-item svg {
+    flex-shrink: 0;
+    opacity: 0.88;
 }
 
 .spa-header__main {
@@ -11554,25 +11558,27 @@ body.hc-marketing--spa {
     align-items: center;
     gap: 0.55rem;
     text-decoration: none;
-    color: var(--hc-pro-ink);
+    color: var(--hc-marketing-mauve, #4a47a8);
 }
 
 .spa-logo__icon {
     display: flex;
     align-items: center;
     justify-content: center;
-    width: 2.5rem;
-    height: 2.5rem;
+    width: 2.35rem;
+    height: 2.35rem;
     border-radius: 50%;
-    background: var(--hc-pro-purple-soft);
-    color: var(--hc-pro-purple);
+    background: var(--hc-marketing-lilac, #e6e1f9);
+    color: var(--hc-marketing-mauve-mid, #5e5bb8);
+    border: 1px solid rgba(74, 71, 168, 0.12);
 }
 
 .spa-logo__text {
     font-family: var(--hc-font-serif);
-    font-size: 1.35rem;
+    font-size: 1.4rem;
     font-weight: 700;
     letter-spacing: -0.01em;
+    color: var(--hc-marketing-mauve, #4a47a8);
 }
 
 .spa-nav-toggle {
@@ -11583,7 +11589,7 @@ body.hc-marketing--spa {
     border: 1px solid var(--hc-pro-line);
     border-radius: 8px;
     background: #fff;
-    color: var(--hc-pro-ink);
+    color: var(--hc-marketing-mauve, #4a47a8);
     cursor: pointer;
 }
 
@@ -11636,74 +11642,84 @@ body.hc-marketing--spa {
     letter-spacing: 0.1em;
     text-transform: uppercase;
     text-decoration: none;
-    color: var(--hc-pro-ink);
+    color: var(--hc-marketing-mauve, #4a47a8);
     border-radius: 4px;
     transition: color 0.15s ease, background 0.15s ease;
 }
 
 .spa-nav__link:hover,
 .spa-nav__link.is-active {
-    color: var(--hc-pro-purple);
+    color: var(--hc-marketing-mauve-mid, #5e5bb8);
 }
 
 .spa-nav__link--cta {
-    background: var(--hc-pro-purple);
+    background: var(--hc-marketing-mauve-mid, #5e5bb8);
     color: #fff !important;
-    border-radius: 999px;
-    padding: 0.55rem 1.1rem;
+    border-radius: 4px;
+    padding: 0.58rem 1.15rem;
+    margin-left: 0.25rem;
+    box-shadow: 0 4px 14px rgba(94, 91, 184, 0.2);
 }
 
 .spa-nav__link--cta:hover {
-    background: var(--hc-pro-purple-deep);
+    background: var(--hc-marketing-mauve, #4a47a8);
     color: #fff !important;
 }
 
 .spa-hero {
     position: relative;
-    min-height: min(72vh, 560px);
+    min-height: min(78vh, 620px);
     display: flex;
     align-items: center;
     justify-content: center;
     text-align: center;
     overflow: hidden;
+    background: var(--hc-marketing-lilac, #e6e1f9);
 }
 
 .spa-hero__bg {
     position: absolute;
     inset: 0;
     background:
-        url("https://images.unsplash.com/photo-1522337360788-8b13dee7a37e?auto=format&fit=crop&w=1600&q=80") center / cover no-repeat;
+        url("https://images.unsplash.com/photo-1515377905703-c4788e51af15?auto=format&fit=crop&w=1600&q=80") center 35% / cover no-repeat;
 }
 
 .spa-hero__overlay {
     position: absolute;
     inset: 0;
-    background: linear-gradient(180deg, rgba(74, 71, 168, 0.55) 0%, rgba(94, 91, 184, 0.42) 100%);
+    background:
+        linear-gradient(
+            180deg,
+            rgba(230, 225, 249, 0.82) 0%,
+            rgba(240, 237, 245, 0.62) 45%,
+            rgba(230, 225, 249, 0.78) 100%
+        );
 }
 
 .spa-hero__content {
     position: relative;
     z-index: 1;
-    max-width: 42rem;
-    padding: 2rem clamp(1.25rem, 5vw, 2.5rem);
+    max-width: 44rem;
+    padding: 2.5rem clamp(1.25rem, 5vw, 2.5rem);
 }
 
 .spa-hero__title {
     margin: 0 0 1rem;
     font-family: var(--hc-font-serif);
-    font-size: clamp(2rem, 6vw, 3.25rem);
+    font-size: clamp(2rem, 5.5vw, 3.15rem);
     font-weight: 600;
-    line-height: 1.15;
-    color: #fff;
+    line-height: 1.18;
+    color: var(--hc-marketing-mauve, #4a47a8);
     letter-spacing: -0.01em;
 }
 
 .spa-hero__lead {
-    margin: 0 auto 1.75rem;
+    margin: 0 auto 1.85rem;
     max-width: 34rem;
     font-size: clamp(0.95rem, 2.2vw, 1.05rem);
     line-height: 1.65;
-    color: rgba(255, 255, 255, 0.92);
+    color: var(--hc-marketing-mauve, #4a47a8);
+    opacity: 0.92;
 }
 
 .spa-hero__actions {
@@ -11728,24 +11744,26 @@ body.hc-marketing--spa {
 }
 
 .spa-btn--ghost {
-    border: 2px solid rgba(255, 255, 255, 0.85);
-    color: #fff;
-    background: transparent;
+    border: 2px solid var(--hc-marketing-mauve-mid, #5e5bb8);
+    color: var(--hc-marketing-mauve, #4a47a8);
+    background: rgba(255, 255, 255, 0.35);
 }
 
 .spa-btn--ghost:hover {
-    background: rgba(255, 255, 255, 0.12);
+    background: rgba(255, 255, 255, 0.72);
+    border-color: var(--hc-marketing-mauve, #4a47a8);
 }
 
 .spa-btn--primary {
-    border: 2px solid var(--hc-pro-purple);
-    background: var(--hc-pro-purple);
+    border: 2px solid var(--hc-marketing-mauve-mid, #5e5bb8);
+    background: var(--hc-marketing-mauve-mid, #5e5bb8);
     color: #fff;
+    box-shadow: 0 6px 18px rgba(94, 91, 184, 0.22);
 }
 
 .spa-btn--primary:hover {
-    background: var(--hc-pro-purple-deep);
-    border-color: var(--hc-pro-purple-deep);
+    background: var(--hc-marketing-mauve, #4a47a8);
+    border-color: var(--hc-marketing-mauve, #4a47a8);
 }
 
 .spa-services {
@@ -11759,7 +11777,7 @@ body.hc-marketing--spa {
     font-family: var(--hc-font-serif);
     font-size: clamp(1.75rem, 4vw, 2.35rem);
     font-weight: 600;
-    color: var(--hc-pro-ink);
+    color: var(--hc-marketing-mauve, #4a47a8);
 }
 
 .spa-services__lead {
@@ -11790,7 +11808,7 @@ body.hc-marketing--spa {
     font-family: var(--hc-font-serif);
     font-size: 1.2rem;
     font-weight: 600;
-    color: var(--hc-pro-ink);
+    color: var(--hc-marketing-mauve, #4a47a8);
 }
 
 .spa-service-card__img {
@@ -11824,7 +11842,7 @@ body.hc-marketing--spa {
 .spa-service-card__link {
     font-size: 0.82rem;
     font-weight: 600;
-    color: var(--hc-pro-purple);
+    color: var(--hc-marketing-mauve-mid, #5e5bb8);
     text-decoration: none;
 }
 
@@ -11834,8 +11852,8 @@ body.hc-marketing--spa {
 
 .spa-footer {
     padding: 2rem clamp(1rem, 4vw, 2.5rem) 2.5rem;
-    background: var(--hc-pro-surface);
-    border-top: 1px solid var(--hc-pro-line);
+    background: var(--hc-marketing-lilac, #e6e1f9);
+    border-top: 1px solid rgba(74, 71, 168, 0.1);
     text-align: center;
 }
 
@@ -11844,7 +11862,7 @@ body.hc-marketing--spa {
     font-family: var(--hc-font-serif);
     font-size: 1.25rem;
     font-weight: 700;
-    color: var(--hc-pro-ink);
+    color: var(--hc-marketing-mauve, #4a47a8);
 }
 
 .spa-footer__legal {
@@ -11868,7 +11886,22 @@ body.hc-marketing--spa {
 }
 
 .spa-footer__links a:hover {
-    color: var(--hc-pro-purple);
+    color: var(--hc-marketing-mauve-mid, #5e5bb8);
+}
+
+@media (max-width: 520px) {
+    .spa-header__info {
+        justify-content: center;
+        text-align: center;
+    }
+
+    .spa-header__info-left {
+        justify-content: center;
+    }
+
+    .spa-header__info-hours {
+        width: 100%;
+    }
 }
 
 /* -------------------------------------------------------------------------
