@@ -38,8 +38,6 @@
 
         <div id="contactRequestPanel" class="pp-contact-panel" hidden>
             <p id="contactRequestStatus" class="pp-contact-panel__status" aria-live="polite"></p>
-            <label class="field-label" for="contactRequestNote">Message au professionnel (optionnel)</label>
-            <textarea id="contactRequestNote" class="field-textarea public-contact-request__note" rows="2" maxlength="2000" placeholder="Bonjour, je souhaiterais…"></textarea>
             <button type="button" class="register-submit public-btn" id="contactRequestBtn">Envoyer une demande de contact</button>
         </div>
 
@@ -440,7 +438,6 @@ function scrollToContactPanel() {
     const panel = document.getElementById("contactRequestPanel");
     if (!panel || panel.hidden) return;
     panel.scrollIntoView({ behavior: "smooth", block: "nearest" });
-    document.getElementById("contactRequestNote")?.focus();
 }
 
 setupPpTabs();
@@ -450,13 +447,7 @@ if (pubContactBarBtn) {
 }
 
 if (pubRdvBtn) {
-    pubRdvBtn.addEventListener("click", () => {
-        const note = document.getElementById("contactRequestNote");
-        if (note && !String(note.value || "").trim()) {
-            note.value = "Bonjour, je souhaiterais prendre rendez-vous.";
-        }
-        scrollToContactPanel();
-    });
+    pubRdvBtn.addEventListener("click", scrollToContactPanel);
 }
 
 if (!uid) {
@@ -534,7 +525,6 @@ if (!uid) {
     async function syncContactRequestUi(clientUid, proUid) {
         const contactRequestStatus = document.getElementById("contactRequestStatus");
         const contactRequestBtn = document.getElementById("contactRequestBtn");
-        const contactRequestNote = document.getElementById("contactRequestNote");
         const linkMsgEl = document.getElementById("linkMsg");
         const contactRequestPanel = document.getElementById("contactRequestPanel");
         if (!contactRequestPanel || !linkMsgEl) return;
@@ -575,7 +565,6 @@ if (!uid) {
                 contactRequestBtn.disabled = false;
                 contactRequestBtn.textContent = "Envoyer une demande de contact";
             }
-            if (contactRequestNote) contactRequestNote.disabled = false;
             return;
         }
 
@@ -585,7 +574,6 @@ if (!uid) {
                     "Demande envoyée — en attente de réponse. Rechargez cette page ou ouvrez la messagerie une fois acceptée.";
             }
             if (contactRequestBtn) contactRequestBtn.hidden = true;
-            if (contactRequestNote) contactRequestNote.disabled = true;
             return;
         }
 
@@ -598,18 +586,16 @@ if (!uid) {
                 contactRequestBtn.hidden = false;
                 contactRequestBtn.textContent = "Envoyer une nouvelle demande";
             }
-            if (contactRequestNote) contactRequestNote.disabled = false;
         }
     }
 
     document.getElementById("contactRequestBtn")?.addEventListener("click", async () => {
         if (!pubContactPair) return;
         const btn = document.getElementById("contactRequestBtn");
-        const note = document.getElementById("contactRequestNote");
         try {
             if (btn) btn.disabled = true;
             errEl.hidden = true;
-            await createContactRequest(pubContactPair.clientUid, pubContactPair.proUid, note?.value || "");
+            await createContactRequest(pubContactPair.clientUid, pubContactPair.proUid, "");
             await syncContactRequestUi(pubContactPair.clientUid, pubContactPair.proUid);
         } catch (e) {
             errEl.textContent = getFirebaseErrorMessage(e);
