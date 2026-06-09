@@ -27,7 +27,7 @@
             <div class="profil-hero-avatar-wrap profil-dash-hero__avatar-wrap">
                 <label class="profil-hero-avatar-label" for="dpPhotoFile">
                     <img id="dpHubAvatar" class="profil-hero-avatar" alt="" hidden>
-                    <span id="dpHubAvatarFb" class="profil-hero-avatar-fb">?</span>
+                <span id="dpHubAvatarFb" class="profil-hero-avatar-fb">?</span>
                     <span class="profil-hero-avatar-edit" aria-hidden="true">
                         <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M6.827 16.95 3 20.776V18a2.25 2.25 0 012.25-2.25h2.577M15.75 7.5l-7.5 7.5M18 3l3 3-9.75 9.75H8.25V12L18 3z"/></svg>
                     </span>
@@ -37,13 +37,13 @@
             <h2 class="profil-dash-hero__name" id="dpProfilHeroName">—</h2>
             <p class="profil-dash-hero__role" id="dpHubRolePill">—</p>
             <ul class="profil-dash-hero__facts" id="dpHeroFacts"></ul>
-        </div>
+            </div>
 
         <div class="profil-dash-complete" id="dpCompleteBlock">
             <div class="profil-dash-complete__head">
                 <span>Profil complété à <strong id="dpCompletePct">0</strong>&nbsp;%</span>
                 <button type="button" class="profil-dash-complete__cta" id="dpEditCta">Modifier</button>
-            </div>
+        </div>
             <div class="profil-dash-complete__bar" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" id="dpCompleteBarWrap">
                 <span class="profil-dash-complete__bar-fill" id="dpCompleteBar" style="width:0%"></span>
             </div>
@@ -72,91 +72,108 @@
         <button type="button" class="profil-dash-tab" role="tab" aria-selected="false" data-dp-tab="avis" id="dpTabAvis" hidden>Avis</button>
     </nav>
 
-    <form id="dpForm" class="register-form profil-edit-form">
+            <form id="dpForm" class="register-form profil-edit-form">
         <div id="dpPanelInfo" class="profil-dash-panel" role="tabpanel" aria-labelledby="dpTabInfo">
-            <details class="profil-dash-fold" open>
+            <details class="profil-dash-fold" data-dp-fold="general">
                 <summary>Informations générales</summary>
-                <div class="profil-dash-fold__body">
-                    <div class="field-group">
-                        <label class="field-label" for="dpName">Nom affiché</label>
-                        <div class="field-input-wrap">
-                            <input type="text" id="dpName" name="name" autocomplete="name" required>
-                        </div>
+                <div class="profil-dash-fold__view" data-dp-fold-view>
+                    <div class="profil-dash-fold__view-content" data-dp-fold-view-content></div>
+                    <button type="button" class="profil-dash-fold__edit-btn">Modifier</button>
+                </div>
+                <div class="profil-dash-fold__body profil-dash-fold__edit" data-dp-fold-edit>
+                <div class="field-group">
+                    <label class="field-label" for="dpName">Nom affiché</label>
+                    <div class="field-input-wrap">
+                        <input type="text" id="dpName" name="name" autocomplete="name" required>
                     </div>
-                    <div class="field-group" id="dpWrapSalonName" hidden>
-                        <label class="field-label" for="dpSalonName">Nom du salon</label>
-                        <div class="field-input-wrap">
-                            <input type="text" id="dpSalonName" name="salonName" placeholder="Ex. Salon Élégance">
-                        </div>
+                </div>
+                <div class="field-group" id="dpWrapSalonName" hidden>
+                    <label class="field-label" for="dpSalonName">Nom du salon</label>
+                    <div class="field-input-wrap">
+                        <input type="text" id="dpSalonName" name="salonName" placeholder="Ex. Salon Élégance">
                     </div>
-                    <fieldset class="field-group register-metiers-fieldset" id="dpWrapProMetiers" hidden>
-                        <legend class="field-label">Mon activité</legend>
-                        <p class="field-hint">Tout ce que vous proposez ; les clients qui cochent ces types vous verront.</p>
-                        <div id="dpProMetiersList" class="register-metiers-list"></div>
-                    </fieldset>
+                </div>
+                <fieldset class="field-group register-metiers-fieldset" id="dpWrapProMetiers" hidden>
+                    <legend class="field-label">Mon activité</legend>
+                    <p class="field-hint">Tout ce que vous proposez ; les clients qui cochent ces types vous verront.</p>
+                    <div id="dpProMetiersList" class="register-metiers-list"></div>
+                </fieldset>
                 </div>
             </details>
 
-            <details class="profil-dash-fold">
+            <details class="profil-dash-fold" data-dp-fold="location">
                 <summary>Localisation</summary>
-                <div class="profil-dash-fold__body">
-                    <div class="field-group">
-                        <label class="field-label" for="dpCity">Ville</label>
-                        <div class="field-input-wrap">
-                            <select id="dpCity" name="city" class="field-select" required aria-describedby="dpLocationHint"></select>
-                        </div>
+                <div class="profil-dash-fold__view" data-dp-fold-view>
+                    <div class="profil-dash-fold__view-content" data-dp-fold-view-content></div>
+                    <button type="button" class="profil-dash-fold__edit-btn">Modifier</button>
+                </div>
+                <div class="profil-dash-fold__body profil-dash-fold__edit" data-dp-fold-edit>
+                <div class="field-group">
+                    <label class="field-label" for="dpCity">Ville</label>
+                    <div class="field-input-wrap">
+                        <select id="dpCity" name="city" class="field-select" required aria-describedby="dpLocationHint"></select>
                     </div>
-                    <div class="field-group" id="dpCityOtherWrap" hidden>
-                        <label class="field-label" for="dpCityOther">Autre ville</label>
-                        <div class="field-input-wrap">
-                            <input type="text" id="dpCityOther" name="cityOther" placeholder="Nom de la ville" autocomplete="address-level2">
-                        </div>
+                </div>
+                <div class="field-group" id="dpCityOtherWrap" hidden>
+                    <label class="field-label" for="dpCityOther">Autre ville</label>
+                    <div class="field-input-wrap">
+                        <input type="text" id="dpCityOther" name="cityOther" placeholder="Nom de la ville" autocomplete="address-level2">
                     </div>
-                    <div class="field-group">
-                        <label class="field-label" for="dpQuartier">Quartier ou zone</label>
-                        <div class="field-input-wrap">
-                            <select id="dpQuartier" name="quartier" class="field-select" required disabled></select>
-                        </div>
+                </div>
+                <div class="field-group">
+                    <label class="field-label" for="dpQuartier">Quartier ou zone</label>
+                    <div class="field-input-wrap">
+                        <select id="dpQuartier" name="quartier" class="field-select" required disabled></select>
+                    </div>
                         <p class="field-hint" id="dpLocationHint">Choisissez d'abord la ville, puis le quartier.</p>
+                </div>
+                <div class="field-group" id="dpQuartierOtherWrap" hidden>
+                    <label class="field-label" for="dpQuartierOther">Autre quartier</label>
+                    <div class="field-input-wrap">
+                        <input type="text" id="dpQuartierOther" name="quartierOther" placeholder="Ex. Tokoin, Bè…" autocomplete="address-line2">
                     </div>
-                    <div class="field-group" id="dpQuartierOtherWrap" hidden>
-                        <label class="field-label" for="dpQuartierOther">Autre quartier</label>
-                        <div class="field-input-wrap">
-                            <input type="text" id="dpQuartierOther" name="quartierOther" placeholder="Ex. Tokoin, Bè…" autocomplete="address-line2">
-                        </div>
-                    </div>
+                </div>
                 </div>
             </details>
 
-            <details class="profil-dash-fold">
+            <details class="profil-dash-fold" data-dp-fold="contact">
                 <summary>Contact</summary>
-                <div class="profil-dash-fold__body">
+                <div class="profil-dash-fold__view" data-dp-fold-view>
+                    <div class="profil-dash-fold__view-content" data-dp-fold-view-content></div>
+                    <button type="button" class="profil-dash-fold__edit-btn">Modifier</button>
+                </div>
+                <div class="profil-dash-fold__body profil-dash-fold__edit" data-dp-fold-edit>
                     <p class="field-hint profil-dash-email-readonly" id="dpHubEmail">—</p>
-                    <div class="field-group">
-                        <label class="field-label" for="dpPhoneNational">Téléphone (optionnel)</label>
-                        <div class="phone-input-row">
-                            <select id="dpPhoneCountry" class="phone-input-row__country" aria-label="Indicatif pays"></select>
-                            <div class="field-input-wrap phone-input-row__number-wrap">
-                                <input type="tel" id="dpPhoneNational" name="phoneNational" autocomplete="tel-national" placeholder="90 12 34 56">
-                            </div>
+                <div class="field-group">
+                    <label class="field-label" for="dpPhoneNational">Téléphone (optionnel)</label>
+                    <div class="phone-input-row">
+                        <select id="dpPhoneCountry" class="phone-input-row__country" aria-label="Indicatif pays"></select>
+                        <div class="field-input-wrap phone-input-row__number-wrap">
+                            <input type="tel" id="dpPhoneNational" name="phoneNational" autocomplete="tel-national" placeholder="90 12 34 56">
                         </div>
-                        <p class="field-hint" id="dpPhoneHint"></p>
                     </div>
+                    <p class="field-hint" id="dpPhoneHint"></p>
+                </div>
                 </div>
             </details>
 
-            <details class="profil-dash-fold" id="dpFoldBio" hidden>
+            <details class="profil-dash-fold" id="dpFoldBio" data-dp-fold="bio" hidden>
                 <summary>Description</summary>
-                <div class="profil-dash-fold__body">
-                    <div class="field-group" id="dpWrapBio">
+                <div class="profil-dash-fold__view" data-dp-fold-view>
+                    <div class="profil-dash-fold__view-content" data-dp-fold-view-content></div>
+                    <button type="button" class="profil-dash-fold__edit-btn">Modifier</button>
+                </div>
+                <div class="profil-dash-fold__body profil-dash-fold__edit" data-dp-fold-edit>
+                <div class="field-group" id="dpWrapBio">
                         <label class="field-label" for="dpBio">Présentation</label>
-                        <textarea id="dpBio" name="bio" class="field-textarea" rows="4" placeholder="Présentez-vous ou décrivez votre établissement…"></textarea>
-                    </div>
+                    <textarea id="dpBio" name="bio" class="field-textarea" rows="4" placeholder="Présentez-vous ou décrivez votre établissement…"></textarea>
+                </div>
                 </div>
             </details>
 
             <button type="submit" class="register-submit profil-dash-save" id="dpSaveBtn">Enregistrer</button>
-        </div>
+            <p id="dpSaveInlineFeedback" class="field-hint profil-dash-save-feedback" role="status" hidden></p>
+                    </div>
 
         <div id="dpPanelServices" class="profil-dash-panel" role="tabpanel" aria-labelledby="dpTabServices" hidden>
             <h3 class="profil-dash-panel__title">Services enregistrés</h3>
@@ -166,8 +183,9 @@
                 <span aria-hidden="true">+</span> Ajouter un service
             </button>
             <button type="submit" class="register-submit profil-dash-save" id="dpSaveBtnServices">Enregistrer les services</button>
-        </div>
-    </form>
+            <p id="dpSaveServicesInlineFeedback" class="field-hint profil-dash-save-feedback" role="status" hidden></p>
+                </div>
+            </form>
 
     <div id="dpPanelPhotos" class="profil-dash-panel" role="tabpanel" aria-labelledby="dpTabPhotos" hidden>
         <h3 class="profil-dash-panel__title">Photos &amp; réalisations</h3>
@@ -175,7 +193,7 @@
         <div id="dpPhotosGrid" class="profil-dash-photos-grid"></div>
         <p id="dpPhotosEmpty" class="profil-dash-empty" hidden>Aucune photo publiée pour le moment.</p>
         <p class="field-hint">Publiez depuis le tableau de bord (section Photos) ou demandez à vos clients de partager après prestation.</p>
-    </div>
+        </div>
 
     <div id="dpPanelAvis" class="profil-dash-panel" role="tabpanel" aria-labelledby="dpTabAvis" hidden>
         <h3 class="profil-dash-panel__title">Avis clients</h3>
@@ -288,6 +306,269 @@ function setMetierChecks(containerId, slugs) {
 
 function readMetierChecks(inputName) {
     return [...document.querySelectorAll(`input[name="${inputName}"]:checked`)].map((c) => c.value);
+}
+
+function metierLabelsFromSlugs(slugs) {
+    const set = new Set((slugs || []).map((s) => String(s).trim().toLowerCase()));
+    return HAIRCONNECT_METIERS.filter((m) => set.has(m.slug)).map((m) => m.label);
+}
+
+function foldViewLine(label, value, emptyText = "Non renseigné") {
+    const v = String(value || "").trim();
+    const display = v
+        ? escapeHtml(v)
+        : `<span class="profil-dash-fold__empty">${escapeHtml(emptyText)}</span>`;
+    return `<div><strong>${escapeHtml(label)} :</strong> ${display}</div>`;
+}
+
+function syncFoldView(fold) {
+    if (!fold || fold.hidden) return;
+    const contentEl = fold.querySelector("[data-dp-fold-view-content]");
+    if (!contentEl) return;
+    const key = fold.dataset.dpFold || "";
+    let html = "";
+
+    if (key === "general") {
+        html += foldViewLine("Nom affiché", document.getElementById("dpName")?.value);
+        if (roleDisplay === "Salon") {
+            html += foldViewLine("Nom du salon", document.getElementById("dpSalonName")?.value);
+        }
+        if (roleDisplay === "Coiffeur" || roleDisplay === "Salon") {
+            const labels = metierLabelsFromSlugs(readMetierChecks("dpProMetier"));
+            html += foldViewLine(
+                "Activité",
+                labels.length ? labels.join(", ") : "",
+                "Aucune activité sélectionnée"
+            );
+        }
+    } else if (key === "location") {
+        const loc = readLocationFromFields({
+            citySelect: document.getElementById("dpCity"),
+            quartierSelect: document.getElementById("dpQuartier"),
+            cityOtherInput: document.getElementById("dpCityOther"),
+            quartierOtherInput: document.getElementById("dpQuartierOther")
+        });
+        const city = loc.ok ? loc.city : "";
+        const quartier = loc.ok ? loc.quartier : "";
+        html += foldViewLine("Ville", city);
+        html += foldViewLine("Quartier", quartier);
+    } else if (key === "contact") {
+        const email = auth.currentUser?.email || "";
+        html += foldViewLine("E-mail", email, "—");
+        const phone = readPhoneFromField(dpPhoneCountry, dpPhoneNational);
+        html += foldViewLine(
+            "Téléphone",
+            phone.ok ? formatPhoneDisplay(phone.e164) : "",
+            "Non renseigné"
+        );
+    } else if (key === "bio") {
+        const bio = document.getElementById("dpBio")?.value.trim() || "";
+        html = bio
+            ? `<div>${escapeHtml(bio)}</div>`
+            : `<span class="profil-dash-fold__empty">Aucune description pour le moment.</span>`;
+    }
+
+    contentEl.innerHTML = html;
+}
+
+function setFoldEditing(fold, editing) {
+    if (!fold) return;
+    const view = fold.querySelector("[data-dp-fold-view]");
+    const edit = fold.querySelector("[data-dp-fold-edit]");
+    fold.classList.toggle("profil-dash-fold--editing", editing);
+    if (view) view.hidden = editing;
+    if (edit) edit.hidden = !editing;
+}
+
+function foldHasSavedContent(fold) {
+    const key = fold?.dataset?.dpFold || "";
+    if (key === "general") {
+        return !!String(document.getElementById("dpName")?.value || "").trim();
+    }
+    if (key === "location") {
+        const loc = readLocationFromFields({
+            citySelect: document.getElementById("dpCity"),
+            quartierSelect: document.getElementById("dpQuartier"),
+            cityOtherInput: document.getElementById("dpCityOther"),
+            quartierOtherInput: document.getElementById("dpQuartierOther")
+        });
+        return loc.ok && !!String(loc.city || "").trim();
+    }
+    if (key === "contact") {
+        const phone = readPhoneFromField(dpPhoneCountry, dpPhoneNational);
+        return phone.ok && !!String(phone.e164 || "").trim();
+    }
+    if (key === "bio") {
+        return !!String(document.getElementById("dpBio")?.value || "").trim();
+    }
+    return false;
+}
+
+function initProfileFolds() {
+    document.querySelectorAll("#dpPanelInfo .profil-dash-fold").forEach((fold) => {
+        if (fold.dataset.dpFoldBound === "1") return;
+        fold.dataset.dpFoldBound = "1";
+        const editBtn = fold.querySelector(".profil-dash-fold__edit-btn");
+        editBtn?.addEventListener("click", (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            fold.open = true;
+            setFoldEditing(fold, true);
+        });
+    });
+}
+
+function applyProfileFoldsViewState({ preferEditIfEmpty = false, afterSave = false } = {}) {
+    initProfileFolds();
+    const folds = [...document.querySelectorAll("#dpPanelInfo .profil-dash-fold")].filter((f) => !f.hidden);
+    let openedEdit = false;
+    folds.forEach((fold) => {
+        syncFoldView(fold);
+        const hasContent = foldHasSavedContent(fold);
+        if (afterSave && hasContent) {
+            fold.open = true;
+            setFoldEditing(fold, false);
+        } else if (preferEditIfEmpty && !hasContent && !openedEdit) {
+            fold.open = true;
+            setFoldEditing(fold, true);
+            openedEdit = true;
+        } else {
+            setFoldEditing(fold, false);
+            if (!afterSave || !hasContent) fold.removeAttribute("open");
+        }
+    });
+}
+
+function showProfileFormNotice(el) {
+    if (!el || el.hidden) return;
+    el.scrollIntoView({ behavior: "smooth", block: "nearest" });
+}
+
+function setInlineSaveFeedback(text, isError = false, target = "info") {
+    const el = document.getElementById(
+        target === "services" ? "dpSaveServicesInlineFeedback" : "dpSaveInlineFeedback"
+    );
+    if (!el) return;
+    if (!text) {
+        el.hidden = true;
+        el.textContent = "";
+        el.classList.remove("profil-dash-save-feedback--error");
+        return;
+    }
+    el.textContent = text;
+    el.hidden = false;
+    el.classList.toggle("profil-dash-save-feedback--error", isError);
+    el.scrollIntoView({ behavior: "smooth", block: "nearest" });
+}
+
+function clearAllInlineSaveFeedback() {
+    setInlineSaveFeedback("", false, "info");
+    setInlineSaveFeedback("", false, "services");
+}
+
+function showSaveFeedback(text, isError, context = "info") {
+    clearAllInlineSaveFeedback();
+    setInlineSaveFeedback(text, isError, context);
+}
+
+let profileSaveIntent = "info";
+
+function openFoldForEdit(key) {
+    const fold = document.querySelector(`#dpPanelInfo .profil-dash-fold[data-dp-fold="${key}"]`);
+    if (!fold) return;
+    fold.open = true;
+    setFoldEditing(fold, true);
+    fold.scrollIntoView({ behavior: "smooth", block: "nearest" });
+}
+
+function resolveNameForSave() {
+    const fromField = String(document.getElementById("dpName")?.value || "").trim();
+    if (fromField) return fromField;
+    return String(profileCache?.name || "").trim();
+}
+
+function prepareServiceCardsForSave() {
+    const listEl = document.getElementById("dpServicesList");
+    if (!listEl) return;
+    [...listEl.querySelectorAll(".profil-service-card")].forEach((card) => {
+        const data = readServiceFromCard(card);
+        if (!data.name) {
+            card.remove();
+            return;
+        }
+        syncServiceCardView(card);
+    });
+}
+
+function openServiceCardForEdit(card) {
+    if (!card) return;
+    card.classList.add("profil-service-card--editing");
+    const view = card.querySelector(".profil-service-card__view");
+    const edit = card.querySelector(".profil-service-card__edit");
+    if (view) view.hidden = true;
+    if (edit) edit.hidden = false;
+    card.scrollIntoView({ behavior: "smooth", block: "nearest" });
+    card.querySelector(".profil-service-card__price-input")?.focus();
+}
+
+function validateServicesForSave() {
+    prepareServiceCardsForSave();
+    const listEl = document.getElementById("dpServicesList");
+    if (!listEl) return { ok: true, rows: [] };
+    const rows = [];
+    for (const card of listEl.querySelectorAll(".profil-service-card")) {
+        const data = readServiceFromCard(card);
+        if (!data.name) continue;
+        if (data.price == null || !Number.isFinite(data.price) || data.price < 0) {
+            return {
+                ok: false,
+                message: `Indiquez un prix valide pour « ${data.name} ».`,
+                card
+            };
+        }
+        rows.push(data);
+    }
+    return { ok: true, rows };
+}
+
+function resolveLocationForSave() {
+    const locResult = readLocationFromFields({
+        citySelect: document.getElementById("dpCity"),
+        quartierSelect: document.getElementById("dpQuartier"),
+        cityOtherInput: document.getElementById("dpCityOther"),
+        quartierOtherInput: document.getElementById("dpQuartierOther")
+    });
+    if (locResult.ok) return locResult;
+    const cachedCity = String(profileCache?.city || "").trim();
+    const cachedQuartier = String(profileCache?.quartier || "").trim();
+    if (cachedCity && cachedQuartier) {
+        return { ok: true, city: cachedCity, quartier: cachedQuartier, message: "" };
+    }
+    return locResult;
+}
+
+function finalizeServiceCardsAfterSave() {
+    const listEl = document.getElementById("dpServicesList");
+    if (!listEl) return;
+    [...listEl.querySelectorAll(".profil-service-card")].forEach((card) => {
+        const data = readServiceFromCard(card);
+        if (!data.name) {
+            card.remove();
+            return;
+        }
+        syncServiceCardView(card);
+        card.classList.remove("profil-service-card--editing");
+        const view = card.querySelector(".profil-service-card__view");
+        const edit = card.querySelector(".profil-service-card__edit");
+        if (view) view.hidden = false;
+        if (edit) edit.hidden = true;
+        card.dataset.validated = "true";
+    });
+}
+
+function finalizeProfileSectionsAfterSave() {
+    applyProfileFoldsViewState({ preferEditIfEmpty: false, afterSave: true });
+    finalizeServiceCardsAfterSave();
 }
 
 let profileUid = null;
@@ -752,6 +1033,7 @@ function syncFormFromCache() {
     }
     setMetierChecks("dpProMetiersList", parseMetiersFromProfile(data.proMetiers));
     loadProfileInsights(data, roleDisplay);
+    applyProfileFoldsViewState({ preferEditIfEmpty: !String(data.name || "").trim() });
 }
 
 function readServiceFromCard(card) {
@@ -769,7 +1051,7 @@ function syncServiceCardView(card) {
     if (nameEl) nameEl.textContent = data.name || "Service sans nom";
     if (priceEl) {
         const label = formatServicePriceFcfa(data.price, data.fromPrice);
-        priceEl.textContent = label ? (data.fromPrice ? "À partir de " + label : label) : "Prix à définir";
+        priceEl.textContent = label || "Prix à définir";
     }
 }
 
@@ -833,14 +1115,28 @@ function buildServiceCard({ name = "", price = null, fromPrice = true, editing =
     edit.appendChild(doneBtn);
 
     function setEditing(on) {
+        li.classList.toggle("profil-service-card--editing", on);
         edit.hidden = !on;
         view.hidden = on;
     }
 
     editBtn.addEventListener("click", () => setEditing(true));
     doneBtn.addEventListener("click", () => {
+        const data = readServiceFromCard(li);
+        if (!data.name) {
+            nameInput.focus();
+            showSaveFeedback("Indiquez le nom du service.", true, "services");
+            return;
+        }
+        if (data.price == null || !Number.isFinite(data.price) || data.price < 0) {
+            priceInput.focus();
+            showSaveFeedback(`Indiquez un prix valide pour « ${data.name} ».`, true, "services");
+            return;
+        }
+        setInlineSaveFeedback("", false, "services");
         syncServiceCardView(li);
         setEditing(false);
+        li.dataset.validated = "true";
     });
     delBtn.addEventListener("click", () => {
         li.remove();
@@ -874,7 +1170,9 @@ function renderServicesEditor(rows) {
     const data = rows && rows.length ? rows : [];
     if (!data.length) return;
     for (const row of data) {
-        listEl.appendChild(buildServiceCard(row));
+        const card = buildServiceCard({ ...row, editing: false });
+        card.dataset.validated = "true";
+        listEl.appendChild(card);
     }
 }
 
@@ -932,8 +1230,11 @@ document.getElementById("dpAddServiceBtn")?.addEventListener("click", () => {
 document.getElementById("dpEditCta")?.addEventListener("click", () => {
     document.querySelector("[data-dp-tab=\"info\"]")?.click();
     document.getElementById("dpPanelInfo")?.scrollIntoView({ behavior: "smooth", block: "start" });
-    const firstFold = document.querySelector("#dpPanelInfo .profil-dash-fold");
-    if (firstFold) firstFold.open = true;
+    const firstFold = document.querySelector("#dpPanelInfo .profil-dash-fold:not([hidden])");
+    if (firstFold) {
+        firstFold.open = true;
+        setFoldEditing(firstFold, true);
+    }
 });
 
 function notifyParentProfileUpdated(photoUrlHint) {
@@ -970,17 +1271,26 @@ document.getElementById("dpLogout").addEventListener("click", async () => {
 
 async function handleProfileSave(e) {
     e.preventDefault();
+    const saveContext = profileSaveIntent;
+    profileSaveIntent = "info";
     const formError = document.getElementById("dpFormError");
     const formOk = document.getElementById("dpFormOk");
-    const saveBtn = document.getElementById("dpSaveBtn");
+    const saveBtn =
+        saveContext === "services"
+            ? document.getElementById("dpSaveBtnServices")
+            : document.getElementById("dpSaveBtn");
     if (formError) formError.hidden = true;
     if (formOk) formOk.hidden = true;
+    clearAllInlineSaveFeedback();
 
     if (!profileUid) {
+        const msg = "Session non prête, patientez une seconde.";
         if (formError) {
-            formError.textContent = "Session non prête, patientez une seconde.";
+            formError.textContent = msg;
             formError.hidden = false;
+            showProfileFormNotice(formError);
         }
+        showSaveFeedback(msg, true, saveContext);
         return;
     }
 
@@ -989,26 +1299,29 @@ async function handleProfileSave(e) {
         if (formError) {
             formError.textContent = phoneResult.message;
             formError.hidden = false;
+            showProfileFormNotice(formError);
         }
+        showSaveFeedback(phoneResult.message, true, saveContext);
+        if (saveContext !== "services") openFoldForEdit("contact");
+        else document.querySelector("[data-dp-tab=\"info\"]")?.click();
         return;
     }
 
-    const locResult = readLocationFromFields({
-        citySelect: document.getElementById("dpCity"),
-        quartierSelect: document.getElementById("dpQuartier"),
-        cityOtherInput: document.getElementById("dpCityOther"),
-        quartierOtherInput: document.getElementById("dpQuartierOther")
-    });
+    const locResult = resolveLocationForSave();
     if (!locResult.ok) {
         if (formError) {
             formError.textContent = locResult.message;
             formError.hidden = false;
+            showProfileFormNotice(formError);
         }
+        showSaveFeedback(locResult.message, true, saveContext);
+        document.querySelector("[data-dp-tab=\"info\"]")?.click();
+        openFoldForEdit("location");
         return;
     }
 
     const payload = {
-        name: document.getElementById("dpName").value.trim(),
+        name: resolveNameForSave(),
         city: locResult.city,
         quartier: locResult.quartier,
         phone: phoneResult.e164,
@@ -1017,10 +1330,15 @@ async function handleProfileSave(e) {
     payload.bio = roleDisplay === "Client" ? "" : document.getElementById("dpBio").value.trim();
 
     if (!payload.name) {
+        const nameMsg = "Le nom affiché est obligatoire (section Informations générales).";
         if (formError) {
-            formError.textContent = "Le nom affiché est obligatoire.";
+            formError.textContent = nameMsg;
             formError.hidden = false;
+            showProfileFormNotice(formError);
         }
+        showSaveFeedback(nameMsg, true, saveContext);
+        document.querySelector("[data-dp-tab=\"info\"]")?.click();
+        openFoldForEdit("general");
         return;
     }
 
@@ -1029,22 +1347,27 @@ async function handleProfileSave(e) {
     }
     if (roleDisplay === "Coiffeur" || roleDisplay === "Salon") {
         payload.proMetiers = readMetierChecks("dpProMetier");
-        const serviceRows = readServicesFromEditor().filter((r) => r.name);
-        for (const row of serviceRows) {
-            if (row.price == null || !Number.isFinite(row.price) || row.price < 0) {
-                if (formError) {
-                    formError.textContent = `Indiquez un prix valide pour « ${row.name} ».`;
-                    formError.hidden = false;
-                }
-                document.querySelector("[data-dp-tab=\"services\"]")?.click();
-                return;
+        const servicesCheck = validateServicesForSave();
+        if (!servicesCheck.ok) {
+            if (formError) {
+                formError.textContent = servicesCheck.message;
+                formError.hidden = false;
+                showProfileFormNotice(formError);
             }
+            showSaveFeedback(servicesCheck.message, true, "services");
+            document.querySelector("[data-dp-tab=\"services\"]")?.click();
+            openServiceCardForEdit(servicesCheck.card);
+            return;
         }
-        payload.servicesTarifs = serializeServicesTarifs(serviceRows);
+        payload.servicesTarifs = serializeServicesTarifs(servicesCheck.rows);
         payload.tarifMenuPhotoUrl = null;
     }
 
-    if (saveBtn) saveBtn.disabled = true;
+    const saveLabel = saveBtn?.textContent || "Enregistrer";
+    if (saveBtn) {
+        saveBtn.disabled = true;
+        saveBtn.textContent = "Enregistrement…";
+    }
     try {
         const saved = await updateUserProfile(profileUid, payload);
         const fresh = (await fetchUserProfile(profileUid)) || saved || null;
@@ -1052,25 +1375,39 @@ async function handleProfileSave(e) {
         photoUrl = savedPhoto;
         profileCache = { ...(fresh || profileCache || {}), photoUrl: savedPhoto };
         syncFormFromCache();
+        finalizeProfileSectionsAfterSave();
         notifyParentProfileUpdated(savedPhoto);
+        const okMsg = saveContext === "services" ? "Services enregistrés." : "Profil enregistré.";
         if (formOk) {
-            formOk.textContent = "Profil enregistré.";
+            formOk.textContent = okMsg;
             formOk.hidden = false;
+            showProfileFormNotice(formOk);
+        }
+        showSaveFeedback(okMsg, false, saveContext);
+        if (saveContext === "services") {
+            document.querySelector("[data-dp-tab=\"services\"]")?.click();
         }
     } catch (err) {
         console.error(err);
+        const errMsg = getFirebaseErrorMessage(err);
         if (formError) {
-            formError.textContent = getFirebaseErrorMessage(err);
+            formError.textContent = errMsg;
             formError.hidden = false;
+            showProfileFormNotice(formError);
         }
+        showSaveFeedback(errMsg, true, saveContext);
     } finally {
-        if (saveBtn) saveBtn.disabled = false;
+        if (saveBtn) {
+            saveBtn.disabled = false;
+            saveBtn.textContent = saveLabel;
+        }
     }
 }
 
 document.getElementById("dpForm").addEventListener("submit", handleProfileSave);
 document.getElementById("dpSaveBtnServices")?.addEventListener("click", (e) => {
     e.preventDefault();
+    profileSaveIntent = "services";
     document.getElementById("dpForm").requestSubmit();
 });
 setupTabsOnce();

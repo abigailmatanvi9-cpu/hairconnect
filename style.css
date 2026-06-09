@@ -1049,9 +1049,67 @@ body.hc-marketing--beauty .marketing-footer {
     content: "▶ ";
 }
 
+.profil-dash-fold__view {
+    padding: 0.85rem 1rem 1rem;
+    border-top: 1px solid var(--hc-pro-line, #ebe4df);
+}
+
+.profil-dash-fold__view-content {
+    margin: 0;
+    font-size: 0.88rem;
+    line-height: 1.55;
+    color: var(--hc-pro-ink, #1e293b);
+    white-space: pre-line;
+}
+
+.profil-dash-fold__view-content .profil-dash-fold__empty {
+    color: #64748b;
+    font-style: italic;
+}
+
+.profil-dash-fold__edit-btn {
+    margin-top: 0.65rem;
+    padding: 0.4rem 0.85rem;
+    border-radius: 999px;
+    border: 1px solid var(--hc-pro-line, #ebe4df);
+    background: #fff;
+    color: var(--hc-pro-purple, #7b78d8);
+    font-size: 0.78rem;
+    font-weight: 700;
+    cursor: pointer;
+}
+
 .profil-dash-fold__body {
     padding: 0 1rem 1rem;
     border-top: 1px solid var(--hc-pro-line, #ebe4df);
+}
+
+.profil-dash-fold__view[hidden],
+.profil-dash-fold__edit[hidden] {
+    display: none !important;
+}
+
+.profil-dash-fold--editing .profil-dash-fold__view {
+    display: none !important;
+}
+
+.profil-dash-fold--editing .profil-dash-fold__edit {
+    display: block !important;
+}
+
+.profil-dash-save-feedback {
+    margin-top: 0.75rem;
+    text-align: center;
+    color: var(--hc-primary, #6b4fa0);
+    font-weight: 500;
+}
+
+.profil-dash-save-feedback--error {
+    color: #b42318;
+}
+
+.profil-dash-fold:not(.profil-dash-fold--editing) .profil-dash-fold__edit {
+    display: none !important;
 }
 
 .profil-dash-email-readonly {
@@ -1126,6 +1184,23 @@ body.hc-marketing--beauty .marketing-footer {
     gap: 0.5rem;
     border-top: 1px solid var(--hc-pro-line, #ebe4df);
     background: #fafafa;
+}
+
+.profil-service-card__view[hidden],
+.profil-service-card__edit[hidden] {
+    display: none !important;
+}
+
+.profil-service-card--editing .profil-service-card__view {
+    display: none !important;
+}
+
+.profil-service-card--editing .profil-service-card__edit {
+    display: flex !important;
+}
+
+.profil-service-card:not(.profil-service-card--editing) .profil-service-card__edit {
+    display: none !important;
 }
 
 .profil-dash-photos-grid {

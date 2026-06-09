@@ -444,8 +444,7 @@ if (!uid) {
             if (services.length && isProProfile) {
                 pubServicesEl.innerHTML = services
                     .map((s) => {
-                        const price = formatServicePriceFcfa(s.price, s.fromPrice);
-                        const priceLabel = price ? (s.fromPrice ? `À partir de ${price}` : price) : "";
+                        const priceLabel = formatServicePriceFcfa(s.price, s.fromPrice);
                         return (
                             `<li class="pp-service-card">` +
                             `<span class="pp-service-card__name">${escapeHtml(s.name)}</span>` +
